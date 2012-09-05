@@ -50,6 +50,9 @@
     <ClCompile Include="GeneratedFiles\qrc_ActionRecognitionProject.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="MoSIFTUtilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ActionRecognitionProject.h">
@@ -70,6 +73,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="OpenCVToQtInterfacing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MoSIFTUtilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MoFREAKUtilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

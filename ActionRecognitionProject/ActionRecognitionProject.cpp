@@ -7,6 +7,7 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 
 	connect(ui.actionLoad, SIGNAL(triggered()), this, SLOT(loadFiles()));
 	connect(ui.play_pause_button, SIGNAL(clicked()), this, SLOT(playOrPause()));
+	connect(ui.actionLoadMoSIFT, SIGNAL(triggered()), this, SLOT(loadMoSIFTFile()));
 
 	// Update the UI
 	timer = new QTimer(this);
@@ -45,6 +46,18 @@ void ActionRecognitionProject::loadFiles()
 		// initialize video to be read.
 		capture = new cv::VideoCapture(files[0].toStdString());
 		reading_sequence_of_images = false;
+	}
+}
+
+void ActionRecognitionProject::loadMoSIFTFile()
+{
+	QString filename = QFileDialog::getOpenFileName(this, tr("Directory"), directory.path());
+	
+	mosift.readMoSIFTFeatures(filename.toStdString());
+	mosift_ftrs = mosift.getMoSIFTFeatures();
+	for (unsigned i = 0; i < mosift_ftrs.size(); ++i)
+	{
+		int x = mosift_ftrs[i].frame_number;
 	}
 }
 
@@ -105,10 +118,14 @@ void ActionRecognitionProject::nextFrame()
 	cv::Mat3b output_frame(frame.rows, frame.cols);
 	frame.copyTo(output_frame);
 
-	// process frame here.
-	//trackFrame(gray, output_frame);
+	processFrame(gray, output_frame);
 	updateGUI(frame, output_frame);
 	frame_number++;
+}
+
+void ActionRecognitionProject::processFrame(cv::Mat &input, cv::Mat &output)
+{
+	// maybe display us some mosift here.
 }
 
 void ActionRecognitionProject::updateGUI(cv::Mat3b &raw_frame, cv::Mat3b &output_frame)

@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'ActionRecognitionProject.ui'
 **
-** Created: Tue Sep 4 15:51:33 2012
+** Created: Tue Sep 4 17:29:16 2012
 **      by: Qt User Interface Compiler version 4.8.1
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -30,6 +30,7 @@ class Ui_ActionRecognitionProjectClass
 {
 public:
     QAction *actionLoad;
+    QAction *actionLoadMoSIFT;
     QWidget *centralWidget;
     QPushButton *play_pause_button;
     QPushButton *stop_button;
@@ -50,6 +51,8 @@ public:
         ActionRecognitionProjectClass->resize(600, 400);
         actionLoad = new QAction(ActionRecognitionProjectClass);
         actionLoad->setObjectName(QString::fromUtf8("actionLoad"));
+        actionLoadMoSIFT = new QAction(ActionRecognitionProjectClass);
+        actionLoadMoSIFT->setObjectName(QString::fromUtf8("actionLoadMoSIFT"));
         centralWidget = new QWidget(ActionRecognitionProjectClass);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         play_pause_button = new QPushButton(centralWidget);
@@ -89,6 +92,7 @@ public:
 
         menuBar->addAction(menuFile->menuAction());
         menuFile->addAction(actionLoad);
+        menuFile->addAction(actionLoadMoSIFT);
 
         retranslateUi(ActionRecognitionProjectClass);
 
@@ -98,7 +102,8 @@ public:
     void retranslateUi(QMainWindow *ActionRecognitionProjectClass)
     {
         ActionRecognitionProjectClass->setWindowTitle(QApplication::translate("ActionRecognitionProjectClass", "ActionRecognitionProject", 0, QApplication::UnicodeUTF8));
-        actionLoad->setText(QApplication::translate("ActionRecognitionProjectClass", "Load", 0, QApplication::UnicodeUTF8));
+        actionLoad->setText(QApplication::translate("ActionRecognitionProjectClass", "Load Video", 0, QApplication::UnicodeUTF8));
+        actionLoadMoSIFT->setText(QApplication::translate("ActionRecognitionProjectClass", "Load MoSIFT Features", 0, QApplication::UnicodeUTF8));
         play_pause_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Play", 0, QApplication::UnicodeUTF8));
         stop_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Restart", 0, QApplication::UnicodeUTF8));
         input_sequence->setText(QString());

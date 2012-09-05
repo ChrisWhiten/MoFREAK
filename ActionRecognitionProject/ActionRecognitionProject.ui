@@ -120,6 +120,7 @@
      <string>File</string>
     </property>
     <addaction name="actionLoad"/>
+    <addaction name="actionLoadMoSIFT"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -134,7 +135,12 @@
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionLoad">
    <property name="text">
-    <string>Load</string>
+    <string>Load Video</string>
+   </property>
+  </action>
+  <action name="actionLoadMoSIFT">
+   <property name="text">
+    <string>Load MoSIFT Features</string>
    </property>
   </action>
  </widget>

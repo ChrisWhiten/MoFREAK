@@ -10,3 +10,14 @@
 *.lai
 *.la
 *.a
+
+ipch/**/*
+*.sdf
+*.pdb
+*.ilk
+*.exe
+*/Debug/*
+*/Debug/**/*
+*/Release/*
+*/Release/**/*
+*.suo

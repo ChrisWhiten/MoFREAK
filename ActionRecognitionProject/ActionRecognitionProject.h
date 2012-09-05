@@ -21,6 +21,7 @@
 #include "ui_ActionRecognitionProject.h"
 #include "Constants.h"
 #include "OpenCVToQtInterfacing.h"
+#include "MoSIFTUtilities.h"
 
 using namespace std;
 
@@ -36,6 +37,7 @@ private slots:
 	void loadFiles();
 	void playOrPause();
 	void nextFrame();
+	void loadMoSIFTFile();
 
 private:
 	int frame_number;
@@ -49,8 +51,11 @@ private:
 
 	QStringList files;
 	cv::VideoCapture *capture;
+	MoSIFTUtilities mosift;
+	vector<MoSIFTFeature> mosift_ftrs;
 
 	cv::Mat3b getFrame();
+	void processFrame(cv::Mat &input, cv::Mat &output);
 	void updateGUI(cv::Mat3b &raw_frame, cv::Mat3b &tracked_frame);
 	void pause();
 	void play();

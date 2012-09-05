@@ -92,6 +92,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MoSIFTUtilities.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ActionRecognitionProject.h">
@@ -121,6 +122,8 @@
   <ItemGroup>
     <ClInclude Include="Constants.h" />
     <ClInclude Include="GeneratedFiles\ui_ActionRecognitionProject.h" />
+    <ClInclude Include="MoFREAKUtilities.h" />
+    <ClInclude Include="MoSIFTUtilities.h" />
     <ClInclude Include="OpenCVToQtInterfacing.h" />
   </ItemGroup>
   <ItemGroup>
