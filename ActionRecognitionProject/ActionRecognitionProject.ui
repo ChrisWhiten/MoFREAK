@@ -105,6 +105,19 @@
      <string/>
     </property>
    </widget>
+   <widget class="QPushButton" name="convertMoSIFTToMoFREAK">
+    <property name="geometry">
+     <rect>
+      <x>424</x>
+      <y>300</y>
+      <width>151</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Convert MoSIFT to MoFREAK</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -121,6 +134,7 @@
     </property>
     <addaction name="actionLoad"/>
     <addaction name="actionLoadMoSIFT"/>
+    <addaction name="actionLoadEverything"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -141,6 +155,11 @@
   <action name="actionLoadMoSIFT">
    <property name="text">
     <string>Load MoSIFT Features</string>
+   </property>
+  </action>
+  <action name="actionLoadEverything">
+   <property name="text">
+    <string>Load Group of MoSIFT Features and AVI Files</string>
    </property>
   </action>
  </widget>

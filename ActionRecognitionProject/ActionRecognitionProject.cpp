@@ -8,6 +8,8 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 	connect(ui.actionLoad, SIGNAL(triggered()), this, SLOT(loadFiles()));
 	connect(ui.play_pause_button, SIGNAL(clicked()), this, SLOT(playOrPause()));
 	connect(ui.actionLoadMoSIFT, SIGNAL(triggered()), this, SLOT(loadMoSIFTFile()));
+	connect(ui.actionLoadEverything, SIGNAL(triggered()), this, SLOT(loadEverything()));
+	connect(ui.convertMoSIFTToMoFREAK, SIGNAL(clicked()), this, SLOT(convertMoSIFTToMoFREAK()));
 
 	// Update the UI
 	timer = new QTimer(this);
@@ -49,6 +51,30 @@ void ActionRecognitionProject::loadFiles()
 	}
 }
 
+// given the mosift features file, assuming the corresponding video files exist, remove sift and replace with freak descriptor.
+void ActionRecognitionProject::convertMoSIFTToMoFREAK()
+{
+	int x = 0;
+	for (auto it = files.begin(); it != files.end(); ++it)
+	{
+		// parse the path to extract the corresponding AVI file.
+		QDir txt_file(*it);
+		QString file_name = txt_file.dirName();
+		
+		txt_file.cdUp();
+		QString video_path = txt_file.canonicalPath(); // this is the folder.
+		video_path.append("/videos/");
+		video_path.append(file_name);
+		video_path.chop(3);
+		video_path.append("avi");
+
+		// ship it away for modification
+		mofreak.buildMoFREAKFeaturesFromMoSIFT(it->toStdString(), video_path.toStdString());
+		it->append(".mofreak.txt");
+		mofreak.writeMoFREAKFeaturesToFile(it->toStdString());
+	}
+}
+
 void ActionRecognitionProject::loadMoSIFTFile()
 {
 	QString filename = QFileDialog::getOpenFileName(this, tr("Directory"), directory.path());
@@ -59,6 +85,11 @@ void ActionRecognitionProject::loadMoSIFTFile()
 	{
 		int x = mosift_ftrs[i].frame_number;
 	}
+}
+
+void ActionRecognitionProject::loadEverything()
+{
+	files = QFileDialog::getOpenFileNames(this, tr("Directory"), directory.path());
 }
 
 void ActionRecognitionProject::playOrPause()

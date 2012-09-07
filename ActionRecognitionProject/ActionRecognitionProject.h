@@ -22,6 +22,7 @@
 #include "Constants.h"
 #include "OpenCVToQtInterfacing.h"
 #include "MoSIFTUtilities.h"
+#include "MoFREAKUtilities.h"
 
 using namespace std;
 
@@ -38,6 +39,8 @@ private slots:
 	void playOrPause();
 	void nextFrame();
 	void loadMoSIFTFile();
+	void convertMoSIFTToMoFREAK();
+	void loadEverything();
 
 private:
 	int frame_number;
@@ -52,6 +55,7 @@ private:
 	QStringList files;
 	cv::VideoCapture *capture;
 	MoSIFTUtilities mosift;
+	MoFREAKUtilities mofreak;
 	vector<MoSIFTFeature> mosift_ftrs;
 
 	cv::Mat3b getFrame();

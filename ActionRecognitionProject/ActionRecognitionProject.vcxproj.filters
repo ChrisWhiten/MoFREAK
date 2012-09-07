@@ -53,6 +53,9 @@
     <ClCompile Include="MoSIFTUtilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MoFREAKUtilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ActionRecognitionProject.h">
