@@ -1,5 +1,16 @@
 #include "MoFREAKUtilities.h"
 
+// this is only implemented here, but not being used right now.
+// the general idea is that we are going to replace optical flow by simple image difference.
+// representing motion as a single unsigned integer.
+unsigned int MoFREAKUtilities::extractMotionByImageDifference(cv::Mat &frame, cv::Mat &prev_frame, float x, float y)
+{
+	int value_at_current_frame = frame.at<unsigned char>(x, y);
+	int value_at_prev_frame = prev_frame.at<unsigned char>(x, y);
+
+	return abs(value_at_current_frame - value_at_prev_frame);
+}
+
 vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float x, float y, float scale)
 {
 	const float SCALE_MULTIPLIER = 6;
@@ -48,6 +59,18 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(string mosift_file, string
 		cv::Mat frame;
 		capture >> frame;
 		vector<unsigned int> freak_ftr = extractFREAKFeature(frame, it->x, it->y, it->scale);
+
+		// compute motion as image difference.
+		unsigned int image_difference = 0;
+		if (it->frame_number != 1)
+		{
+			// set the capture to the previous frame.
+			capture.set(CV_CAP_PROP_POS_FRAMES, it->frame_number - 1);
+			cv::Mat prev_frame;
+			capture >> prev_frame;
+
+			image_difference = extractMotionByImageDifference(frame, prev_frame, it->x, it->y);
+		}
 
 		if (freak_ftr.size() > 0)
 		{

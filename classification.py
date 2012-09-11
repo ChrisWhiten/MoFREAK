@@ -1,8 +1,16 @@
 import numpy
+
 import pylab
 from sklearn import svm, pipeline
 from sklearn.kernel_approximation import RBFSampler, AdditiveChi2Sampler
 from sklearn.decomposition import PCA
+
+# Constants
+NUMBER_OF_ACTIONS = 6
+NUMBER_OF_PEOPLE = 25
+NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION = 4
+NUMBER_OF_CLUSTERS = 600
+NUMBER_OF_VIDEOS = 599
 
 # this class essentially implements an enum.
 # For example, x = Labeling.BOXING (1)
@@ -77,60 +85,140 @@ def reprocessData(file_path):
 	f.close()
 
 # load and parse data for SVM
-def loadTrainingAndTestData(training_path, testing_path):
-	training_data = numpy.genfromtxt(training_path, delimiter = ',')
-	training_labels = training_data[:, 0]
-	training_features = training_data[:, 1:]
+def loadTrainingAndTestData(features_file, labels_file):
+	# group by person.
+	grouped_data = []
+	grouped_labels = []
+	current_indices = []
 
-	testing_data = numpy.genfromtxt(testing_path, delimiter = ',')
-	testing_labels = testing_data[:, 0]
-	testing_features = testing_data[:, 1:]
+	label_data = numpy.genfromtxt(labels_file, delimiter = ',')
+	#testing_labels = testing_data[:, 0]
+	#testing_features = testing_data[:, 1:]
 
-	return training_labels, training_features, testing_labels, testing_features
+	training_data = numpy.genfromtxt(features_file, delimiter = ',')
+	#training_labels = training_data[:, 0]
+	#training_features = training_data[:, 1:]
+
+	# group data by people, so we can easily leave-one-out.
+	for i in xrange(NUMBER_OF_PEOPLE):
+		# person 13 is missing one video...
+		MISSING_VIDEO_OFFSET = 0
+		if i == 12: 
+			MISSING_VIDEO_OFFSET = -1
+
+		data = numpy.zeros(shape = (NUMBER_OF_ACTIONS * NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION + MISSING_VIDEO_OFFSET, NUMBER_OF_CLUSTERS))
+		labels = numpy.zeros(shape = (NUMBER_OF_ACTIONS * NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION + MISSING_VIDEO_OFFSET, 3))
+
+		grouped_data.append(data)
+		grouped_labels.append(labels)
+		current_indices.append(0) # track current row in each group
+
+	i = 0
+	STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION
+	while i < NUMBER_OF_VIDEOS:
+		person_index = int(label_data[i, 1])
+		current_index = current_indices[person_index - 1]
+		# slice corresponding piece of matrix from training data into grouping.
+
+		# to account for the missing video.  Odd that it's missing!
+		# i == 148 corresponds to the location of the missing video.
+		if i == 148:
+			grouped_data[person_index - 1][current_index : current_index + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1, :] = training_data[i : i + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1, :]
+			grouped_labels[person_index - 1][current_index : current_index + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1, :] = label_data[i : i + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1, :]
+			
+			current_indices[person_index - 1] += NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1
+
+			i += STEP - 1
+		else:
+			grouped_data[person_index - 1][current_index : current_index + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION, :] = training_data[i : i + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION, :]
+			grouped_labels[person_index - 1][current_index : current_index + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION, :] = label_data[i : i + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION, :]
+
+			current_indices[person_index - 1] += NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION
+
+			i += STEP
+
+	#print grouped_data[0]
+	#print "exiting"
+	#exit()
+
+	return grouped_data, grouped_labels
 
 # Build an SVM with a chi-squared kernel for accurate recognition.
-def buildClassifiers(training_labels, training_features, testing_labels, testing_features):
-	kernel_svm = svm.SVC(gamma = .2, degree = 100)
-	linear_svm = svm.LinearSVC()
-	new_svm = svm.SVC(kernel = intersection)
+def buildClassifiers(grouped_data, grouped_labels):
 
-	# create a pipeline for kernel approximation
-	#feature_map = RBFSampler(gamma = .2, random_state = 1)
-	feature_map = AdditiveChi2Sampler()
-	approx_kernel_svm = pipeline.Pipeline([("feature_map", feature_map), ("svm", svm.LinearSVC())])
+	scores = []
+	for left_out_person in xrange(NUMBER_OF_PEOPLE):
+		rows = NUMBER_OF_VIDEOS - grouped_data[left_out_person].shape[0]
+		cols = NUMBER_OF_CLUSTERS
 
-	# fit and predict using linear and kernel svm.
-	new_svm.fit(training_features, training_labels)
-	new_svm_score = new_svm.score(testing_features, testing_labels)
+		# the testing data is simply the data from the left out person.
+		testing_data = grouped_data[left_out_person]
+		testing_labels = grouped_labels[left_out_person]
 
-	kernel_svm.fit(training_features, training_labels)
-	kernel_svm_score = kernel_svm.score(testing_features, testing_labels)
+		# build the training data by concatenating all of the data from each person except the left out person.
+		training_data = numpy.zeros(shape = (rows, cols))
+		training_labels = numpy.zeros(shape = (rows, 3))
+		current_index = 0
+		for training_person in xrange(NUMBER_OF_PEOPLE):
+			# don't add the left out person to the training set, clearly..
+			if training_person == left_out_person:
+				continue
 
-	linear_svm.fit(training_features, training_labels)
-	linear_svm_score = linear_svm.score(testing_features, testing_labels)
+			new_rows = grouped_data[training_person].shape[0]
+			training_data[current_index : current_index + new_rows, :] = grouped_data[training_person]
+			training_labels[current_index : current_index + new_rows, :] = grouped_labels[training_person]
 
-	print "linear score: ", linear_svm_score
-	print "kernel score: ", kernel_svm_score
-	print "histogram intersection score: ", new_svm_score
+			current_index += new_rows
 
-	sample_sizes = 50 * numpy.arange(1, 10)
-	approx_kernel_scores = []
-	"""
-	for D in sample_sizes:
-		approx_kernel_svm.set_params(feature_map__sample_steps = D)
-		approx_kernel_svm.set_params(feature_map__sample_interval = D)
-		#approx_kernel_svm.set_params(feature_map__n_components = D)
-		approx_kernel_svm.fit(training_features, training_labels)
-		score = approx_kernel_svm.score(testing_features, testing_labels)
-		print "approx score: ", score
-		approx_kernel_scores.append(score)
-	"""
+		# for now, remove all columns from labels except first.
+		training_labels = training_labels[:, 0]
+		testing_labels = testing_labels[:, 0]
+		
+		print "made it to training"
+		#kernel_svm = svm.SVC(gamma = .2, degree = 100)
+		#linear_svm = svm.LinearSVC()
+		new_svm = svm.SVC(kernel = intersection)
 
-	approx_kernel_svm.fit(training_features, training_labels)
-	score = approx_kernel_svm.score(testing_features, testing_labels)
-	print "approx score: ", score
+		# create a pipeline for kernel approximation
+		#feature_map = RBFSampler(gamma = .2, random_state = 1)
+		feature_map = AdditiveChi2Sampler()
+		approx_kernel_svm = pipeline.Pipeline([("feature_map", feature_map), ("svm", svm.LinearSVC())])
 
-	# for now, return these for plotting.
+		# fit and predict using linear and kernel svm.
+		new_svm.fit(training_data, training_labels)
+		new_svm_score = new_svm.score(testing_data, testing_labels)
+
+		#kernel_svm.fit(training_data, training_labels)
+		#kernel_svm_score = kernel_svm.score(testing_data, testing_labels)
+
+		#linear_svm.fit(training_data, training_labels)
+		#linear_svm_score = linear_svm.score(testing_data, testing_labels)
+
+		approx_kernel_svm.fit(training_data, training_labels)
+		score = approx_kernel_svm.score(testing_data, testing_labels)
+
+		#score_set = [new_svm_score, kernel_svm_score, linear_svm_score, score]
+		score_set = [new_svm_score, score]
+		scores.append(score_set)
+
+		#print "linear score: ", linear_svm_score
+		#print "kernel score: ", kernel_svm_score
+		print "histogram intersection score: ", new_svm_score
+		print "approx chi-squared score: ", score
+
+	# for now, return this for plotting.
+	print scores
+	print "done."
+	summed_chisquared_score = 0
+	summed_hi_score = 0
+	for i in xrange(NUMBER_OF_PEOPLE):
+		summed_chisquared_score += score_set[i][0]
+		summed_hi_score += score_set[i][1]
+
+	avg_cs_score = summed_chisquared_score/float(NUMBER_OF_PEOPLE)
+	avg_hi_score = summed_hi_score/float(NUMBER_OF_PEOPLE)
+	print "Chi-squared average: ", avg_cs_score
+	print "HI average: ", avg_hi_score
 	return linear_svm
 
 # visualization based on code from 
@@ -180,12 +268,12 @@ if __name__ == '__main__':
 	#reprocessData(file_path)
 
 	# Step 2: Load new data into label/feature arrays, with a train and test set.
-	training_path = "C:/data/kth/histogramsDev.txt.reprocessed.txt"
-	testing_path = "C:/data/kth/histogramsEval.txt.reprocessed.txt"
-	training_labels, training_features, testing_labels, testing_features = loadTrainingAndTestData(training_path, testing_path)
+	data = "C:/data/kth/hist.txt"
+	labels = "C:/data/kth/label.txt"
+	grouped_data, grouped_labels = loadTrainingAndTestData(data, labels)
 
 	# Step 3: Build classifiers.
-	linear_svm = buildClassifiers(training_labels, training_features, testing_labels, testing_features)
+	linear_svm = buildClassifiers(grouped_data, grouped_labels)
 
 	# Step 4: Visualize. [broken] [todo]
 	#visualize(training_features, training_labels, linear_svm)

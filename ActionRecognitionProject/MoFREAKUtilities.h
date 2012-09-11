@@ -32,11 +32,12 @@ public:
 	void readMoFREAKFeatures(string filename);
 	vector<MoFREAKFeature> getMoFREAKFeatures();
 	void buildMoFREAKFeaturesFromMoSIFT(string mosift_file, string video_path);
-	vector<unsigned int> extractFREAKFeature(cv::Mat &frame, float x, float y, float scale);
 	void writeMoFREAKFeaturesToFile(string output_file);
 
 private:
 	string toBinaryString(unsigned int x);
+	vector<unsigned int> extractFREAKFeature(cv::Mat &frame, float x, float y, float scale);
+	unsigned int extractMotionByImageDifference(cv::Mat &frame, float x, float y); // I suppose we don't need scale for this.
 
 	vector<MoFREAKFeature> features;
 };
