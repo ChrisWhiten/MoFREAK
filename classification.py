@@ -1,9 +1,9 @@
 import numpy
-
 import pylab
 from sklearn import svm, pipeline
 from sklearn.kernel_approximation import RBFSampler, AdditiveChi2Sampler
 from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
 
 # Constants
 NUMBER_OF_ACTIONS = 6
@@ -11,6 +11,9 @@ NUMBER_OF_PEOPLE = 25
 NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION = 4
 NUMBER_OF_CLUSTERS = 600
 NUMBER_OF_VIDEOS = 599
+
+FENG = True
+EHSAN = False
 
 # this class essentially implements an enum.
 # For example, x = Labeling.BOXING (1)
@@ -92,12 +95,7 @@ def loadTrainingAndTestData(features_file, labels_file):
 	current_indices = []
 
 	label_data = numpy.genfromtxt(labels_file, delimiter = ',')
-	#testing_labels = testing_data[:, 0]
-	#testing_features = testing_data[:, 1:]
-
-	training_data = numpy.genfromtxt(features_file, delimiter = ',')
-	#training_labels = training_data[:, 0]
-	#training_features = training_data[:, 1:]
+	training_data = numpy.genfromtxt(features_file, delimiter = ' ')
 
 	# group data by people, so we can easily leave-one-out.
 	for i in xrange(NUMBER_OF_PEOPLE):
@@ -114,7 +112,7 @@ def loadTrainingAndTestData(features_file, labels_file):
 		current_indices.append(0) # track current row in each group
 
 	i = 0
-	STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION
+	STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION * NUMBER_OF_ACTIONS #STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION 
 	while i < NUMBER_OF_VIDEOS:
 		person_index = int(label_data[i, 1])
 		current_index = current_indices[person_index - 1]
@@ -122,31 +120,79 @@ def loadTrainingAndTestData(features_file, labels_file):
 
 		# to account for the missing video.  Odd that it's missing!
 		# i == 148 corresponds to the location of the missing video.
-		if i == 148:
-			grouped_data[person_index - 1][current_index : current_index + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1, :] = training_data[i : i + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1, :]
-			grouped_labels[person_index - 1][current_index : current_index + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1, :] = label_data[i : i + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1, :]
+		MISSING_VIDEO_I = 148
+		#print "i = ", i
+		if FENG:
+			MISSING_VIDEO_I = 288#292 # maybe?
+
+		if i == MISSING_VIDEO_I:
+			grouped_data[person_index - 1][current_index : current_index + STEP - 1, :] = training_data[i : i + STEP - 1, :]
+			grouped_labels[person_index - 1][current_index : current_index + STEP - 1, :] = label_data[i : i + STEP - 1, :]
 			
-			current_indices[person_index - 1] += NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION - 1
+			current_indices[person_index - 1] += STEP - 1
 
 			i += STEP - 1
 		else:
-			grouped_data[person_index - 1][current_index : current_index + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION, :] = training_data[i : i + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION, :]
-			grouped_labels[person_index - 1][current_index : current_index + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION, :] = label_data[i : i + NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION, :]
+			#print "length: ", grouped_data[person_index - 1].shape
+			#print "i is currently ", i
+			#print current_index
+			#print STEP
+			
+			#print training_data.shape
 
-			current_indices[person_index - 1] += NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION
+			grouped_data[person_index - 1][current_index : current_index + STEP, :] = training_data[i : i + STEP, :]
+			grouped_labels[person_index - 1][current_index : current_index + STEP, :] = label_data[i : i + STEP, :]
+
+			#print grouped_labels[person_index - 1][current_index : current_index + STEP, :]
+
+			current_indices[person_index - 1] += STEP
 
 			i += STEP
 
 	#print grouped_data[0]
+	#print grouped_labels[13]
 	#print "exiting"
 	#exit()
 
 	return grouped_data, grouped_labels
 
+def generateAllPossibleLeaveOneOutCombosForLibSVM(grouped_data, grouped_labels):
+	
+	for left_out_person in xrange(NUMBER_OF_PEOPLE):
+		rows = NUMBER_OF_VIDEOS - grouped_data[left_out_person].shape[0]
+		cols = NUMBER_OF_CLUSTERS
+
+		# the testing data is simply the data from the left out person.
+		testing_data = grouped_data[left_out_person]
+		testing_labels = grouped_labels[left_out_person]
+
+		# build the training data by concatenating all of the data from each person except the left out person.
+		training_data = numpy.zeros(shape = (rows, cols))
+		training_labels = numpy.zeros(shape = (rows, 3))
+		current_index = 0
+		for training_person in xrange(NUMBER_OF_PEOPLE):
+			# don't add the left out person to the training set, clearly..
+			if training_person == left_out_person:
+				continue
+
+			new_rows = grouped_data[training_person].shape[0]
+			training_data[current_index : current_index + new_rows, :] = grouped_data[training_person]
+			training_labels[current_index : current_index + new_rows, :] = grouped_labels[training_person]
+
+			current_index += new_rows
+
+		# write data file.
+		training_filename = "left_out_" + str(left_out_person + 1) + "_training.txt"
+		setupInLibsvmFormat(training_data, training_labels, training_filename)
+
+		testing_filename = "left_out_" + str(left_out_person + 1) + "_testing.txt"
+		setupInLibsvmFormat(testing_data, testing_labels, testing_filename)
+
+
 # Build an SVM with a chi-squared kernel for accurate recognition.
 def buildClassifiers(grouped_data, grouped_labels):
-
 	scores = []
+
 	for left_out_person in xrange(NUMBER_OF_PEOPLE):
 		rows = NUMBER_OF_VIDEOS - grouped_data[left_out_person].shape[0]
 		cols = NUMBER_OF_CLUSTERS
@@ -178,6 +224,7 @@ def buildClassifiers(grouped_data, grouped_labels):
 		#kernel_svm = svm.SVC(gamma = .2, degree = 100)
 		#linear_svm = svm.LinearSVC()
 		new_svm = svm.SVC(kernel = intersection)
+		rf = RandomForestClassifier(n_estimators = 300, min_samples_split = 2, n_jobs = -1, oob_score = True)
 
 		# create a pipeline for kernel approximation
 		#feature_map = RBFSampler(gamma = .2, random_state = 1)
@@ -188,6 +235,9 @@ def buildClassifiers(grouped_data, grouped_labels):
 		new_svm.fit(training_data, training_labels)
 		new_svm_score = new_svm.score(testing_data, testing_labels)
 
+		rf.fit(training_data, training_labels)
+		rf_score = rf.score(testing_data, testing_labels)
+
 		#kernel_svm.fit(training_data, training_labels)
 		#kernel_svm_score = kernel_svm.score(testing_data, testing_labels)
 
@@ -195,30 +245,36 @@ def buildClassifiers(grouped_data, grouped_labels):
 		#linear_svm_score = linear_svm.score(testing_data, testing_labels)
 
 		approx_kernel_svm.fit(training_data, training_labels)
-		score = approx_kernel_svm.score(testing_data, testing_labels)
+		hi_score = approx_kernel_svm.score(testing_data, testing_labels)
 
 		#score_set = [new_svm_score, kernel_svm_score, linear_svm_score, score]
-		score_set = [new_svm_score, score]
+		score_set = [new_svm_score, hi_score, rf_score]
 		scores.append(score_set)
 
 		#print "linear score: ", linear_svm_score
 		#print "kernel score: ", kernel_svm_score
 		print "histogram intersection score: ", new_svm_score
-		print "approx chi-squared score: ", score
+		print "approx chi-squared score: ", hi_score
+		print "RF score: ", rf_score
 
 	# for now, return this for plotting.
 	print scores
 	print "done."
+	print "length of scores: ", len(scores)
 	summed_chisquared_score = 0
 	summed_hi_score = 0
+	summed_rf_score = 0
 	for i in xrange(NUMBER_OF_PEOPLE):
-		summed_chisquared_score += score_set[i][0]
-		summed_hi_score += score_set[i][1]
+		summed_chisquared_score += scores[i][0]
+		summed_hi_score += scores[i][1]
+		summed_rf_score += scores[i][2]
 
 	avg_cs_score = summed_chisquared_score/float(NUMBER_OF_PEOPLE)
 	avg_hi_score = summed_hi_score/float(NUMBER_OF_PEOPLE)
+	avg_rf_score = summed_rf_score/float(NUMBER_OF_PEOPLE)
 	print "Chi-squared average: ", avg_cs_score
 	print "HI average: ", avg_hi_score
+	print "RF average: ", avg_rf_score
 	return linear_svm
 
 # visualization based on code from 
@@ -260,17 +316,51 @@ def visualize(training_features, training_labels, linear_svm):
 	pylab.show()
 	return
 
+def setupInLibsvmFormat(training_data, label_data, output_filename):
+	f = open(output_filename, "w")
+
+	for line in xrange(label_data.shape[0]):
+		libsvm_line = ""
+
+		# first, the label.
+		libsvm_line += str(int(label_data[line, 0]))
+		libsvm_line += " "
+
+		# now the features.
+		for feature in xrange(training_data.shape[1]):
+			libsvm_line += str(feature + 1)
+			libsvm_line += ":"
+			libsvm_line += str(training_data[line, feature])
+			libsvm_line += " "
+
+		# finally, end the line.
+		libsvm_line += "\n"
+		f.write(libsvm_line)
+
+	f.close()
+
+
+
+
 # entry point
 if __name__ == '__main__':
 
+	data = "C:/data/kth/feng/hist.txt"
+	labels = "C:/data/kth/feng/label.txt"
+	
 	# Step 1: Reprocess the data into the desired format.
+	label_data = numpy.genfromtxt(labels, delimiter = ',')
+	training_data = numpy.genfromtxt(data, delimiter = ' ')
+	setupInLibsvmFormat(training_data, label_data, "entire_dataset_libsvm.txt")
+
 	#file_path = "C:/data/kth/histogramsDev.txt"
 	#reprocessData(file_path)
 
 	# Step 2: Load new data into label/feature arrays, with a train and test set.
-	data = "C:/data/kth/hist.txt"
-	labels = "C:/data/kth/label.txt"
 	grouped_data, grouped_labels = loadTrainingAndTestData(data, labels)
+
+	# Step 2.5: Export all possible leave-one-out combos to libsvm format.
+	generateAllPossibleLeaveOneOutCombosForLibSVM(grouped_data, grouped_labels)
 
 	# Step 3: Build classifiers.
 	linear_svm = buildClassifiers(grouped_data, grouped_labels)
