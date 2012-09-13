@@ -23,6 +23,7 @@
 #include "OpenCVToQtInterfacing.h"
 #include "MoSIFTUtilities.h"
 #include "MoFREAKUtilities.h"
+#include "SVMInterface.h"
 
 using namespace std;
 
@@ -41,6 +42,10 @@ private slots:
 	void loadMoSIFTFile();
 	void convertMoSIFTToMoFREAK();
 	void loadEverything();
+	void trainSVM();
+	void testSVM();
+	void loadSVMTrainingFile();
+	void loadSVMTestingFile();
 
 private:
 	int frame_number;
@@ -48,6 +53,7 @@ private:
 	QDir directory;
 	QTimer *timer;
 	int state;
+	std::string training_file, testing_file;
 
 	// false if reading from an actual video file
 	bool reading_sequence_of_images;
@@ -57,6 +63,7 @@ private:
 	MoSIFTUtilities mosift;
 	MoFREAKUtilities mofreak;
 	vector<MoSIFTFeature> mosift_ftrs;
+	SVMInterface svm_interface;
 
 	cv::Mat3b getFrame();
 	void processFrame(cv::Mat &input, cv::Mat &output);

@@ -182,10 +182,10 @@ def generateAllPossibleLeaveOneOutCombosForLibSVM(grouped_data, grouped_labels):
 			current_index += new_rows
 
 		# write data file.
-		training_filename = "left_out_" + str(left_out_person + 1) + "_training.txt"
+		training_filename = "C:/data/kth/feng/left_out_" + str(left_out_person + 1) + "_training.txt"
 		setupInLibsvmFormat(training_data, training_labels, training_filename)
 
-		testing_filename = "left_out_" + str(left_out_person + 1) + "_testing.txt"
+		testing_filename = "C:/data/kth/feng/left_out_" + str(left_out_person + 1) + "_testing.txt"
 		setupInLibsvmFormat(testing_data, testing_labels, testing_filename)
 
 
@@ -363,7 +363,7 @@ if __name__ == '__main__':
 	generateAllPossibleLeaveOneOutCombosForLibSVM(grouped_data, grouped_labels)
 
 	# Step 3: Build classifiers.
-	linear_svm = buildClassifiers(grouped_data, grouped_labels)
+	#linear_svm = buildClassifiers(grouped_data, grouped_labels)
 
 	# Step 4: Visualize. [broken] [todo]
 	#visualize(training_features, training_labels, linear_svm)

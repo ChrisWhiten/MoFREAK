@@ -37,7 +37,7 @@ public:
 private:
 	string toBinaryString(unsigned int x);
 	vector<unsigned int> extractFREAKFeature(cv::Mat &frame, float x, float y, float scale);
-	unsigned int extractMotionByImageDifference(cv::Mat &frame, float x, float y); // I suppose we don't need scale for this.
+	unsigned int extractMotionByImageDifference(cv::Mat &frame, cv::Mat &prev_frame, float x, float y); // I suppose we don't need scale for this.
 
 	vector<MoFREAKFeature> features;
 };

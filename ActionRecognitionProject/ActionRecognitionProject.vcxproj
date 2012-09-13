@@ -95,6 +95,8 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MoFREAKUtilities.cpp" />
     <ClCompile Include="MoSIFTUtilities.cpp" />
+    <ClCompile Include="svm.cpp" />
+    <ClCompile Include="SVMInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ActionRecognitionProject.h">
@@ -127,6 +129,8 @@
     <ClInclude Include="MoFREAKUtilities.h" />
     <ClInclude Include="MoSIFTUtilities.h" />
     <ClInclude Include="OpenCVToQtInterfacing.h" />
+    <ClInclude Include="svm.h" />
+    <ClInclude Include="SVMInterface.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ActionRecognitionProject.qrc">

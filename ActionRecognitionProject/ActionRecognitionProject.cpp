@@ -10,6 +10,10 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 	connect(ui.actionLoadMoSIFT, SIGNAL(triggered()), this, SLOT(loadMoSIFTFile()));
 	connect(ui.actionLoadEverything, SIGNAL(triggered()), this, SLOT(loadEverything()));
 	connect(ui.convertMoSIFTToMoFREAK, SIGNAL(clicked()), this, SLOT(convertMoSIFTToMoFREAK()));
+	connect(ui.train_svm_button, SIGNAL(clicked()), this, SLOT(trainSVM()));
+	connect(ui.test_svm_button, SIGNAL(clicked()), this, SLOT(testSVM()));
+	connect(ui.actionLoadTrainingFile, SIGNAL(triggered()), this, SLOT(loadSVMTrainingFile()));
+	connect(ui.actionLoadTestingFile, SIGNAL(triggered()), this, SLOT(loadSVMTestingFile()));
 
 	// Update the UI
 	timer = new QTimer(this);
@@ -51,6 +55,37 @@ void ActionRecognitionProject::loadFiles()
 	}
 }
 
+void ActionRecognitionProject::trainSVM()
+{
+	// How can we force these labels to update before running the following lines?
+	// The GUI kind of hangs and "training..." never appears.
+	ui.frame_label->setText("Training...");
+	ui.frame_label->adjustSize();
+
+	svm_interface.trainModel(training_file);
+
+	ui.frame_label->setText("Finished training.");
+	ui.frame_label->adjustSize();
+}
+
+void ActionRecognitionProject::testSVM()
+{
+	ui.frame_label->setText("Testing...");
+	ui.frame_label->adjustSize();
+
+	double accuracy = svm_interface.testModel(testing_file);
+
+	stringstream ss;
+	ss << "Accuracy: " << accuracy << "%";
+
+	QString accuracy_text = QString::fromStdString(ss.str());
+	ss.str("");
+	ss.clear();
+
+	ui.frame_label->setText(accuracy_text);
+	ui.frame_label->adjustSize();
+}
+
 // given the mosift features file, assuming the corresponding video files exist, remove sift and replace with freak descriptor.
 void ActionRecognitionProject::convertMoSIFTToMoFREAK()
 {
@@ -73,6 +108,18 @@ void ActionRecognitionProject::convertMoSIFTToMoFREAK()
 		it->append(".mofreak.txt");
 		mofreak.writeMoFREAKFeaturesToFile(it->toStdString());
 	}
+}
+
+void ActionRecognitionProject::loadSVMTrainingFile()
+{
+	QString filename = QFileDialog::getOpenFileName(this, tr("Directory"), directory.path());
+	training_file = filename.toStdString();
+}
+
+void ActionRecognitionProject::loadSVMTestingFile()
+{
+	QString filename = QFileDialog::getOpenFileName(this, tr("Directory"), directory.path());
+	testing_file = filename.toStdString();
 }
 
 void ActionRecognitionProject::loadMoSIFTFile()

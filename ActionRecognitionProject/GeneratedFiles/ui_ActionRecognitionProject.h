@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'ActionRecognitionProject.ui'
 **
-** Created: Thu Sep 6 15:58:41 2012
+** Created: Thu Sep 13 09:51:14 2012
 **      by: Qt User Interface Compiler version 4.8.1
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -32,6 +32,8 @@ public:
     QAction *actionLoad;
     QAction *actionLoadMoSIFT;
     QAction *actionLoadEverything;
+    QAction *actionLoadTrainingFile;
+    QAction *actionLoadTestingFile;
     QWidget *centralWidget;
     QPushButton *play_pause_button;
     QPushButton *stop_button;
@@ -41,6 +43,8 @@ public:
     QLabel *output_label;
     QLabel *frame_label;
     QPushButton *convertMoSIFTToMoFREAK;
+    QPushButton *train_svm_button;
+    QPushButton *test_svm_button;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QToolBar *mainToolBar;
@@ -57,14 +61,18 @@ public:
         actionLoadMoSIFT->setObjectName(QString::fromUtf8("actionLoadMoSIFT"));
         actionLoadEverything = new QAction(ActionRecognitionProjectClass);
         actionLoadEverything->setObjectName(QString::fromUtf8("actionLoadEverything"));
+        actionLoadTrainingFile = new QAction(ActionRecognitionProjectClass);
+        actionLoadTrainingFile->setObjectName(QString::fromUtf8("actionLoadTrainingFile"));
+        actionLoadTestingFile = new QAction(ActionRecognitionProjectClass);
+        actionLoadTestingFile->setObjectName(QString::fromUtf8("actionLoadTestingFile"));
         centralWidget = new QWidget(ActionRecognitionProjectClass);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         play_pause_button = new QPushButton(centralWidget);
         play_pause_button->setObjectName(QString::fromUtf8("play_pause_button"));
-        play_pause_button->setGeometry(QRect(30, 300, 75, 23));
+        play_pause_button->setGeometry(QRect(30, 270, 75, 23));
         stop_button = new QPushButton(centralWidget);
         stop_button->setObjectName(QString::fromUtf8("stop_button"));
-        stop_button->setGeometry(QRect(120, 300, 75, 23));
+        stop_button->setGeometry(QRect(130, 270, 75, 23));
         input_sequence = new QLabel(centralWidget);
         input_sequence->setObjectName(QString::fromUtf8("input_sequence"));
         input_sequence->setGeometry(QRect(60, 60, 46, 13));
@@ -82,7 +90,13 @@ public:
         frame_label->setGeometry(QRect(490, 320, 46, 13));
         convertMoSIFTToMoFREAK = new QPushButton(centralWidget);
         convertMoSIFTToMoFREAK->setObjectName(QString::fromUtf8("convertMoSIFTToMoFREAK"));
-        convertMoSIFTToMoFREAK->setGeometry(QRect(424, 300, 151, 23));
+        convertMoSIFTToMoFREAK->setGeometry(QRect(390, 270, 151, 23));
+        train_svm_button = new QPushButton(centralWidget);
+        train_svm_button->setObjectName(QString::fromUtf8("train_svm_button"));
+        train_svm_button->setGeometry(QRect(20, 310, 75, 23));
+        test_svm_button = new QPushButton(centralWidget);
+        test_svm_button->setObjectName(QString::fromUtf8("test_svm_button"));
+        test_svm_button->setGeometry(QRect(120, 310, 75, 23));
         ActionRecognitionProjectClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ActionRecognitionProjectClass);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
@@ -101,6 +115,9 @@ public:
         menuFile->addAction(actionLoad);
         menuFile->addAction(actionLoadMoSIFT);
         menuFile->addAction(actionLoadEverything);
+        menuFile->addSeparator();
+        menuFile->addAction(actionLoadTrainingFile);
+        menuFile->addAction(actionLoadTestingFile);
 
         retranslateUi(ActionRecognitionProjectClass);
 
@@ -113,6 +130,8 @@ public:
         actionLoad->setText(QApplication::translate("ActionRecognitionProjectClass", "Load Video", 0, QApplication::UnicodeUTF8));
         actionLoadMoSIFT->setText(QApplication::translate("ActionRecognitionProjectClass", "Load MoSIFT Features", 0, QApplication::UnicodeUTF8));
         actionLoadEverything->setText(QApplication::translate("ActionRecognitionProjectClass", "Load Group of MoSIFT Features and AVI Files", 0, QApplication::UnicodeUTF8));
+        actionLoadTrainingFile->setText(QApplication::translate("ActionRecognitionProjectClass", "Load SVM Training File", 0, QApplication::UnicodeUTF8));
+        actionLoadTestingFile->setText(QApplication::translate("ActionRecognitionProjectClass", "Load SVM Testing File", 0, QApplication::UnicodeUTF8));
         play_pause_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Play", 0, QApplication::UnicodeUTF8));
         stop_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Restart", 0, QApplication::UnicodeUTF8));
         input_sequence->setText(QString());
@@ -121,6 +140,8 @@ public:
         output_label->setText(QApplication::translate("ActionRecognitionProjectClass", "Output", 0, QApplication::UnicodeUTF8));
         frame_label->setText(QString());
         convertMoSIFTToMoFREAK->setText(QApplication::translate("ActionRecognitionProjectClass", "Convert MoSIFT to MoFREAK", 0, QApplication::UnicodeUTF8));
+        train_svm_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Train SVM", 0, QApplication::UnicodeUTF8));
+        test_svm_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Test SVM", 0, QApplication::UnicodeUTF8));
         menuFile->setTitle(QApplication::translate("ActionRecognitionProjectClass", "File", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 

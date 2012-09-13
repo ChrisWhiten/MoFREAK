@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>300</y>
+      <y>270</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -30,8 +30,8 @@
    <widget class="QPushButton" name="stop_button">
     <property name="geometry">
      <rect>
-      <x>120</x>
-      <y>300</y>
+      <x>130</x>
+      <y>270</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -108,14 +108,40 @@
    <widget class="QPushButton" name="convertMoSIFTToMoFREAK">
     <property name="geometry">
      <rect>
-      <x>424</x>
-      <y>300</y>
+      <x>390</x>
+      <y>270</y>
       <width>151</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
      <string>Convert MoSIFT to MoFREAK</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="train_svm_button">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>310</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Train SVM</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="test_svm_button">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>310</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Test SVM</string>
     </property>
    </widget>
   </widget>
@@ -135,6 +161,9 @@
     <addaction name="actionLoad"/>
     <addaction name="actionLoadMoSIFT"/>
     <addaction name="actionLoadEverything"/>
+    <addaction name="separator"/>
+    <addaction name="actionLoadTrainingFile"/>
+    <addaction name="actionLoadTestingFile"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -160,6 +189,16 @@
   <action name="actionLoadEverything">
    <property name="text">
     <string>Load Group of MoSIFT Features and AVI Files</string>
+   </property>
+  </action>
+  <action name="actionLoadTrainingFile">
+   <property name="text">
+    <string>Load SVM Training File</string>
+   </property>
+  </action>
+  <action name="actionLoadTestingFile">
+   <property name="text">
+    <string>Load SVM Testing File</string>
    </property>
   </action>
  </widget>
