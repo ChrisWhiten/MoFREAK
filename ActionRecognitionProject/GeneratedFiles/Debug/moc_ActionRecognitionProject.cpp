@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'ActionRecognitionProject.h'
 **
-** Created: Thu Sep 13 10:36:17 2012
+** Created: Thu Sep 13 12:01:24 2012
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.1)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -50,7 +50,7 @@ static const char qt_meta_stringdata_ActionRecognitionProject[] = {
     "playOrPause()\0nextFrame()\0loadMoSIFTFile()\0"
     "convertMoSIFTToMoFREAK()\0loadEverything()\0"
     "trainSVM()\0testSVM()\0loadSVMTrainingFile()\0"
-    "loadSVMTestingFile()\0"
+    "evaluateSVMWithLeaveOneOut()\0"
 };
 
 void ActionRecognitionProject::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -68,7 +68,7 @@ void ActionRecognitionProject::qt_static_metacall(QObject *_o, QMetaObject::Call
         case 6: _t->trainSVM(); break;
         case 7: _t->testSVM(); break;
         case 8: _t->loadSVMTrainingFile(); break;
-        case 9: _t->loadSVMTestingFile(); break;
+        case 9: _t->evaluateSVMWithLeaveOneOut(); break;
         default: ;
         }
     }

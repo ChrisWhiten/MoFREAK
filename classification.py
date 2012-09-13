@@ -12,8 +12,8 @@ NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION = 4
 NUMBER_OF_CLUSTERS = 600
 NUMBER_OF_VIDEOS = 599
 
-FENG = True
-EHSAN = False
+FENG = False
+EHSAN = True
 
 # this class essentially implements an enum.
 # For example, x = Labeling.BOXING (1)
@@ -95,7 +95,7 @@ def loadTrainingAndTestData(features_file, labels_file):
 	current_indices = []
 
 	label_data = numpy.genfromtxt(labels_file, delimiter = ',')
-	training_data = numpy.genfromtxt(features_file, delimiter = ' ')
+	training_data = numpy.genfromtxt(features_file, delimiter = ',')
 
 	# group data by people, so we can easily leave-one-out.
 	for i in xrange(NUMBER_OF_PEOPLE):
@@ -112,38 +112,33 @@ def loadTrainingAndTestData(features_file, labels_file):
 		current_indices.append(0) # track current row in each group
 
 	i = 0
-	STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION * NUMBER_OF_ACTIONS #STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION 
+	STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION * NUMBER_OF_ACTIONS
+	MISSING_VIDEO_I = 288 
+
+	if EHSAN:
+		STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION 
+		MISSING_VIDEO_I = 148
+
+	# to account for the missing video.  Odd that it's missing!
+	# i == 148 or 288 corresponds to the location of the missing video.
+	
+
+
 	while i < NUMBER_OF_VIDEOS:
 		person_index = int(label_data[i, 1])
 		current_index = current_indices[person_index - 1]
+
 		# slice corresponding piece of matrix from training data into grouping.
-
-		# to account for the missing video.  Odd that it's missing!
-		# i == 148 corresponds to the location of the missing video.
-		MISSING_VIDEO_I = 148
-		#print "i = ", i
-		if FENG:
-			MISSING_VIDEO_I = 288#292 # maybe?
-
 		if i == MISSING_VIDEO_I:
 			grouped_data[person_index - 1][current_index : current_index + STEP - 1, :] = training_data[i : i + STEP - 1, :]
 			grouped_labels[person_index - 1][current_index : current_index + STEP - 1, :] = label_data[i : i + STEP - 1, :]
 			
 			current_indices[person_index - 1] += STEP - 1
-
 			i += STEP - 1
+
 		else:
-			#print "length: ", grouped_data[person_index - 1].shape
-			#print "i is currently ", i
-			#print current_index
-			#print STEP
-			
-			#print training_data.shape
-
-			grouped_data[person_index - 1][current_index : current_index + STEP, :] = training_data[i : i + STEP, :]
 			grouped_labels[person_index - 1][current_index : current_index + STEP, :] = label_data[i : i + STEP, :]
-
-			#print grouped_labels[person_index - 1][current_index : current_index + STEP, :]
+			grouped_data[person_index - 1][current_index : current_index + STEP, :] = training_data[i : i + STEP, :]
 
 			current_indices[person_index - 1] += STEP
 
@@ -182,10 +177,10 @@ def generateAllPossibleLeaveOneOutCombosForLibSVM(grouped_data, grouped_labels):
 			current_index += new_rows
 
 		# write data file.
-		training_filename = "C:/data/kth/feng/left_out_" + str(left_out_person + 1) + "_training.txt"
+		training_filename = "C:/data/kth/ehsan/left_out_" + str(left_out_person + 1) + ".train"
 		setupInLibsvmFormat(training_data, training_labels, training_filename)
 
-		testing_filename = "C:/data/kth/feng/left_out_" + str(left_out_person + 1) + "_testing.txt"
+		testing_filename = "C:/data/kth/ehsan/left_out_" + str(left_out_person + 1) + ".test"
 		setupInLibsvmFormat(testing_data, testing_labels, testing_filename)
 
 
@@ -345,12 +340,12 @@ def setupInLibsvmFormat(training_data, label_data, output_filename):
 # entry point
 if __name__ == '__main__':
 
-	data = "C:/data/kth/feng/hist.txt"
-	labels = "C:/data/kth/feng/label.txt"
+	data = "C:/data/kth/ehsan/hist.txt"
+	labels = "C:/data/kth/ehsan/label.txt"
 	
 	# Step 1: Reprocess the data into the desired format.
 	label_data = numpy.genfromtxt(labels, delimiter = ',')
-	training_data = numpy.genfromtxt(data, delimiter = ' ')
+	training_data = numpy.genfromtxt(data, delimiter = ',')
 	setupInLibsvmFormat(training_data, label_data, "entire_dataset_libsvm.txt")
 
 	#file_path = "C:/data/kth/histogramsDev.txt"

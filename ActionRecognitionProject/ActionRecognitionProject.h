@@ -45,7 +45,7 @@ private slots:
 	void trainSVM();
 	void testSVM();
 	void loadSVMTrainingFile();
-	void loadSVMTestingFile();
+	void evaluateSVMWithLeaveOneOut();
 
 private:
 	int frame_number;
@@ -53,12 +53,13 @@ private:
 	QDir directory;
 	QTimer *timer;
 	int state;
-	std::string training_file, testing_file;
+	//std::string training_file, testing_file;
 
 	// false if reading from an actual video file
 	bool reading_sequence_of_images;
 
-	QStringList files;
+	QStringList files; // What files?  I think these were for MoSIFT to MoFREAK conversion... Remind me to not name variables like this again.
+	QStringList svm_training_files, svm_testing_files;
 	cv::VideoCapture *capture;
 	MoSIFTUtilities mosift;
 	MoFREAKUtilities mofreak;

@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'ActionRecognitionProject.h'
 **
-** Created: Thu Sep 13 09:51:13 2012
+** Created: Thu Sep 13 13:09:22 2012
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.1)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,7 +23,7 @@ static const uint qt_meta_data_ActionRecognitionProject[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-       7,   14, // methods
+      10,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -38,6 +38,9 @@ static const uint qt_meta_data_ActionRecognitionProject[] = {
       81,   25,   25,   25, 0x08,
      106,   25,   25,   25, 0x08,
      123,   25,   25,   25, 0x08,
+     134,   25,   25,   25, 0x08,
+     144,   25,   25,   25, 0x08,
+     166,   25,   25,   25, 0x08,
 
        0        // eod
 };
@@ -46,7 +49,8 @@ static const char qt_meta_stringdata_ActionRecognitionProject[] = {
     "ActionRecognitionProject\0\0loadFiles()\0"
     "playOrPause()\0nextFrame()\0loadMoSIFTFile()\0"
     "convertMoSIFTToMoFREAK()\0loadEverything()\0"
-    "trainSVM()\0"
+    "trainSVM()\0testSVM()\0loadSVMTrainingFile()\0"
+    "evaluateSVMWithLeaveOneOut()\0"
 };
 
 void ActionRecognitionProject::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -62,6 +66,9 @@ void ActionRecognitionProject::qt_static_metacall(QObject *_o, QMetaObject::Call
         case 4: _t->convertMoSIFTToMoFREAK(); break;
         case 5: _t->loadEverything(); break;
         case 6: _t->trainSVM(); break;
+        case 7: _t->testSVM(); break;
+        case 8: _t->loadSVMTrainingFile(); break;
+        case 9: _t->evaluateSVMWithLeaveOneOut(); break;
         default: ;
         }
     }
@@ -100,9 +107,9 @@ int ActionRecognitionProject::qt_metacall(QMetaObject::Call _c, int _id, void **
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 7)
+        if (_id < 10)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 7;
+        _id -= 10;
     }
     return _id;
 }

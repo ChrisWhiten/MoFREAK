@@ -144,6 +144,19 @@
      <string>Test SVM</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="leave_one_out_button">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>310</y>
+      <width>161</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Test SVM with Leave-One-Out</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -163,7 +176,6 @@
     <addaction name="actionLoadEverything"/>
     <addaction name="separator"/>
     <addaction name="actionLoadTrainingFile"/>
-    <addaction name="actionLoadTestingFile"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>

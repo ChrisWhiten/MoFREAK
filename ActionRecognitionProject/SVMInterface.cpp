@@ -281,7 +281,6 @@ void SVMInterface::setParameters(svm_parameter *param)
 void SVMInterface::trainModel(std::string training_data_file)
 {
 	const char *error_msg;
-	//const std::string training_data_file = "C:/data/kth/feng/left_out_7_training.txt";
 	const std::string model_file_name = "C:/data/kth/feng/trained_svm.model";
 
 	read_problem(training_data_file);
@@ -296,7 +295,6 @@ void SVMInterface::trainModel(std::string training_data_file)
 
 double SVMInterface::testModel(std::string testing_data_file)
 {
-	//const std::string testing_data_file = "C:/data/kth/feng/left_out_7_testing.txt";
 	const std::string model_file_name = "C:/data/kth/feng/trained_svm.model";
 	const std::string output_file = "C:/data/kth/feng/libsvm_output.txt";
 
@@ -307,6 +305,8 @@ double SVMInterface::testModel(std::string testing_data_file)
 	model = svm_load_model(model_file_name.c_str());
 	x = (struct svm_node *) malloc(max_nr_attr * sizeof(struct svm_node));
 	double accuracy = predict(testing_data, output);
+	
+	fclose(output);
 
 	return accuracy;
 }

@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'ActionRecognitionProject.ui'
 **
-** Created: Thu Sep 13 09:51:14 2012
+** Created: Thu Sep 13 12:01:24 2012
 **      by: Qt User Interface Compiler version 4.8.1
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -45,6 +45,7 @@ public:
     QPushButton *convertMoSIFTToMoFREAK;
     QPushButton *train_svm_button;
     QPushButton *test_svm_button;
+    QPushButton *leave_one_out_button;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QToolBar *mainToolBar;
@@ -97,6 +98,9 @@ public:
         test_svm_button = new QPushButton(centralWidget);
         test_svm_button->setObjectName(QString::fromUtf8("test_svm_button"));
         test_svm_button->setGeometry(QRect(120, 310, 75, 23));
+        leave_one_out_button = new QPushButton(centralWidget);
+        leave_one_out_button->setObjectName(QString::fromUtf8("leave_one_out_button"));
+        leave_one_out_button->setGeometry(QRect(220, 310, 161, 23));
         ActionRecognitionProjectClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ActionRecognitionProjectClass);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
@@ -117,7 +121,6 @@ public:
         menuFile->addAction(actionLoadEverything);
         menuFile->addSeparator();
         menuFile->addAction(actionLoadTrainingFile);
-        menuFile->addAction(actionLoadTestingFile);
 
         retranslateUi(ActionRecognitionProjectClass);
 
@@ -142,6 +145,7 @@ public:
         convertMoSIFTToMoFREAK->setText(QApplication::translate("ActionRecognitionProjectClass", "Convert MoSIFT to MoFREAK", 0, QApplication::UnicodeUTF8));
         train_svm_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Train SVM", 0, QApplication::UnicodeUTF8));
         test_svm_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Test SVM", 0, QApplication::UnicodeUTF8));
+        leave_one_out_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Test SVM with Leave-One-Out", 0, QApplication::UnicodeUTF8));
         menuFile->setTitle(QApplication::translate("ActionRecognitionProjectClass", "File", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 

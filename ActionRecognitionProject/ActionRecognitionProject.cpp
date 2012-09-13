@@ -13,7 +13,7 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 	connect(ui.train_svm_button, SIGNAL(clicked()), this, SLOT(trainSVM()));
 	connect(ui.test_svm_button, SIGNAL(clicked()), this, SLOT(testSVM()));
 	connect(ui.actionLoadTrainingFile, SIGNAL(triggered()), this, SLOT(loadSVMTrainingFile()));
-	connect(ui.actionLoadTestingFile, SIGNAL(triggered()), this, SLOT(loadSVMTestingFile()));
+	connect(ui.leave_one_out_button, SIGNAL(clicked()), this, SLOT(evaluateSVMWithLeaveOneOut()));
 
 	// Update the UI
 	timer = new QTimer(this);
@@ -55,6 +55,55 @@ void ActionRecognitionProject::loadFiles()
 	}
 }
 
+void ActionRecognitionProject::evaluateSVMWithLeaveOneOut()
+{
+	ofstream output_file("C:/data/kth/ehsan/whatthe.txt");
+
+	double summed_accuracy = 0.0;
+	for (unsigned i = 0; i < svm_training_files.size(); ++i)
+	{
+		SVMInterface svm_guy;
+		// tell GUI where we're at in the l-o-o process
+		stringstream ss;
+		ss << "Leaving out person " << (i + 1);
+
+		QString left_out_text = QString::fromStdString(ss.str());
+		ss.str("");
+		ss.clear();
+
+		ui.frame_label->setText(left_out_text);
+		ui.frame_label->adjustSize();
+
+		// update gui.
+		qApp->processEvents();
+
+		// build model.
+		svm_guy.trainModel(svm_training_files[i].toStdString());
+
+		// get accuracy.
+		double accuracy = svm_guy.testModel(svm_testing_files[i].toStdString());
+		summed_accuracy += accuracy;
+
+		// debugging...print to testing file.
+		output_file << svm_training_files[i].toStdString() <<", " << svm_testing_files[i].toStdString() << ", " << accuracy << std::endl;
+	}	
+
+	output_file.close();
+
+	// output average accuracy.
+	double average_accuracy = summed_accuracy/(double)svm_training_files.size();
+
+	stringstream ss;
+	ss << "Averaged accuracy: " << average_accuracy << "%";
+
+	QString avg_acc_text = QString::fromStdString(ss.str());
+	ss.str("");
+	ss.clear();
+
+	ui.frame_label->setText(avg_acc_text);
+	ui.frame_label->adjustSize();
+}
+
 void ActionRecognitionProject::trainSVM()
 {
 	// How can we force these labels to update before running the following lines?
@@ -62,7 +111,7 @@ void ActionRecognitionProject::trainSVM()
 	ui.frame_label->setText("Training...");
 	ui.frame_label->adjustSize();
 
-	svm_interface.trainModel(training_file);
+	svm_interface.trainModel(svm_training_files[0].toStdString());
 
 	ui.frame_label->setText("Finished training.");
 	ui.frame_label->adjustSize();
@@ -73,7 +122,7 @@ void ActionRecognitionProject::testSVM()
 	ui.frame_label->setText("Testing...");
 	ui.frame_label->adjustSize();
 
-	double accuracy = svm_interface.testModel(testing_file);
+	double accuracy = svm_interface.testModel(svm_testing_files[0].toStdString());
 
 	stringstream ss;
 	ss << "Accuracy: " << accuracy << "%";
@@ -112,14 +161,17 @@ void ActionRecognitionProject::convertMoSIFTToMoFREAK()
 
 void ActionRecognitionProject::loadSVMTrainingFile()
 {
-	QString filename = QFileDialog::getOpenFileName(this, tr("Directory"), directory.path());
-	training_file = filename.toStdString();
-}
+	svm_training_files = QFileDialog::getOpenFileNames(this, tr("Directory"), directory.path());;
 
-void ActionRecognitionProject::loadSVMTestingFile()
-{
-	QString filename = QFileDialog::getOpenFileName(this, tr("Directory"), directory.path());
-	testing_file = filename.toStdString();
+	// training files end with .train.  The assumption is that a matching .test file exists
+	for (auto it = svm_training_files.begin(); it != svm_training_files.end(); ++it)
+	{
+		QString testing_file = (*it);
+		testing_file.chop(5);
+		testing_file.append("test");
+
+		svm_testing_files.push_back(testing_file);
+	}
 }
 
 void ActionRecognitionProject::loadMoSIFTFile()
