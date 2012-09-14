@@ -38,6 +38,8 @@ private:
 	string toBinaryString(unsigned int x);
 	vector<unsigned int> extractFREAKFeature(cv::Mat &frame, float x, float y, float scale);
 	unsigned int extractMotionByImageDifference(cv::Mat &frame, cv::Mat &prev_frame, float x, float y); // I suppose we don't need scale for this.
+	unsigned int hammingDistance(unsigned int a, unsigned int b);
+	double motionNormalizedEuclideanDistance(vector<unsigned int> a, vector<unsigned int> b);
 
 	vector<MoFREAKFeature> features;
 };

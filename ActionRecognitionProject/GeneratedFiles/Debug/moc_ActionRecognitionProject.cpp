@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'ActionRecognitionProject.h'
 **
-** Created: Thu Sep 13 12:01:24 2012
+** Created: Fri Sep 14 13:43:31 2012
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.1)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,7 +23,7 @@ static const uint qt_meta_data_ActionRecognitionProject[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-      10,   14, // methods
+      12,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -41,6 +41,8 @@ static const uint qt_meta_data_ActionRecognitionProject[] = {
      134,   25,   25,   25, 0x08,
      144,   25,   25,   25, 0x08,
      166,   25,   25,   25, 0x08,
+     195,   25,   25,   25, 0x08,
+     226,   25,   25,   25, 0x08,
 
        0        // eod
 };
@@ -51,6 +53,8 @@ static const char qt_meta_stringdata_ActionRecognitionProject[] = {
     "convertMoSIFTToMoFREAK()\0loadEverything()\0"
     "trainSVM()\0testSVM()\0loadSVMTrainingFile()\0"
     "evaluateSVMWithLeaveOneOut()\0"
+    "loadMoSIFTFilesForClustering()\0"
+    "clusterMoSIFTPoints()\0"
 };
 
 void ActionRecognitionProject::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -69,6 +73,8 @@ void ActionRecognitionProject::qt_static_metacall(QObject *_o, QMetaObject::Call
         case 7: _t->testSVM(); break;
         case 8: _t->loadSVMTrainingFile(); break;
         case 9: _t->evaluateSVMWithLeaveOneOut(); break;
+        case 10: _t->loadMoSIFTFilesForClustering(); break;
+        case 11: _t->clusterMoSIFTPoints(); break;
         default: ;
         }
     }
@@ -107,9 +113,9 @@ int ActionRecognitionProject::qt_metacall(QMetaObject::Call _c, int _id, void **
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 10)
+        if (_id < 12)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 10;
+        _id -= 12;
     }
     return _id;
 }

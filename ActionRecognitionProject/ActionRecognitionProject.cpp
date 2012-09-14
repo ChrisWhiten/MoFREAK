@@ -14,6 +14,8 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 	connect(ui.test_svm_button, SIGNAL(clicked()), this, SLOT(testSVM()));
 	connect(ui.actionLoadTrainingFile, SIGNAL(triggered()), this, SLOT(loadSVMTrainingFile()));
 	connect(ui.leave_one_out_button, SIGNAL(clicked()), this, SLOT(evaluateSVMWithLeaveOneOut()));
+	connect(ui.actionLoadMoSIFTForClustering, SIGNAL(triggered()), this, SLOT(loadMoSIFTFilesForClustering()));
+	connect(ui.cluster_push_button, SIGNAL(clicked()), this, SLOT(clusterMoSIFTPoints()));
 
 	// Update the UI
 	timer = new QTimer(this);
@@ -53,6 +55,89 @@ void ActionRecognitionProject::loadFiles()
 		capture = new cv::VideoCapture(files[0].toStdString());
 		reading_sequence_of_images = false;
 	}
+}
+
+// taken from feng's work.
+ void ActionRecognitionProject::shuffleCVMat(cv::Mat &mx)
+ {
+	 srand( (unsigned int)time(NULL) );
+	 int rowNo = mx.rows;
+	 int row0 = rowNo - 1;
+
+	 //suuffle the array with Fisher-Yates shuffling
+	 while (row0 > 0)
+	 {
+		int row1 = rand() % row0;
+		cv::Mat m1 = mx.row(row1);
+		cv::Mat mt = m1.clone();
+		mx.row(row0).copyTo(m1);
+		mt.copyTo(mx.row(row0));
+		row0--;
+	 }
+ }
+
+void ActionRecognitionProject::clusterMoSIFTPoints()
+{
+	// organize pts into a cv::Mat.
+	const int FEATURE_DIMENSIONALITY = 256;
+	const int NUM_CLUSTERS = 2;
+	const int POINTS_TO_SAMPLE = 12000;
+	cv::Mat data_pts(mosift_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
+
+	ui.frame_label->setText("Formatting features...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+
+	for (unsigned int row = 0; row < mosift_ftrs.size(); ++row)
+	{
+		MoSIFTFeature ftr = mosift_ftrs[row];
+		for (unsigned col = 0; col < 128; ++col)
+		{
+			data_pts.at<float>(row, col) = (float)ftr.SIFT[col];
+			data_pts.at<float>(row, col + 128) = (float)ftr.motion[col];
+		}
+	}
+
+	// shuffle 3 times.
+	shuffleCVMat(data_pts);
+	shuffleCVMat(data_pts);
+	shuffleCVMat(data_pts);
+
+	// remove excessive points.
+	if (data_pts.rows > POINTS_TO_SAMPLE)
+	{
+		data_pts.pop_back(data_pts.rows - POINTS_TO_SAMPLE);
+	}
+
+	ui.frame_label->setText("Clustering...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+
+	// call k-means.
+	cv::Mat labels;//(data_pts.rows, 1, CV_32SC1);
+	cv::Mat centers(NUM_CLUSTERS, 1, data_pts.type());//data_pts.cols, data_pts.type());
+	//cv::kmeans(data_pts, NUM_CLUSTERS, labels, cvTermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER,100000, 0.001), 1, cv::KMEANS_PP_CENTERS,  centers);
+	kmeans(data_pts, NUM_CLUSTERS, labels,  cvTermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 100000, 0.001),1,cv::KMEANS_PP_CENTERS, centers);
+
+	// print clusters to file
+	ui.frame_label->setText("Writing clusters to file...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+
+	ofstream output_file("clusters.txt");
+
+	for (unsigned i = 0; i < NUM_CLUSTERS; ++i)
+	{
+		for (unsigned j = 0; j < centers.cols; ++j)
+		{
+			output_file << centers.at<float>(i, j) << " ";
+		}
+
+		output_file << std::endl;
+	}
+	output_file.close();
+	ui.frame_label->setText("Clusters written...");
+	ui.frame_label->adjustSize();
 }
 
 void ActionRecognitionProject::evaluateSVMWithLeaveOneOut()
@@ -174,16 +259,36 @@ void ActionRecognitionProject::loadSVMTrainingFile()
 	}
 }
 
+void ActionRecognitionProject::loadMoSIFTFilesForClustering()
+{
+	files = QFileDialog::getOpenFileNames(this, tr("Directory"), directory.path());
+
+	ui.frame_label->setText("Loading MoSIFT Features...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+
+	for (auto it = files.begin(); it != files.end(); ++it)
+	{
+		mosift.readMoSIFTFeatures(it->toStdString());
+	}
+
+	mosift_ftrs = mosift.getMoSIFTFeatures();
+	
+	ui.frame_label->setText("MoSIFT Features Loaded.");
+	ui.frame_label->adjustSize();
+}
 void ActionRecognitionProject::loadMoSIFTFile()
 {
 	QString filename = QFileDialog::getOpenFileName(this, tr("Directory"), directory.path());
 	
 	mosift.readMoSIFTFeatures(filename.toStdString());
 	mosift_ftrs = mosift.getMoSIFTFeatures();
+
+	/*
 	for (unsigned i = 0; i < mosift_ftrs.size(); ++i)
 	{
 		int x = mosift_ftrs[i].frame_number;
-	}
+	}*/
 }
 
 void ActionRecognitionProject::loadEverything()

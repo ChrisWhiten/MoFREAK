@@ -17,6 +17,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <time.h>
 
 #include "ui_ActionRecognitionProject.h"
 #include "Constants.h"
@@ -46,6 +47,8 @@ private slots:
 	void testSVM();
 	void loadSVMTrainingFile();
 	void evaluateSVMWithLeaveOneOut();
+	void loadMoSIFTFilesForClustering();
+	void clusterMoSIFTPoints();
 
 private:
 	int frame_number;
@@ -71,6 +74,7 @@ private:
 	void updateGUI(cv::Mat3b &raw_frame, cv::Mat3b &tracked_frame);
 	void pause();
 	void play();
+	void shuffleCVMat(cv::Mat &mx);
 
 
 	enum states {PAUSED, PLAYING, STOPPED};

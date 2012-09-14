@@ -157,6 +157,19 @@
      <string>Test SVM with Leave-One-Out</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="cluster_push_button">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>270</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Cluster</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -176,6 +189,8 @@
     <addaction name="actionLoadEverything"/>
     <addaction name="separator"/>
     <addaction name="actionLoadTrainingFile"/>
+    <addaction name="separator"/>
+    <addaction name="actionLoadMoSIFTForClustering"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -211,6 +226,11 @@
   <action name="actionLoadTestingFile">
    <property name="text">
     <string>Load SVM Testing File</string>
+   </property>
+  </action>
+  <action name="actionLoadMoSIFTForClustering">
+   <property name="text">
+    <string>Load MoSIFT Files for Clustering</string>
    </property>
   </action>
  </widget>

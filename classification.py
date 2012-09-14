@@ -12,8 +12,8 @@ NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION = 4
 NUMBER_OF_CLUSTERS = 600
 NUMBER_OF_VIDEOS = 599
 
-FENG = False
-EHSAN = True
+FENG = True
+EHSAN = False
 
 # this class essentially implements an enum.
 # For example, x = Labeling.BOXING (1)
@@ -95,7 +95,7 @@ def loadTrainingAndTestData(features_file, labels_file):
 	current_indices = []
 
 	label_data = numpy.genfromtxt(labels_file, delimiter = ',')
-	training_data = numpy.genfromtxt(features_file, delimiter = ',')
+	training_data = numpy.genfromtxt(features_file, delimiter = ' ')
 
 	# group data by people, so we can easily leave-one-out.
 	for i in xrange(NUMBER_OF_PEOPLE):
@@ -177,10 +177,10 @@ def generateAllPossibleLeaveOneOutCombosForLibSVM(grouped_data, grouped_labels):
 			current_index += new_rows
 
 		# write data file.
-		training_filename = "C:/data/kth/ehsan/left_out_" + str(left_out_person + 1) + ".train"
+		training_filename = "C:/data/kth/feng/run1/left_out_" + str(left_out_person + 1) + ".train"
 		setupInLibsvmFormat(training_data, training_labels, training_filename)
 
-		testing_filename = "C:/data/kth/ehsan/left_out_" + str(left_out_person + 1) + ".test"
+		testing_filename = "C:/data/kth/feng/run1/left_out_" + str(left_out_person + 1) + ".test"
 		setupInLibsvmFormat(testing_data, testing_labels, testing_filename)
 
 
@@ -340,12 +340,12 @@ def setupInLibsvmFormat(training_data, label_data, output_filename):
 # entry point
 if __name__ == '__main__':
 
-	data = "C:/data/kth/ehsan/hist.txt"
-	labels = "C:/data/kth/ehsan/label.txt"
+	data = "C:/data/kth/feng/run1/hist.txt"
+	labels = "C:/data/kth/feng//run1/label.txt"
 	
 	# Step 1: Reprocess the data into the desired format.
 	label_data = numpy.genfromtxt(labels, delimiter = ',')
-	training_data = numpy.genfromtxt(data, delimiter = ',')
+	training_data = numpy.genfromtxt(data, delimiter = ' ')
 	setupInLibsvmFormat(training_data, label_data, "entire_dataset_libsvm.txt")
 
 	#file_path = "C:/data/kth/histogramsDev.txt"

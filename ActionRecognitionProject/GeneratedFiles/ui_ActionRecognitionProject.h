@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'ActionRecognitionProject.ui'
 **
-** Created: Thu Sep 13 12:01:24 2012
+** Created: Fri Sep 14 13:40:25 2012
 **      by: Qt User Interface Compiler version 4.8.1
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -34,6 +34,7 @@ public:
     QAction *actionLoadEverything;
     QAction *actionLoadTrainingFile;
     QAction *actionLoadTestingFile;
+    QAction *actionLoadMoSIFTForClustering;
     QWidget *centralWidget;
     QPushButton *play_pause_button;
     QPushButton *stop_button;
@@ -46,6 +47,7 @@ public:
     QPushButton *train_svm_button;
     QPushButton *test_svm_button;
     QPushButton *leave_one_out_button;
+    QPushButton *cluster_push_button;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QToolBar *mainToolBar;
@@ -66,6 +68,8 @@ public:
         actionLoadTrainingFile->setObjectName(QString::fromUtf8("actionLoadTrainingFile"));
         actionLoadTestingFile = new QAction(ActionRecognitionProjectClass);
         actionLoadTestingFile->setObjectName(QString::fromUtf8("actionLoadTestingFile"));
+        actionLoadMoSIFTForClustering = new QAction(ActionRecognitionProjectClass);
+        actionLoadMoSIFTForClustering->setObjectName(QString::fromUtf8("actionLoadMoSIFTForClustering"));
         centralWidget = new QWidget(ActionRecognitionProjectClass);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         play_pause_button = new QPushButton(centralWidget);
@@ -101,6 +105,9 @@ public:
         leave_one_out_button = new QPushButton(centralWidget);
         leave_one_out_button->setObjectName(QString::fromUtf8("leave_one_out_button"));
         leave_one_out_button->setGeometry(QRect(220, 310, 161, 23));
+        cluster_push_button = new QPushButton(centralWidget);
+        cluster_push_button->setObjectName(QString::fromUtf8("cluster_push_button"));
+        cluster_push_button->setGeometry(QRect(220, 270, 75, 23));
         ActionRecognitionProjectClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ActionRecognitionProjectClass);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
@@ -121,6 +128,8 @@ public:
         menuFile->addAction(actionLoadEverything);
         menuFile->addSeparator();
         menuFile->addAction(actionLoadTrainingFile);
+        menuFile->addSeparator();
+        menuFile->addAction(actionLoadMoSIFTForClustering);
 
         retranslateUi(ActionRecognitionProjectClass);
 
@@ -135,6 +144,7 @@ public:
         actionLoadEverything->setText(QApplication::translate("ActionRecognitionProjectClass", "Load Group of MoSIFT Features and AVI Files", 0, QApplication::UnicodeUTF8));
         actionLoadTrainingFile->setText(QApplication::translate("ActionRecognitionProjectClass", "Load SVM Training File", 0, QApplication::UnicodeUTF8));
         actionLoadTestingFile->setText(QApplication::translate("ActionRecognitionProjectClass", "Load SVM Testing File", 0, QApplication::UnicodeUTF8));
+        actionLoadMoSIFTForClustering->setText(QApplication::translate("ActionRecognitionProjectClass", "Load MoSIFT Files for Clustering", 0, QApplication::UnicodeUTF8));
         play_pause_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Play", 0, QApplication::UnicodeUTF8));
         stop_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Restart", 0, QApplication::UnicodeUTF8));
         input_sequence->setText(QString());
@@ -146,6 +156,7 @@ public:
         train_svm_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Train SVM", 0, QApplication::UnicodeUTF8));
         test_svm_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Test SVM", 0, QApplication::UnicodeUTF8));
         leave_one_out_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Test SVM with Leave-One-Out", 0, QApplication::UnicodeUTF8));
+        cluster_push_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Cluster", 0, QApplication::UnicodeUTF8));
         menuFile->setTitle(QApplication::translate("ActionRecognitionProjectClass", "File", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 

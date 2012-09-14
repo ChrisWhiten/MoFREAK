@@ -149,3 +149,64 @@ void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file)
 
 	f.close();
 }
+
+// MoFREAK has 512 bits, so we can normalize this by summing the hamming distance
+// over all bits in the MoFREAK vector and dividing the sum by 512..
+unsigned int MoFREAKUtilities::hammingDistance(unsigned int a, unsigned int b)
+{
+	unsigned int hamming_distance = 0;
+	// start as 0000 0001
+	unsigned int bit = 1;
+
+	// get the xor of a and b, each 1 in the xor adds to the hamming distance...
+	unsigned int xor_result = a ^ b;
+
+	// now count the bits, using 'bit' as a mask and performing a bitwise AND
+	for (bit = 1; bit != 0; bit <<= 1)
+	{
+		hamming_distance += (xor_result & bit);
+	}
+
+	return hamming_distance;
+}
+
+double MoFREAKUtilities::motionNormalizedEuclideanDistance(vector<unsigned int> a, vector<unsigned int> b)
+{
+	double a_norm = 0.0, b_norm = 0.0, distance = 0.0;
+	vector<double> normalized_a, normalized_b;
+
+	// get euclidean norm for a.
+	for (auto it = a.begin(); it != a.end(); ++it)
+	{
+		a_norm += (*it)*(*it);
+	}
+	a_norm = sqrt(a_norm);
+
+	// get euclidean norm for b.
+	for (auto it = b.begin(); it != b.end(); ++it)
+	{
+		b_norm += (*it)*(*it);
+	}
+	b_norm = sqrt(b_norm);
+
+	// normalize vector a.
+	for (auto it = a.begin(); it != a.end(); ++it)
+	{
+		normalized_a.push_back((*it)/a_norm);
+	}
+
+	// normalize vector b.
+	for (auto it = b.begin(); it != b.end(); ++it)
+	{
+		normalized_b.push_back((*it)/b_norm);
+	}
+
+	// compute distance between the two normalized vectors.
+	for (unsigned int i = 0; i < normalized_a.size(); ++i)
+	{
+		distance += ((normalized_a[i] - normalized_b[i]) * (normalized_a[i] - normalized_b[i]));
+	}
+
+	distance = sqrt(distance);
+	return distance;
+}
