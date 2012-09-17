@@ -31,7 +31,7 @@ class BagOfWordsRepresentation
 {
 public:
 	void doStuff();
-	BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim);
+	BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people);
 
 private:
 	void loadClusters();
@@ -43,6 +43,7 @@ private:
 	QStringList files;
 	const int NUMBER_OF_CLUSTERS;
 	const int FEATURE_DIMENSIONALITY;
+	const int NUMBER_OF_PEOPLE;
 	cv::Mat *clusters;
 	enum class_action {BOXING, HANDCLAPPING, HANDWAVING, JOGGING, RUNNING, WALKING};
 };

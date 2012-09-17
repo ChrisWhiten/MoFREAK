@@ -67,6 +67,7 @@ void ActionRecognitionProject::clusterMoSIFTPoints()
 	const int NUM_CLUSTERS = 600;
 	const int POINTS_TO_SAMPLE = 12000;
 	const int NUM_CLASSES = 6;
+	const int NUMBER_OF_PEOPLE = 25;
 	cv::Mat data_pts(mosift_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
 
 	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES);
@@ -95,7 +96,7 @@ void ActionRecognitionProject::clusterMoSIFTPoints()
 	ui.frame_label->adjustSize();
 	qApp->processEvents();
 
-	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY);
+	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE);
 
 	ui.frame_label->setText("BOW Representation Computed.");
 	ui.frame_label->adjustSize();

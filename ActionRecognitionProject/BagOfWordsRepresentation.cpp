@@ -123,12 +123,12 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(QString &file)
 		histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
 	}
 
-	ofstream blah("unnormed.txt");
+	ofstream unnormed_hist("unnormed.txt");
 	for (unsigned col = 0; col < histogram.cols; ++col)
 	{
-		blah << histogram.at<float>(0, col);
+		unnormed_hist << histogram.at<float>(0, col) << ", ";
 	}
-	blah.close();
+	unnormed_hist.close();
 
 	// after doing that for all lines in file, normalize.
 	float histogram_sum = 0;
@@ -165,13 +165,37 @@ void BagOfWordsRepresentation::loadClusters()
 	}
 }
 
-BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim) : NUMBER_OF_CLUSTERS(num_clust), FEATURE_DIMENSIONALITY(ftr_dim)
+BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people) : NUMBER_OF_CLUSTERS(num_clust), 
+	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people)
 {
 	loadClusters();
 
-	// open streams for hist and label file.
+	// open file streams to write data for SVM
 	ofstream hist_file("hist.txt");
 	ofstream label_file("label.txt");
+
+	vector<ofstream *> training_files;
+	vector<ofstream *> testing_files;
+
+	for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+	{
+		stringstream training_string;
+		stringstream testing_string;
+
+		training_string << "left_out_" << i + 1 << ".train";
+		testing_string << "left_out_" << i + 1 << ".test";
+
+		ofstream *training_file = new ofstream(training_string.str());
+		ofstream *testing_file = new ofstream(testing_string.str());
+
+		training_string.str("");
+		training_string.clear();
+		testing_string.str("");
+		testing_string.clear();
+
+		training_files.push_back(training_file);
+		testing_files.push_back(testing_file);
+	}
 
 	// for each file, find the action + person number + video number
 	// person01_boxing_d2_uncomp.txt....
@@ -226,7 +250,33 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 		// now extract each mosift point and assign it to the correct codeword.
 		cv::Mat hist = buildHistogram(*it);
 
-		// now write to files.
+		// print output to correct files. libsvm-ready
+		for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+		{
+			if (i == person)
+			{
+				// print histogram to testing file.  leave this one out!
+				(*(testing_files[i])) << action + 1 << " ";
+				for (unsigned col = 0; col < hist.cols; ++col)
+				{
+					(*(testing_files[i])) << col + 1 << ":" << hist.at<float>(0, col);
+				}
+				(*(testing_files[i])) << std::endl;
+			}
+
+			// this shouldn't be left out. print to training file.
+			else
+			{
+				(*(training_files[i])) << action + 1 << " ";
+				for (unsigned col = 0; col < hist.cols; ++col)
+				{
+					(*(training_files[i])) << col + 1 << ":" << hist.at<float>(0, col);
+				}
+				(*(training_files[i])) << std::endl;
+			}
+		}
+
+		// now write to old style files.
 		label_file << action + 1 << "," << person << "," << video_number << std::endl;
 
 		for (unsigned int col = 0; col < hist.cols; ++col)
@@ -240,4 +290,10 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 	hist_file.close();
 	label_file.close();
 
+	// close the libsvm training and testing files.
+	for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+	{
+		training_files[i]->close();
+		testing_files[i]->close();
+	}
 }
