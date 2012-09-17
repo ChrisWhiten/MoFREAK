@@ -42,7 +42,7 @@ vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float
 	return ret_val;
 }
 
-void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(string mosift_file, string video_path)
+void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, string video_path)
 {
 	// gather mosift features.
 	MoSIFTUtilities mosift;

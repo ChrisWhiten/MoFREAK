@@ -9,6 +9,7 @@
 #include <opencv2\video\video.hpp>
 #include <opencv2\highgui\highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
+#include <qstring.h>
 
 #include "MoSIFTUtilities.h"
 using namespace std;
@@ -31,7 +32,7 @@ class MoFREAKUtilities
 public:
 	void readMoFREAKFeatures(string filename);
 	vector<MoFREAKFeature> getMoFREAKFeatures();
-	void buildMoFREAKFeaturesFromMoSIFT(string mosift_file, string video_path);
+	void buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, string video_path);
 	void writeMoFREAKFeaturesToFile(string output_file);
 
 private:

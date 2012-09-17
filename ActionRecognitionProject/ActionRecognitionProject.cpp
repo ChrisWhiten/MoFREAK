@@ -5,16 +5,19 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 {
 	ui.setupUi(this);
 
+	// file menu.
 	connect(ui.actionLoad, SIGNAL(triggered()), this, SLOT(loadFiles()));
-	connect(ui.play_pause_button, SIGNAL(clicked()), this, SLOT(playOrPause()));
 	connect(ui.actionLoadMoSIFT, SIGNAL(triggered()), this, SLOT(loadMoSIFTFile()));
 	connect(ui.actionLoadEverything, SIGNAL(triggered()), this, SLOT(loadEverything()));
+	connect(ui.actionLoadTrainingFile, SIGNAL(triggered()), this, SLOT(loadSVMTrainingFile()));
+	connect(ui.actionLoadMoSIFTForClustering, SIGNAL(triggered()), this, SLOT(loadMoSIFTFilesForClustering()));
+
+	// buttons on the GUI.
+	connect(ui.play_pause_button, SIGNAL(clicked()), this, SLOT(playOrPause()));
 	connect(ui.convertMoSIFTToMoFREAK, SIGNAL(clicked()), this, SLOT(convertMoSIFTToMoFREAK()));
 	connect(ui.train_svm_button, SIGNAL(clicked()), this, SLOT(trainSVM()));
 	connect(ui.test_svm_button, SIGNAL(clicked()), this, SLOT(testSVM()));
-	connect(ui.actionLoadTrainingFile, SIGNAL(triggered()), this, SLOT(loadSVMTrainingFile()));
 	connect(ui.leave_one_out_button, SIGNAL(clicked()), this, SLOT(evaluateSVMWithLeaveOneOut()));
-	connect(ui.actionLoadMoSIFTForClustering, SIGNAL(triggered()), this, SLOT(loadMoSIFTFilesForClustering()));
 	connect(ui.cluster_push_button, SIGNAL(clicked()), this, SLOT(clusterMoSIFTPoints()));
 
 	// Update the UI
@@ -57,86 +60,44 @@ void ActionRecognitionProject::loadFiles()
 	}
 }
 
-// taken from feng's work.
- void ActionRecognitionProject::shuffleCVMat(cv::Mat &mx)
- {
-	 srand( (unsigned int)time(NULL) );
-	 int rowNo = mx.rows;
-	 int row0 = rowNo - 1;
-
-	 //suuffle the array with Fisher-Yates shuffling
-	 while (row0 > 0)
-	 {
-		int row1 = rand() % row0;
-		cv::Mat m1 = mx.row(row1);
-		cv::Mat mt = m1.clone();
-		mx.row(row0).copyTo(m1);
-		mt.copyTo(mx.row(row0));
-		row0--;
-	 }
- }
-
 void ActionRecognitionProject::clusterMoSIFTPoints()
 {
 	// organize pts into a cv::Mat.
 	const int FEATURE_DIMENSIONALITY = 256;
-	const int NUM_CLUSTERS = 2;
+	const int NUM_CLUSTERS = 600;
 	const int POINTS_TO_SAMPLE = 12000;
+	const int NUM_CLASSES = 6;
 	cv::Mat data_pts(mosift_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
+
+	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES);
 
 	ui.frame_label->setText("Formatting features...");
 	ui.frame_label->adjustSize();
 	qApp->processEvents();
 
-	for (unsigned int row = 0; row < mosift_ftrs.size(); ++row)
-	{
-		MoSIFTFeature ftr = mosift_ftrs[row];
-		for (unsigned col = 0; col < 128; ++col)
-		{
-			data_pts.at<float>(row, col) = (float)ftr.SIFT[col];
-			data_pts.at<float>(row, col + 128) = (float)ftr.motion[col];
-		}
-	}
-
-	// shuffle 3 times.
-	shuffleCVMat(data_pts);
-	shuffleCVMat(data_pts);
-	shuffleCVMat(data_pts);
-
-	// remove excessive points.
-	if (data_pts.rows > POINTS_TO_SAMPLE)
-	{
-		data_pts.pop_back(data_pts.rows - POINTS_TO_SAMPLE);
-	}
+	clustering.buildDataFromMoSIFT(mosift_ftrs, false);
 
 	ui.frame_label->setText("Clustering...");
 	ui.frame_label->adjustSize();
 	qApp->processEvents();
 
-	// call k-means.
-	cv::Mat labels;//(data_pts.rows, 1, CV_32SC1);
-	cv::Mat centers(NUM_CLUSTERS, 1, data_pts.type());//data_pts.cols, data_pts.type());
-	//cv::kmeans(data_pts, NUM_CLUSTERS, labels, cvTermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER,100000, 0.001), 1, cv::KMEANS_PP_CENTERS,  centers);
-	kmeans(data_pts, NUM_CLUSTERS, labels,  cvTermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 100000, 0.001),1,cv::KMEANS_PP_CENTERS, centers);
+	//clustering.clusterWithKMeans();
+	clustering.randomClusters();
 
 	// print clusters to file
 	ui.frame_label->setText("Writing clusters to file...");
 	ui.frame_label->adjustSize();
 	qApp->processEvents();
 
-	ofstream output_file("clusters.txt");
+	clustering.writeClusters();
 
-	for (unsigned i = 0; i < NUM_CLUSTERS; ++i)
-	{
-		for (unsigned j = 0; j < centers.cols; ++j)
-		{
-			output_file << centers.at<float>(i, j) << " ";
-		}
+	ui.frame_label->setText("Computing BOW Representation...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
 
-		output_file << std::endl;
-	}
-	output_file.close();
-	ui.frame_label->setText("Clusters written...");
+	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY);
+
+	ui.frame_label->setText("BOW Representation Computed.");
 	ui.frame_label->adjustSize();
 }
 
@@ -238,7 +199,7 @@ void ActionRecognitionProject::convertMoSIFTToMoFREAK()
 		video_path.append("avi");
 
 		// ship it away for modification
-		mofreak.buildMoFREAKFeaturesFromMoSIFT(it->toStdString(), video_path.toStdString());
+		mofreak.buildMoFREAKFeaturesFromMoSIFT(*it, video_path.toStdString());
 		it->append(".mofreak.txt");
 		mofreak.writeMoFREAKFeaturesToFile(it->toStdString());
 	}
@@ -269,7 +230,7 @@ void ActionRecognitionProject::loadMoSIFTFilesForClustering()
 
 	for (auto it = files.begin(); it != files.end(); ++it)
 	{
-		mosift.readMoSIFTFeatures(it->toStdString());
+		mosift.readMoSIFTFeatures(*it);
 	}
 
 	mosift_ftrs = mosift.getMoSIFTFeatures();
@@ -281,14 +242,8 @@ void ActionRecognitionProject::loadMoSIFTFile()
 {
 	QString filename = QFileDialog::getOpenFileName(this, tr("Directory"), directory.path());
 	
-	mosift.readMoSIFTFeatures(filename.toStdString());
+	mosift.readMoSIFTFeatures(filename);
 	mosift_ftrs = mosift.getMoSIFTFeatures();
-
-	/*
-	for (unsigned i = 0; i < mosift_ftrs.size(); ++i)
-	{
-		int x = mosift_ftrs[i].frame_number;
-	}*/
 }
 
 void ActionRecognitionProject::loadEverything()
@@ -360,7 +315,8 @@ void ActionRecognitionProject::nextFrame()
 
 void ActionRecognitionProject::processFrame(cv::Mat &input, cv::Mat &output)
 {
-	// maybe display us some mosift here.
+	// maybe display some mosift points overlaid on top of the frame here.
+	// clearly not used.
 }
 
 void ActionRecognitionProject::updateGUI(cv::Mat3b &raw_frame, cv::Mat3b &output_frame)

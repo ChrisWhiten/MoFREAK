@@ -25,6 +25,8 @@
 #include "MoSIFTUtilities.h"
 #include "MoFREAKUtilities.h"
 #include "SVMInterface.h"
+#include "Clustering.h"
+#include "BagOfWordsRepresentation.h"
 
 using namespace std;
 
