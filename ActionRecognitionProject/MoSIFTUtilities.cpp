@@ -43,6 +43,7 @@ void MoSIFTUtilities::readMetadata(QString filename, int &action, int &video_num
 		QString video_string = filename.mid(last_underscore - 1, 1);
 		video_number = video_string.toInt();
 }
+
 void MoSIFTUtilities::readMoSIFTFeatures(QString filename)
 {
 	int action, video_number, person;

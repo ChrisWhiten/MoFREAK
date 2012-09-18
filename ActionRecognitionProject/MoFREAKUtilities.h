@@ -23,8 +23,12 @@ struct MoFREAKFeature
 	float motion_y;
 
 	int frame_number;
-	unsigned int FREAK[64]; // this is going to change to an array of bits.  temporary.
+	unsigned int FREAK[64];
 	unsigned char motion[128];
+
+	int action;
+	int video_number;
+	int person;
 };
 
 class MoFREAKUtilities
@@ -34,6 +38,7 @@ public:
 	vector<MoFREAKFeature> getMoFREAKFeatures();
 	void buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, string video_path);
 	void writeMoFREAKFeaturesToFile(string output_file);
+	void readMoFREAKFeatures(QString filename);
 
 private:
 	string toBinaryString(unsigned int x);
@@ -41,6 +46,7 @@ private:
 	unsigned int extractMotionByImageDifference(cv::Mat &frame, cv::Mat &prev_frame, float x, float y); // I suppose we don't need scale for this.
 	unsigned int hammingDistance(unsigned int a, unsigned int b);
 	double motionNormalizedEuclideanDistance(vector<unsigned int> a, vector<unsigned int> b);
+	void readMetadata(QString filename, int &action, int &video_number, int &person);
 
 	vector<MoFREAKFeature> features;
 };

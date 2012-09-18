@@ -50,7 +50,9 @@ private slots:
 	void loadSVMTrainingFile();
 	void evaluateSVMWithLeaveOneOut();
 	void loadMoSIFTFilesForClustering();
+	void loadMoFREAKFilesForClustering();
 	void clusterMoSIFTPoints();
+	void clusterMoFREAKPoints();
 
 private:
 	int frame_number;
@@ -69,6 +71,7 @@ private:
 	MoSIFTUtilities mosift;
 	MoFREAKUtilities mofreak;
 	vector<MoSIFTFeature> mosift_ftrs;
+	vector<MoFREAKFeature> mofreak_ftrs;
 	SVMInterface svm_interface;
 
 	cv::Mat3b getFrame();

@@ -39,6 +39,9 @@ private:
 	//float standardEuclideanDistance(vector<float> a, vector<float> b) const;
 	float standardEuclideanDistance(cv::Mat &a, cv::Mat &b) const;
 	void findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score);
+	void findBestMatchFREAKAndOpticalFlow(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file);
+	void findBestMatchFREAKAndFrameDifference(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score);
+	unsigned int hammingDistance(cv::Mat &a, cv::Mat &b);
 
 	QStringList files;
 	const int NUMBER_OF_CLUSTERS;

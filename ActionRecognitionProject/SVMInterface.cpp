@@ -281,7 +281,7 @@ void SVMInterface::setParameters(svm_parameter *param)
 void SVMInterface::trainModel(std::string training_data_file)
 {
 	const char *error_msg;
-	const std::string model_file_name = "C:/data/kth/feng/trained_svm.model";
+	const std::string model_file_name = "C:/data/kth/chris/trained_svm.model";
 
 	read_problem(training_data_file);
 	setParameters(&param);
@@ -295,8 +295,8 @@ void SVMInterface::trainModel(std::string training_data_file)
 
 double SVMInterface::testModel(std::string testing_data_file)
 {
-	const std::string model_file_name = "C:/data/kth/feng/trained_svm.model";
-	const std::string output_file = "C:/data/kth/feng/libsvm_output.txt";
+	const std::string model_file_name = "C:/data/kth/chris/trained_svm.model";
+	const std::string output_file = "C:/data/kth/chris/libsvm_output.txt";
 
 	FILE *testing_data, *output;
 	testing_data = fopen(testing_data_file.c_str(), "r");

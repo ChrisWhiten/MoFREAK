@@ -8,6 +8,7 @@
 #include <fstream>
 #include <vector>
 #include "MoSIFTUtilities.h"
+#include "MoFREAKUtilities.h"
 
 using namespace std;
 
@@ -16,6 +17,7 @@ class Clustering
 public:
 	Clustering(int dim, int num_clust, int num_pts, int num_classes);
 	void buildDataFromMoSIFT(vector<MoSIFTFeature> &mosift_ftrs, bool sample_pts);
+	void buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts);
 	void clusterWithKMeans();
 	void randomClusters();
 	void writeClusters();

@@ -17,7 +17,7 @@
    <widget class="QPushButton" name="play_pause_button">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>20</x>
       <y>270</y>
       <width>75</width>
       <height>23</height>
@@ -30,7 +30,7 @@
    <widget class="QPushButton" name="stop_button">
     <property name="geometry">
      <rect>
-      <x>130</x>
+      <x>100</x>
       <y>270</y>
       <width>75</width>
       <height>23</height>
@@ -95,9 +95,9 @@
    <widget class="QLabel" name="frame_label">
     <property name="geometry">
      <rect>
-      <x>490</x>
+      <x>459</x>
       <y>320</y>
-      <width>46</width>
+      <width>50</width>
       <height>13</height>
      </rect>
     </property>
@@ -134,7 +134,7 @@
    <widget class="QPushButton" name="test_svm_button">
     <property name="geometry">
      <rect>
-      <x>120</x>
+      <x>100</x>
       <y>310</y>
       <width>75</width>
       <height>23</height>
@@ -147,7 +147,7 @@
    <widget class="QPushButton" name="leave_one_out_button">
     <property name="geometry">
      <rect>
-      <x>220</x>
+      <x>180</x>
       <y>310</y>
       <width>161</width>
       <height>23</height>
@@ -160,14 +160,27 @@
    <widget class="QPushButton" name="cluster_push_button">
     <property name="geometry">
      <rect>
-      <x>220</x>
+      <x>180</x>
       <y>270</y>
-      <width>75</width>
+      <width>81</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
-     <string>Cluster</string>
+     <string>Cluster MoSIFT</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="cluster_mofreak_push_button">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>270</y>
+      <width>91</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Cluster MoFREAK</string>
     </property>
    </widget>
   </widget>
@@ -191,6 +204,7 @@
     <addaction name="actionLoadTrainingFile"/>
     <addaction name="separator"/>
     <addaction name="actionLoadMoSIFTForClustering"/>
+    <addaction name="actionLoadMoFREAKForClustering"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -231,6 +245,11 @@
   <action name="actionLoadMoSIFTForClustering">
    <property name="text">
     <string>Load MoSIFT Files for Clustering</string>
+   </property>
+  </action>
+  <action name="actionLoadMoFREAKForClustering">
+   <property name="text">
+    <string>Load MoFREAK Files for Clustering</string>
    </property>
   </action>
  </widget>

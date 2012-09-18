@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'ActionRecognitionProject.ui'
 **
-** Created: Sat Sep 15 18:21:01 2012
+** Created: Mon Sep 17 14:37:16 2012
 **      by: Qt User Interface Compiler version 4.8.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -35,6 +35,7 @@ public:
     QAction *actionLoadTrainingFile;
     QAction *actionLoadTestingFile;
     QAction *actionLoadMoSIFTForClustering;
+    QAction *actionLoadMoFREAKForClustering;
     QWidget *centralWidget;
     QPushButton *play_pause_button;
     QPushButton *stop_button;
@@ -48,6 +49,7 @@ public:
     QPushButton *test_svm_button;
     QPushButton *leave_one_out_button;
     QPushButton *cluster_push_button;
+    QPushButton *cluster_mofreak_push_button;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QToolBar *mainToolBar;
@@ -70,14 +72,16 @@ public:
         actionLoadTestingFile->setObjectName(QString::fromUtf8("actionLoadTestingFile"));
         actionLoadMoSIFTForClustering = new QAction(ActionRecognitionProjectClass);
         actionLoadMoSIFTForClustering->setObjectName(QString::fromUtf8("actionLoadMoSIFTForClustering"));
+        actionLoadMoFREAKForClustering = new QAction(ActionRecognitionProjectClass);
+        actionLoadMoFREAKForClustering->setObjectName(QString::fromUtf8("actionLoadMoFREAKForClustering"));
         centralWidget = new QWidget(ActionRecognitionProjectClass);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         play_pause_button = new QPushButton(centralWidget);
         play_pause_button->setObjectName(QString::fromUtf8("play_pause_button"));
-        play_pause_button->setGeometry(QRect(30, 270, 75, 23));
+        play_pause_button->setGeometry(QRect(20, 270, 75, 23));
         stop_button = new QPushButton(centralWidget);
         stop_button->setObjectName(QString::fromUtf8("stop_button"));
-        stop_button->setGeometry(QRect(130, 270, 75, 23));
+        stop_button->setGeometry(QRect(100, 270, 75, 23));
         input_sequence = new QLabel(centralWidget);
         input_sequence->setObjectName(QString::fromUtf8("input_sequence"));
         input_sequence->setGeometry(QRect(60, 60, 46, 13));
@@ -92,7 +96,7 @@ public:
         output_label->setGeometry(QRect(400, 250, 46, 13));
         frame_label = new QLabel(centralWidget);
         frame_label->setObjectName(QString::fromUtf8("frame_label"));
-        frame_label->setGeometry(QRect(490, 320, 46, 13));
+        frame_label->setGeometry(QRect(459, 320, 50, 13));
         convertMoSIFTToMoFREAK = new QPushButton(centralWidget);
         convertMoSIFTToMoFREAK->setObjectName(QString::fromUtf8("convertMoSIFTToMoFREAK"));
         convertMoSIFTToMoFREAK->setGeometry(QRect(390, 270, 151, 23));
@@ -101,13 +105,16 @@ public:
         train_svm_button->setGeometry(QRect(20, 310, 75, 23));
         test_svm_button = new QPushButton(centralWidget);
         test_svm_button->setObjectName(QString::fromUtf8("test_svm_button"));
-        test_svm_button->setGeometry(QRect(120, 310, 75, 23));
+        test_svm_button->setGeometry(QRect(100, 310, 75, 23));
         leave_one_out_button = new QPushButton(centralWidget);
         leave_one_out_button->setObjectName(QString::fromUtf8("leave_one_out_button"));
-        leave_one_out_button->setGeometry(QRect(220, 310, 161, 23));
+        leave_one_out_button->setGeometry(QRect(180, 310, 161, 23));
         cluster_push_button = new QPushButton(centralWidget);
         cluster_push_button->setObjectName(QString::fromUtf8("cluster_push_button"));
-        cluster_push_button->setGeometry(QRect(220, 270, 75, 23));
+        cluster_push_button->setGeometry(QRect(180, 270, 81, 23));
+        cluster_mofreak_push_button = new QPushButton(centralWidget);
+        cluster_mofreak_push_button->setObjectName(QString::fromUtf8("cluster_mofreak_push_button"));
+        cluster_mofreak_push_button->setGeometry(QRect(270, 270, 91, 23));
         ActionRecognitionProjectClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ActionRecognitionProjectClass);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
@@ -130,6 +137,7 @@ public:
         menuFile->addAction(actionLoadTrainingFile);
         menuFile->addSeparator();
         menuFile->addAction(actionLoadMoSIFTForClustering);
+        menuFile->addAction(actionLoadMoFREAKForClustering);
 
         retranslateUi(ActionRecognitionProjectClass);
 
@@ -145,6 +153,7 @@ public:
         actionLoadTrainingFile->setText(QApplication::translate("ActionRecognitionProjectClass", "Load SVM Training File", 0, QApplication::UnicodeUTF8));
         actionLoadTestingFile->setText(QApplication::translate("ActionRecognitionProjectClass", "Load SVM Testing File", 0, QApplication::UnicodeUTF8));
         actionLoadMoSIFTForClustering->setText(QApplication::translate("ActionRecognitionProjectClass", "Load MoSIFT Files for Clustering", 0, QApplication::UnicodeUTF8));
+        actionLoadMoFREAKForClustering->setText(QApplication::translate("ActionRecognitionProjectClass", "Load MoFREAK Files for Clustering", 0, QApplication::UnicodeUTF8));
         play_pause_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Play", 0, QApplication::UnicodeUTF8));
         stop_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Restart", 0, QApplication::UnicodeUTF8));
         input_sequence->setText(QString());
@@ -156,7 +165,8 @@ public:
         train_svm_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Train SVM", 0, QApplication::UnicodeUTF8));
         test_svm_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Test SVM", 0, QApplication::UnicodeUTF8));
         leave_one_out_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Test SVM with Leave-One-Out", 0, QApplication::UnicodeUTF8));
-        cluster_push_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Cluster", 0, QApplication::UnicodeUTF8));
+        cluster_push_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Cluster MoSIFT", 0, QApplication::UnicodeUTF8));
+        cluster_mofreak_push_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Cluster MoFREAK", 0, QApplication::UnicodeUTF8));
         menuFile->setTitle(QApplication::translate("ActionRecognitionProjectClass", "File", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 

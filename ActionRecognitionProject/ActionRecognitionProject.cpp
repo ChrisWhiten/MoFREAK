@@ -11,6 +11,7 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 	connect(ui.actionLoadEverything, SIGNAL(triggered()), this, SLOT(loadEverything()));
 	connect(ui.actionLoadTrainingFile, SIGNAL(triggered()), this, SLOT(loadSVMTrainingFile()));
 	connect(ui.actionLoadMoSIFTForClustering, SIGNAL(triggered()), this, SLOT(loadMoSIFTFilesForClustering()));
+	connect(ui.actionLoadMoFREAKForClustering, SIGNAL(triggered()), this, SLOT(loadMoFREAKFilesForClustering()));
 
 	// buttons on the GUI.
 	connect(ui.play_pause_button, SIGNAL(clicked()), this, SLOT(playOrPause()));
@@ -19,6 +20,8 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 	connect(ui.test_svm_button, SIGNAL(clicked()), this, SLOT(testSVM()));
 	connect(ui.leave_one_out_button, SIGNAL(clicked()), this, SLOT(evaluateSVMWithLeaveOneOut()));
 	connect(ui.cluster_push_button, SIGNAL(clicked()), this, SLOT(clusterMoSIFTPoints()));
+	connect(ui.cluster_mofreak_push_button, SIGNAL(clicked()), this, SLOT(clusterMoFREAKPoints()));
+	
 
 	// Update the UI
 	timer = new QTimer(this);
@@ -58,6 +61,49 @@ void ActionRecognitionProject::loadFiles()
 		capture = new cv::VideoCapture(files[0].toStdString());
 		reading_sequence_of_images = false;
 	}
+}
+
+void ActionRecognitionProject::clusterMoFREAKPoints()
+{
+	// organize pts into a cv::Mat.
+	const int FEATURE_DIMENSIONALITY = 192;
+	const int NUM_CLUSTERS = 600;
+	const int POINTS_TO_SAMPLE = 12000;
+	const int NUM_CLASSES = 6;
+	const int NUMBER_OF_PEOPLE = 25;
+	cv::Mat data_pts(mofreak_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
+
+	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES);
+
+	ui.frame_label->setText("Formatting features...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+
+	clustering.buildDataFromMoFREAK(mofreak_ftrs, false);
+
+	ui.frame_label->setText("Clustering...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+
+	//clustering.clusterWithKMeans();
+	clustering.randomClusters();
+	
+
+	// print clusters to file
+	ui.frame_label->setText("Writing clusters to file...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+
+	clustering.writeClusters();
+
+	ui.frame_label->setText("Computing BOW Representation...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+
+	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE);
+
+	ui.frame_label->setText("BOW Representation Computed.");
+	ui.frame_label->adjustSize();
 }
 
 void ActionRecognitionProject::clusterMoSIFTPoints()
@@ -104,7 +150,7 @@ void ActionRecognitionProject::clusterMoSIFTPoints()
 
 void ActionRecognitionProject::evaluateSVMWithLeaveOneOut()
 {
-	ofstream output_file("C:/data/kth/ehsan/whatthe.txt");
+	ofstream output_file("C:/data/kth/chris/whatthe.txt");
 
 	double summed_accuracy = 0.0;
 	for (unsigned i = 0; i < svm_training_files.size(); ++i)
@@ -128,7 +174,8 @@ void ActionRecognitionProject::evaluateSVMWithLeaveOneOut()
 		svm_guy.trainModel(svm_training_files[i].toStdString());
 
 		// get accuracy.
-		double accuracy = svm_guy.testModel(svm_testing_files[i].toStdString());
+		string test_filename = svm_testing_files[i].toStdString();
+		double accuracy = svm_guy.testModel(test_filename);
 		summed_accuracy += accuracy;
 
 		// debugging...print to testing file.
@@ -138,7 +185,8 @@ void ActionRecognitionProject::evaluateSVMWithLeaveOneOut()
 	output_file.close();
 
 	// output average accuracy.
-	double average_accuracy = summed_accuracy/(double)svm_training_files.size();
+	double denominator = (double)svm_training_files.size();
+	double average_accuracy = summed_accuracy/denominator;
 
 	stringstream ss;
 	ss << "Averaged accuracy: " << average_accuracy << "%";
@@ -219,6 +267,25 @@ void ActionRecognitionProject::loadSVMTrainingFile()
 
 		svm_testing_files.push_back(testing_file);
 	}
+}
+
+void ActionRecognitionProject::loadMoFREAKFilesForClustering()
+{
+	files = QFileDialog::getOpenFileNames(this, tr("Directory"), directory.path());
+
+	ui.frame_label->setText("Loading MoFREAK Features...");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+
+	for (auto it = files.begin(); it != files.end(); ++it)
+	{
+		mofreak.readMoFREAKFeatures(*it);
+	}
+
+	mofreak_ftrs = mofreak.getMoFREAKFeatures();
+	
+	ui.frame_label->setText("MoFREAK Features Loaded.");
+	ui.frame_label->adjustSize();
 }
 
 void ActionRecognitionProject::loadMoSIFTFilesForClustering()

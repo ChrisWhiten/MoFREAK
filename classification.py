@@ -121,9 +121,6 @@ def loadTrainingAndTestData(features_file, labels_file):
 
 	# to account for the missing video.  Odd that it's missing!
 	# i == 148 or 288 corresponds to the location of the missing video.
-	
-
-
 	while i < NUMBER_OF_VIDEOS:
 		person_index = int(label_data[i, 1])
 		current_index = current_indices[person_index - 1]
@@ -137,6 +134,8 @@ def loadTrainingAndTestData(features_file, labels_file):
 			i += STEP - 1
 
 		else:
+			print label_data[i : i + STEP, :]
+			print label_data[i : i + STEP, :].shape
 			grouped_labels[person_index - 1][current_index : current_index + STEP, :] = label_data[i : i + STEP, :]
 			grouped_data[person_index - 1][current_index : current_index + STEP, :] = training_data[i : i + STEP, :]
 

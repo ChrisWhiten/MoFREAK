@@ -44,6 +44,9 @@ vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float
 
 void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, string video_path)
 {
+	// remove old mofreak points.
+	features.clear();
+
 	// gather mosift features.
 	MoSIFTUtilities mosift;
 	mosift.readMoSIFTFeatures(mosift_file);
@@ -135,7 +138,8 @@ void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file)
 		for (int i = 0; i < 64; ++i)
 		{
 			int z = it->FREAK[i];
-			f << toBinaryString(z) << " ";
+			f << it->FREAK[i] << " ";
+			//f << toBinaryString(z) << " ";
 		}
 
 		// motion
@@ -209,4 +213,95 @@ double MoFREAKUtilities::motionNormalizedEuclideanDistance(vector<unsigned int> 
 
 	distance = sqrt(distance);
 	return distance;
+}
+
+void MoFREAKUtilities::readMetadata(QString filename, int &action, int &video_number, int &person)
+{
+	//int action, person, video_number;
+		// get the action.
+		if (filename.contains("boxing"))
+		{
+			action = BOXING;
+		}
+		else if (filename.contains("walking"))
+		{
+			action = WALKING;
+		}
+		else if (filename.contains("jogging"))
+		{
+			action = JOGGING;
+		}
+		else if (filename.contains("running"))
+		{
+			action = RUNNING;
+		}
+		else if (filename.contains("handclapping"))
+		{
+			action = HANDCLAPPING;
+		}
+		else if (filename.contains("handwaving"))
+		{
+			action = HANDWAVING;
+		}
+		else
+		{
+			action = HANDWAVING; // hopefully we never miss this?  Just giving a default value. 
+		}
+
+		// get the person.
+		int first_underscore = filename.indexOf("_");
+		QString person_string = filename.mid(first_underscore - 2, 2);
+		person = person_string.toInt();
+
+		// get the video number.
+		int last_underscore = filename.lastIndexOf("_");
+		QString video_string = filename.mid(last_underscore - 1, 1);
+		video_number = video_string.toInt();
+}
+
+void MoFREAKUtilities::readMoFREAKFeatures(QString filename)
+{
+	int action, video_number, person;
+	readMetadata(filename, action, video_number, person);
+
+	ifstream stream;
+	stream.open(filename.toStdString());
+	
+	while (!stream.eof())
+	{
+		// single feature
+		MoFREAKFeature ftr;
+		stream >> ftr.x >> ftr.y >> ftr.frame_number >> ftr.scale >> ftr.motion_x >> ftr.motion_y;
+	
+		// FREAK
+		for (unsigned i = 0; i < 64; ++i)
+		{
+			unsigned a;
+			stream >> a;
+			ftr.FREAK[i] = a;
+		}
+
+		// motion
+		for (unsigned i = 0; i < 128; ++i)
+		{
+			unsigned a;
+			stream >> a;
+			ftr.motion[i] = a;
+		}
+
+		// metadata
+		ftr.action = action;
+		ftr.video_number = video_number;
+		ftr.person = person;
+
+		// add new feature to collection.
+		features.push_back(ftr);
+	}
+	stream.close();
+}
+
+
+vector<MoFREAKFeature> MoFREAKUtilities::getMoFREAKFeatures()
+{
+	return features;
 }

@@ -26,6 +26,49 @@
  {
  }
 
+ void Clustering::buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts)
+ {
+	 // allocate data matrix.
+	 // + 3 for metadata
+	 int num_ftrs = mofreak_ftrs.size();
+	 data_pts = new cv::Mat(num_ftrs, DIMENSIONALITY + 3, CV_32FC1);
+
+	 // convert mofreak pts into rows in the matrix
+	 for (unsigned int row = 0; row < num_ftrs; ++row)
+	 {
+		MoFREAKFeature ftr = mofreak_ftrs[row];
+
+		// first, metadata.
+		data_pts->at<float>(row, 0) = ftr.action;
+		data_pts->at<float>(row, 1) = ftr.person;
+		data_pts->at<float>(row, 2) = ftr.video_number;
+
+		for (unsigned col = 0; col < 64; ++col)
+		{
+			data_pts->at<float>(row, col + 3) = (float)ftr.FREAK[col];
+		}
+		for (unsigned col = 0; col < 128; ++col)
+		{
+			data_pts->at<float>(row, col + 67) = (float)ftr.motion[col]; // 67 = 3 + 64.
+		}
+	 }
+
+	// sample points for computational efficiency.
+	if (sample_pts)
+	{
+		// shuffle 3 times.
+		shuffleCVMat(*data_pts);
+		shuffleCVMat(*data_pts);
+		shuffleCVMat(*data_pts);
+
+		// remove excessive points.
+		if (data_pts->rows > NUMBER_OF_POINTS_TO_SAMPLE)
+		{
+			data_pts->pop_back(data_pts->rows - NUMBER_OF_POINTS_TO_SAMPLE);
+		}
+	}
+ }
+
  void Clustering::buildDataFromMoSIFT(vector<MoSIFTFeature> &mosift_ftrs, bool sample_pts)
  {
 	 // allocate data matrix.
@@ -34,7 +77,7 @@
 	 data_pts = new cv::Mat(num_ftrs, DIMENSIONALITY + 3, CV_32FC1);
 
 	 // convert mosift pts into rows in the matrix.
-	for (unsigned int row = 0; row < mosift_ftrs.size(); ++row)
+	for (unsigned int row = 0; row < num_ftrs; ++row)
 	{
 		MoSIFTFeature ftr = mosift_ftrs[row];
 
@@ -93,7 +136,6 @@
 				// 3 metadata parameters at the start...?
 				for (unsigned col = 3; col < data_pts->cols; ++col)
 				{
-					//centers->at<float>((c*CLUSTERS_PER_CLASS) + sampled_from_this_class, col) = data_pts->at<float>(row, col);
 					centers->at<float>((c*CLUSTERS_PER_CLASS) + sampled_from_this_class, col - 3) = data_pts->at<float>(row, col);
 				}
 
