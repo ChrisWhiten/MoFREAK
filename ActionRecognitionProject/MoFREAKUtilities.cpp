@@ -31,6 +31,32 @@ unsigned int totalframediff(cv::Mat &frame, cv::Mat &prev)
 	return frame_diff;
 }
 
+// FREAK over the image difference image.
+// UNTESTED [TODO]
+vector<unsigned int> MoFREAKUtilities::extractFREAK_ID(cv::Mat &frame, cv::Mat &prev_frame, float x, float y, float scale)
+{
+	// build the difference image.
+	// to keep everything between 0-255 (as FREAK requires),
+	// each value is divided by 2 and 128 is added to it.
+	cv::Mat difference_image(frame.rows, frame.cols, CV_8U);
+	for (unsigned row = 0; row < frame.rows; ++row)
+	{
+		for (unsigned col = 0; col < frame.cols; ++col)
+		{
+			int diff_val = frame.at<unsigned int>(row, col) - prev_frame.at<unsigned int>(row, col);
+			unsigned int shifted_val = (diff_val/2) + 128;
+			difference_image.at<unsigned int>(row, col) = shifted_val;
+		}
+	}
+
+	// difference iage is computed.  Now extract the FREAK point.
+	// [TODO] for efficiency, future iteration should only compute 
+	// this difference image once per frame/prev_frame pair!
+	vector<unsigned int> descriptor = extractFREAKFeature(difference_image, x, y, scale);
+	return descriptor;
+}
+
+
 void MoFREAKUtilities::computeMoFREAKFromFile(QString filename, bool clear_features_after_computation)
 {
 	QString debug_filename = filename + ".dbg";
