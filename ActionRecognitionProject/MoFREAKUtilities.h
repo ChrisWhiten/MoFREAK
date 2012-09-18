@@ -10,12 +10,18 @@
 #include <opencv2\highgui\highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <qstring.h>
+#include <qstringlist.h>
+#include <opencv2/nonfree/features2d.hpp>
+#include <queue>
 
 #include "MoSIFTUtilities.h"
 using namespace std;
 
 struct MoFREAKFeature
 {
+	MoFREAKFeature() { using_image_difference = false; } // just to set the default value, for compatibility.
+
+	bool using_image_difference;
 	float x;
 	float y;
 	float scale;
@@ -24,7 +30,8 @@ struct MoFREAKFeature
 
 	int frame_number;
 	unsigned int FREAK[64];
-	unsigned char motion[128];
+	unsigned char motion[128]; // is there a difference between unsigned int and unsigned char?  to investigate..
+	unsigned int img_diff;
 
 	int action;
 	int video_number;
@@ -37,8 +44,9 @@ public:
 	void readMoFREAKFeatures(string filename);
 	vector<MoFREAKFeature> getMoFREAKFeatures();
 	void buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, string video_path);
-	void writeMoFREAKFeaturesToFile(string output_file);
+	void writeMoFREAKFeaturesToFile(string output_file,  bool img_diff = false);
 	void readMoFREAKFeatures(QString filename);
+	void computeMoFREAKFromFile(QString filename, bool clear_features_after_computation);
 
 private:
 	string toBinaryString(unsigned int x);

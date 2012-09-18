@@ -95,8 +95,8 @@
    <widget class="QLabel" name="frame_label">
     <property name="geometry">
      <rect>
-      <x>459</x>
-      <y>320</y>
+      <x>0</x>
+      <y>10</y>
       <width>50</width>
       <height>13</height>
      </rect>
@@ -183,6 +183,19 @@
      <string>Cluster MoFREAK</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="push_button_compute_mofreak_from_videos">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>240</y>
+      <width>161</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Compute MoFREAK from Videos</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -205,6 +218,8 @@
     <addaction name="separator"/>
     <addaction name="actionLoadMoSIFTForClustering"/>
     <addaction name="actionLoadMoFREAKForClustering"/>
+    <addaction name="separator"/>
+    <addaction name="actionLoadToComputeMoFREAK"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -250,6 +265,11 @@
   <action name="actionLoadMoFREAKForClustering">
    <property name="text">
     <string>Load MoFREAK Files for Clustering</string>
+   </property>
+  </action>
+  <action name="actionLoadToComputeMoFREAK">
+   <property name="text">
+    <string>Load Videos to Detect MoFREAK</string>
    </property>
   </action>
  </widget>

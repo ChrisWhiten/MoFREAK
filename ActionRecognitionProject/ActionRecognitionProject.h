@@ -53,6 +53,8 @@ private slots:
 	void loadMoFREAKFilesForClustering();
 	void clusterMoSIFTPoints();
 	void clusterMoFREAKPoints();
+	void loadVideosForMoFREAK();
+	void buildMoFREAKFromVideos();
 
 private:
 	int frame_number;

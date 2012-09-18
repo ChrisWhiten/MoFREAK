@@ -12,6 +12,8 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 	connect(ui.actionLoadTrainingFile, SIGNAL(triggered()), this, SLOT(loadSVMTrainingFile()));
 	connect(ui.actionLoadMoSIFTForClustering, SIGNAL(triggered()), this, SLOT(loadMoSIFTFilesForClustering()));
 	connect(ui.actionLoadMoFREAKForClustering, SIGNAL(triggered()), this, SLOT(loadMoFREAKFilesForClustering()));
+	connect(ui.actionLoadToComputeMoFREAK, SIGNAL(triggered()), this, SLOT(loadVideosForMoFREAK()));
+	
 
 	// buttons on the GUI.
 	connect(ui.play_pause_button, SIGNAL(clicked()), this, SLOT(playOrPause()));
@@ -21,6 +23,8 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 	connect(ui.leave_one_out_button, SIGNAL(clicked()), this, SLOT(evaluateSVMWithLeaveOneOut()));
 	connect(ui.cluster_push_button, SIGNAL(clicked()), this, SLOT(clusterMoSIFTPoints()));
 	connect(ui.cluster_mofreak_push_button, SIGNAL(clicked()), this, SLOT(clusterMoFREAKPoints()));
+	connect(ui.push_button_compute_mofreak_from_videos, SIGNAL(clicked()), this, SLOT(buildMoFREAKFromVideos()));
+	
 	
 
 	// Update the UI
@@ -230,10 +234,40 @@ void ActionRecognitionProject::testSVM()
 	ui.frame_label->adjustSize();
 }
 
+void ActionRecognitionProject::loadVideosForMoFREAK()
+{
+	files = QFileDialog::getOpenFileNames(this, tr("Directory"), directory.path());
+}
+
+void ActionRecognitionProject::buildMoFREAKFromVideos()
+{
+	
+	for (auto it = files.begin(); it != files.end(); ++it)
+	{
+		// tell the user where we are...
+		stringstream ss;
+		ss << "Computing MoFREAK on " << it->toStdString();
+
+		QString status_text = QString::fromStdString(ss.str());
+		ss.str("");
+		ss.clear();
+
+		ui.frame_label->setText(status_text);
+		ui.frame_label->adjustSize();
+		qApp->processEvents();
+
+		// and compute.
+		mofreak.computeMoFREAKFromFile(*it, true);
+	}
+
+	ui.frame_label->setText("Done");
+	ui.frame_label->adjustSize();
+	qApp->processEvents();
+}
+
 // given the mosift features file, assuming the corresponding video files exist, remove sift and replace with freak descriptor.
 void ActionRecognitionProject::convertMoSIFTToMoFREAK()
 {
-	int x = 0;
 	for (auto it = files.begin(); it != files.end(); ++it)
 	{
 		// parse the path to extract the corresponding AVI file.
