@@ -70,7 +70,7 @@ void ActionRecognitionProject::loadFiles()
 void ActionRecognitionProject::clusterMoFREAKPoints()
 {
 	// organize pts into a cv::Mat.
-	const int FEATURE_DIMENSIONALITY = 65;//192;
+	const int FEATURE_DIMENSIONALITY = 192;//65;//192;
 	const int NUM_CLUSTERS = 600;
 	const int POINTS_TO_SAMPLE = 12000;
 	const int NUM_CLASSES = 6;

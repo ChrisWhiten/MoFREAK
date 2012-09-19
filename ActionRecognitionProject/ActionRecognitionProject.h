@@ -85,7 +85,7 @@ private:
 
 
 	enum states {PAUSED, PLAYING, STOPPED};
-	static const bool USING_IMG_DIFF = true;
+	static const bool USING_IMG_DIFF = false;
 };
 
 #endif // ACTIONRECOGNITIONPROJECT_H

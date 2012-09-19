@@ -8,26 +8,37 @@ BagOfWordsFeature::BagOfWordsFeature() : bag_of_words(cv::Mat()), _ft(NULL), num
 BagOfWordsFeature::BagOfWordsFeature(const BagOfWordsFeature &b)
 {}
 
-void BagOfWordsRepresentation::doStuff()
+
+void BagOfWordsRepresentation::normalizeClusters()
 {
-	BagOfWordsFeature bow();
-	// file name, matcher, 256 is the length of the mosift feature.
+	const int MOTION_START = 64;
+	const int MOTION_END = 192;
+
+	for (unsigned int clust = 0; clust < clusters->rows; ++clust)
+	{
+		normalizeMotionOfFeature((*clusters)(cv::Range(clust, clust + 1), cv::Range(0, clusters->cols)));
+	}
 }
 
-/*
-float BagOfWordsRepresentation::standardEuclideanDistance(vector<float> a, vector<float> b) const
+void BagOfWordsRepresentation::normalizeMotionOfFeature(cv::Mat &ftr)
 {
-	float distance = 0.0;
+	const int MOTION_START = 64;
+	const int MOTION_END = 192;
 
-	// compute distance between the two vectors.
-	for (unsigned int i = 0; i < a.size(); ++i)
+	float normalizer = 0.0;
+
+	// compute normalizer
+	for (unsigned col = MOTION_START; col < MOTION_END; ++col)
 	{
-		distance += ((a[i] - b[i]) * (a[i] - b[i]));
+		normalizer += ftr.at<float>(0, col);
 	}
 
-	distance = sqrt(distance);
-	return distance;
-}*/
+	// divide each val by the normalizer.
+	for (unsigned col = MOTION_START; col < MOTION_END; ++col)
+	{
+		ftr.at<float>(0, col) = ftr.at<float>(0, col)/normalizer;
+	}
+}
 
 float BagOfWordsRepresentation::standardEuclideanDistance(cv::Mat &a, cv::Mat &b) const
 {
@@ -114,7 +125,7 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndFrameDifference(cv::Mat &fea
 		FREAK_distance = 0.0;
 
 		cluster_FREAK_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(FREAK_START_INDEX, FREAK_END_INDEX));
-		clusters(cv::Range(cluster, cluster + 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
+		cluster_motion_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
 
 		FREAK_distance = hammingDistance(query_FREAK_descriptor, cluster_FREAK_descriptor);
 		FREAK_distance /= FREAK_HAMMING_DIST_NORM;
@@ -136,14 +147,14 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndFrameDifference(cv::Mat &fea
 void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file)
 {
 	// constants
-	const float MOTION_EUCLID_DIST_NORM = 2884.99566724;
 	const int FREAK_HAMMING_DIST_NORM = 512;
-
 	const int FREAK_START_INDEX = 0;
 	const int FREAK_END_INDEX = 64;
-
 	const int MOTION_START_INDEX = 64;
-	const int MOTION_END_INDEX = 192;//?
+	const int MOTION_END_INDEX = 192;
+
+	// clusters a pre-normalized.  normalize feature vector.
+	normalizeMotionOfFeature(feature_vector);
 
 	// base case: initialize with the score/index of the 0th cluster.
 	best_cluster_index = 0;
@@ -162,10 +173,9 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 	cv::Mat cluster_motion_descriptor = clusters(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
 
 	float euclidean_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
-	euclidean_distance /= MOTION_EUCLID_DIST_NORM;
 	file << euclidean_distance << ", ";
 
-	float final_dist = FREAK_distance + euclidean_distance;//euclidean_distance;//FREAK_distance;//euclidean_distance + FREAK_distance;
+	float final_dist = FREAK_distance + euclidean_distance;
 	file << final_dist << std::endl;
 
 	best_cluster_score = final_dist;
@@ -185,10 +195,9 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 		file << FREAK_distance << ", ";
 
 		euclidean_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
-		euclidean_distance /= MOTION_EUCLID_DIST_NORM;
 		file << euclidean_distance << ", ";
 
-		final_dist = FREAK_distance + euclidean_distance;//euclidean_distance;// + FREAK_distance;
+		final_dist = FREAK_distance + euclidean_distance;
 		file << final_dist << std::endl;
 
 		// compare to best.
@@ -217,19 +226,19 @@ void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &c
 	// now the remaining points.
 	for (unsigned cluster = 1; cluster < clusters.rows; ++cluster)
 	{
-		distance = 0.0;
+		euc_distance = 0.0;
 		for (unsigned int i = 0; i < feature_vector.cols; ++i)
 		{
 			float a_i = feature_vector.at<float>(0, i);
 			float b_i = clusters.at<float>(cluster, i);
-			distance += ((a_i - b_i) * (a_i - b_i));
+			euc_distance += ((a_i - b_i) * (a_i - b_i));
 		}
-		distance = sqrt(distance);
+		euc_distance = sqrt(euc_distance);
 
 		// compare to best.
-		if (distance < best_cluster_score)
+		if (euc_distance < best_cluster_score)
 		{
-			best_cluster_score = distance;
+			best_cluster_score = euc_distance;
 			best_cluster_index = cluster;
 		}
 	}
@@ -272,8 +281,8 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(QString &file)
 		int best_cluster_index;
 		float best_cluster_score;
 		
-		findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
-		//findBestMatchFREAKAndOpticalFlow(feature_vector, *clusters, best_cluster_index, best_cluster_score, distances);
+		//findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
+		findBestMatchFREAKAndOpticalFlow(feature_vector, *clusters, best_cluster_index, best_cluster_score, distances);
 		//findBestMatchFREAKAndFrameDifference(feature_vector, *clusters, best_cluster_index, best_cluster_score);
 
 
@@ -328,6 +337,7 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people)
 {
 	loadClusters();
+	normalizeClusters();
 
 	// open file streams to write data for SVM
 	ofstream hist_file("hist.txt");
@@ -341,8 +351,8 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 		stringstream training_string;
 		stringstream testing_string;
 
-		training_string << "left_out_" << i + 1 << ".train";
-		testing_string << "left_out_" << i + 1 << ".test";
+		training_string << "C:/data/kth/svm/left_out_" << i + 1 << ".train";
+		testing_string << "C:/data/kth/svm/left_out_" << i + 1 << ".test";
 
 		ofstream *training_file = new ofstream(training_string.str());
 		ofstream *testing_file = new ofstream(testing_string.str());
@@ -362,37 +372,37 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 	// word_1[-2:] is the person.
 	// word_2[:] should match one of the strings...
 	// word_3[1:] is the video number
-
-	for (auto it = qsl.begin(); it != qsl.end(); ++it)
+#pragma omp parallel for
+	for (int i = 0; i < qsl.size(); ++i)// = qsl.begin(); it != qsl.end(); ++it)
 	{
 		
-		QString temp = (*it);
-		QStringList words = it->split("\\");
+		QString temp = qsl[i];
+		QStringList words = qsl[i].split("\\");
 		QString file_name = words[words.length() - 1];
 
 		int action, person, video_number;
 		// get the action.
-		if (it->contains("boxing"))
+		if (qsl[i].contains("boxing"))
 		{
 			action = BOXING;
 		}
-		else if (it->contains("walking"))
+		else if (qsl[i].contains("walking"))
 		{
 			action = WALKING;
 		}
-		else if (it->contains("jogging"))
+		else if (qsl[i].contains("jogging"))
 		{
 			action = JOGGING;
 		}
-		else if (it->contains("running"))
+		else if (qsl[i].contains("running"))
 		{
 			action = RUNNING;
 		}
-		else if (it->contains("handclapping"))
+		else if (qsl[i].contains("handclapping"))
 		{
 			action = HANDCLAPPING;
 		}
-		else if (it->contains("handwaving"))
+		else if (qsl[i].contains("handwaving"))
 		{
 			action = HANDWAVING;
 		}
@@ -413,31 +423,31 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 		video_number = video_string.toInt();
 
 		// now extract each mosift point and assign it to the correct codeword.
-		cv::Mat hist = buildHistogram(*it);
+		cv::Mat hist = buildHistogram(qsl[i]);
 
 		// print output to correct files. libsvm-ready
-		for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+		for (unsigned int p = 0; p < NUMBER_OF_PEOPLE; ++p)
 		{
-			if ((i + 1) == person)
+			if ((p + 1) == person)
 			{
 				// print histogram to testing file.  leave this one out!
-				(*(testing_files[i])) << action + 1 << " ";
+				(*(testing_files[p])) << action + 1 << " ";
 				for (unsigned col = 0; col < hist.cols; ++col)
 				{
-					(*(testing_files[i])) << col + 1 << ":" << hist.at<float>(0, col) << " ";
+					(*(testing_files[p])) << col + 1 << ":" << hist.at<float>(0, col) << " ";
 				}
-				(*(testing_files[i])) << std::endl;
+				(*(testing_files[p])) << std::endl;
 			}
 
 			// this shouldn't be left out. print to training file.
 			else
 			{
-				(*(training_files[i])) << action + 1 << " ";
+				(*(training_files[p])) << action + 1 << " ";
 				for (unsigned col = 0; col < hist.cols; ++col)
 				{
-					(*(training_files[i])) << col + 1 << ":" << hist.at<float>(0, col) << " ";
+					(*(training_files[p])) << col + 1 << ":" << hist.at<float>(0, col) << " ";
 				}
-				(*(training_files[i])) << std::endl;
+				(*(training_files[p])) << std::endl;
 			}
 		}
 

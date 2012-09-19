@@ -30,7 +30,6 @@ public:
 class BagOfWordsRepresentation
 {
 public:
-	void doStuff();
 	BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people);
 
 private:
