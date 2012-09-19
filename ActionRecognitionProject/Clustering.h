@@ -17,7 +17,7 @@ class Clustering
 public:
 	Clustering(int dim, int num_clust, int num_pts, int num_classes);
 	void buildDataFromMoSIFT(vector<MoSIFTFeature> &mosift_ftrs, bool sample_pts);
-	void buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts);
+	void buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff = false);
 	void clusterWithKMeans();
 	void randomClusters();
 	void writeClusters();

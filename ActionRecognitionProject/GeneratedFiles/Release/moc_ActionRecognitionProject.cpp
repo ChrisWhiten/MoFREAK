@@ -1,8 +1,8 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'ActionRecognitionProject.h'
 **
-** Created: Mon Sep 17 14:31:30 2012
-**      by: The Qt Meta Object Compiler version 63 (Qt 4.8.0)
+** Created: Wed Sep 19 09:40:53 2012
+**      by: The Qt Meta Object Compiler version 63 (Qt 4.8.1)
 **
 ** WARNING! All changes made in this file will be lost!
 *****************************************************************************/
@@ -11,7 +11,7 @@
 #if !defined(Q_MOC_OUTPUT_REVISION)
 #error "The header file 'ActionRecognitionProject.h' doesn't include <QObject>."
 #elif Q_MOC_OUTPUT_REVISION != 63
-#error "This file was generated using the moc from 4.8.0. It"
+#error "This file was generated using the moc from 4.8.1. It"
 #error "cannot be used with the include files from this version of Qt."
 #error "(The moc has changed too much.)"
 #endif
@@ -23,7 +23,7 @@ static const uint qt_meta_data_ActionRecognitionProject[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-      14,   14, // methods
+      16,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -45,6 +45,8 @@ static const uint qt_meta_data_ActionRecognitionProject[] = {
      226,   25,   25,   25, 0x08,
      258,   25,   25,   25, 0x08,
      280,   25,   25,   25, 0x08,
+     303,   25,   25,   25, 0x08,
+     326,   25,   25,   25, 0x08,
 
        0        // eod
 };
@@ -58,6 +60,7 @@ static const char qt_meta_stringdata_ActionRecognitionProject[] = {
     "loadMoSIFTFilesForClustering()\0"
     "loadMoFREAKFilesForClustering()\0"
     "clusterMoSIFTPoints()\0clusterMoFREAKPoints()\0"
+    "loadVideosForMoFREAK()\0buildMoFREAKFromVideos()\0"
 };
 
 void ActionRecognitionProject::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -80,6 +83,8 @@ void ActionRecognitionProject::qt_static_metacall(QObject *_o, QMetaObject::Call
         case 11: _t->loadMoFREAKFilesForClustering(); break;
         case 12: _t->clusterMoSIFTPoints(); break;
         case 13: _t->clusterMoFREAKPoints(); break;
+        case 14: _t->loadVideosForMoFREAK(); break;
+        case 15: _t->buildMoFREAKFromVideos(); break;
         default: ;
         }
     }
@@ -118,9 +123,9 @@ int ActionRecognitionProject::qt_metacall(QMetaObject::Call _c, int _id, void **
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 14)
+        if (_id < 16)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 14;
+        _id -= 16;
     }
     return _id;
 }

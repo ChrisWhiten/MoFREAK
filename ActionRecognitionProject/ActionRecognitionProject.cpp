@@ -70,7 +70,7 @@ void ActionRecognitionProject::loadFiles()
 void ActionRecognitionProject::clusterMoFREAKPoints()
 {
 	// organize pts into a cv::Mat.
-	const int FEATURE_DIMENSIONALITY = 192;
+	const int FEATURE_DIMENSIONALITY = 65;//192;
 	const int NUM_CLUSTERS = 600;
 	const int POINTS_TO_SAMPLE = 12000;
 	const int NUM_CLASSES = 6;
@@ -83,7 +83,7 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 	ui.frame_label->adjustSize();
 	qApp->processEvents();
 
-	clustering.buildDataFromMoFREAK(mofreak_ftrs, false);
+	clustering.buildDataFromMoFREAK(mofreak_ftrs, false, false);
 
 	ui.frame_label->setText("Clustering...");
 	ui.frame_label->adjustSize();
@@ -313,7 +313,7 @@ void ActionRecognitionProject::loadMoFREAKFilesForClustering()
 
 	for (auto it = files.begin(); it != files.end(); ++it)
 	{
-		mofreak.readMoFREAKFeatures(*it);
+		mofreak.readMoFREAKFeatures(*it, USING_IMG_DIFF);
 	}
 
 	mofreak_ftrs = mofreak.getMoFREAKFeatures();

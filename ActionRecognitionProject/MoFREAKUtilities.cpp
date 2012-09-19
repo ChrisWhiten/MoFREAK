@@ -428,7 +428,7 @@ void MoFREAKUtilities::readMetadata(QString filename, int &action, int &video_nu
 		video_number = video_string.toInt();
 }
 
-void MoFREAKUtilities::readMoFREAKFeatures(QString filename)
+void MoFREAKUtilities::readMoFREAKFeatures(QString filename, bool img_diff)
 {
 	int action, video_number, person;
 	readMetadata(filename, action, video_number, person);
@@ -438,6 +438,11 @@ void MoFREAKUtilities::readMoFREAKFeatures(QString filename)
 	
 	while (!stream.eof())
 	{
+		if (features.size() == 1049869)
+		{
+			int xy = 0;
+			xy++;
+		}
 		// single feature
 		MoFREAKFeature ftr;
 		stream >> ftr.x >> ftr.y >> ftr.frame_number >> ftr.scale >> ftr.motion_x >> ftr.motion_y;
@@ -445,17 +450,24 @@ void MoFREAKUtilities::readMoFREAKFeatures(QString filename)
 		// FREAK
 		for (unsigned i = 0; i < 64; ++i)
 		{
-			unsigned a;
+			unsigned int a;
 			stream >> a;
 			ftr.FREAK[i] = a;
 		}
 
 		// motion
-		for (unsigned i = 0; i < 128; ++i)
+		if (img_diff)
 		{
-			unsigned a;
-			stream >> a;
-			ftr.motion[i] = a;
+			stream >> ftr.img_diff;
+		}
+		else
+		{
+			for (unsigned i = 0; i < 128; ++i)
+			{
+				unsigned int a;
+				stream >> a;
+				ftr.motion[i] = a;
+			}
 		}
 
 		// metadata

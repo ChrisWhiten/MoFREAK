@@ -1,8 +1,8 @@
 /********************************************************************************
 ** Form generated from reading UI file 'ActionRecognitionProject.ui'
 **
-** Created: Mon Sep 17 14:37:16 2012
-**      by: Qt User Interface Compiler version 4.8.0
+** Created: Tue Sep 18 10:34:54 2012
+**      by: Qt User Interface Compiler version 4.8.1
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -36,6 +36,7 @@ public:
     QAction *actionLoadTestingFile;
     QAction *actionLoadMoSIFTForClustering;
     QAction *actionLoadMoFREAKForClustering;
+    QAction *actionLoadToComputeMoFREAK;
     QWidget *centralWidget;
     QPushButton *play_pause_button;
     QPushButton *stop_button;
@@ -50,6 +51,7 @@ public:
     QPushButton *leave_one_out_button;
     QPushButton *cluster_push_button;
     QPushButton *cluster_mofreak_push_button;
+    QPushButton *push_button_compute_mofreak_from_videos;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QToolBar *mainToolBar;
@@ -74,6 +76,8 @@ public:
         actionLoadMoSIFTForClustering->setObjectName(QString::fromUtf8("actionLoadMoSIFTForClustering"));
         actionLoadMoFREAKForClustering = new QAction(ActionRecognitionProjectClass);
         actionLoadMoFREAKForClustering->setObjectName(QString::fromUtf8("actionLoadMoFREAKForClustering"));
+        actionLoadToComputeMoFREAK = new QAction(ActionRecognitionProjectClass);
+        actionLoadToComputeMoFREAK->setObjectName(QString::fromUtf8("actionLoadToComputeMoFREAK"));
         centralWidget = new QWidget(ActionRecognitionProjectClass);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         play_pause_button = new QPushButton(centralWidget);
@@ -96,7 +100,7 @@ public:
         output_label->setGeometry(QRect(400, 250, 46, 13));
         frame_label = new QLabel(centralWidget);
         frame_label->setObjectName(QString::fromUtf8("frame_label"));
-        frame_label->setGeometry(QRect(459, 320, 50, 13));
+        frame_label->setGeometry(QRect(0, 10, 50, 13));
         convertMoSIFTToMoFREAK = new QPushButton(centralWidget);
         convertMoSIFTToMoFREAK->setObjectName(QString::fromUtf8("convertMoSIFTToMoFREAK"));
         convertMoSIFTToMoFREAK->setGeometry(QRect(390, 270, 151, 23));
@@ -115,6 +119,9 @@ public:
         cluster_mofreak_push_button = new QPushButton(centralWidget);
         cluster_mofreak_push_button->setObjectName(QString::fromUtf8("cluster_mofreak_push_button"));
         cluster_mofreak_push_button->setGeometry(QRect(270, 270, 91, 23));
+        push_button_compute_mofreak_from_videos = new QPushButton(centralWidget);
+        push_button_compute_mofreak_from_videos->setObjectName(QString::fromUtf8("push_button_compute_mofreak_from_videos"));
+        push_button_compute_mofreak_from_videos->setGeometry(QRect(120, 240, 161, 23));
         ActionRecognitionProjectClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ActionRecognitionProjectClass);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
@@ -138,6 +145,8 @@ public:
         menuFile->addSeparator();
         menuFile->addAction(actionLoadMoSIFTForClustering);
         menuFile->addAction(actionLoadMoFREAKForClustering);
+        menuFile->addSeparator();
+        menuFile->addAction(actionLoadToComputeMoFREAK);
 
         retranslateUi(ActionRecognitionProjectClass);
 
@@ -154,6 +163,7 @@ public:
         actionLoadTestingFile->setText(QApplication::translate("ActionRecognitionProjectClass", "Load SVM Testing File", 0, QApplication::UnicodeUTF8));
         actionLoadMoSIFTForClustering->setText(QApplication::translate("ActionRecognitionProjectClass", "Load MoSIFT Files for Clustering", 0, QApplication::UnicodeUTF8));
         actionLoadMoFREAKForClustering->setText(QApplication::translate("ActionRecognitionProjectClass", "Load MoFREAK Files for Clustering", 0, QApplication::UnicodeUTF8));
+        actionLoadToComputeMoFREAK->setText(QApplication::translate("ActionRecognitionProjectClass", "Load Videos to Detect MoFREAK", 0, QApplication::UnicodeUTF8));
         play_pause_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Play", 0, QApplication::UnicodeUTF8));
         stop_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Restart", 0, QApplication::UnicodeUTF8));
         input_sequence->setText(QString());
@@ -167,6 +177,7 @@ public:
         leave_one_out_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Test SVM with Leave-One-Out", 0, QApplication::UnicodeUTF8));
         cluster_push_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Cluster MoSIFT", 0, QApplication::UnicodeUTF8));
         cluster_mofreak_push_button->setText(QApplication::translate("ActionRecognitionProjectClass", "Cluster MoFREAK", 0, QApplication::UnicodeUTF8));
+        push_button_compute_mofreak_from_videos->setText(QApplication::translate("ActionRecognitionProjectClass", "Compute MoFREAK from Videos", 0, QApplication::UnicodeUTF8));
         menuFile->setTitle(QApplication::translate("ActionRecognitionProjectClass", "File", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 

@@ -26,7 +26,7 @@
  {
  }
 
- void Clustering::buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts)
+ void Clustering::buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff)
  {
 	 // allocate data matrix.
 	 // + 3 for metadata
@@ -47,9 +47,17 @@
 		{
 			data_pts->at<float>(row, col + 3) = (float)ftr.FREAK[col];
 		}
-		for (unsigned col = 0; col < 128; ++col)
+
+		if (img_diff)
 		{
-			data_pts->at<float>(row, col + 67) = (float)ftr.motion[col]; // 67 = 3 + 64.
+			data_pts->at<float>(row, 67) = (float)ftr.img_diff; // 67 = 3(meta) + 64(freak)
+		}
+		else
+		{
+			for (unsigned col = 0; col < 128; ++col)
+			{
+				data_pts->at<float>(row, col + 67) = (float)ftr.motion[col]; // 67 = 3 + 64.
+			}
 		}
 	 }
 
