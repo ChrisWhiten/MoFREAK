@@ -104,6 +104,8 @@ def loadTrainingAndTestData(features_file, labels_file):
 		if i == 12: 
 			MISSING_VIDEO_OFFSET = -1
 
+		#data = numpy.zeros(shape = (NUMBER_OF_PEOPLE * NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION + MISSING_VIDEO_OFFSET, NUMBER_OF_CLUSTERS))
+		#labels = numpy.zeros(shape = (NUMBER_OF_PEOPLE * NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION + MISSING_VIDEO_OFFSET, 3))
 		data = numpy.zeros(shape = (NUMBER_OF_ACTIONS * NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION + MISSING_VIDEO_OFFSET, NUMBER_OF_CLUSTERS))
 		labels = numpy.zeros(shape = (NUMBER_OF_ACTIONS * NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION + MISSING_VIDEO_OFFSET, 3))
 
@@ -112,8 +114,8 @@ def loadTrainingAndTestData(features_file, labels_file):
 		current_indices.append(0) # track current row in each group
 
 	i = 0
-	STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION * NUMBER_OF_ACTIONS
-	MISSING_VIDEO_I = 288 
+	STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION
+	MISSING_VIDEO_I = 148 
 
 	if EHSAN:
 		STEP = NUMBER_OF_VIDEOS_PER_PERSON_PER_ACTION 
@@ -134,8 +136,10 @@ def loadTrainingAndTestData(features_file, labels_file):
 			i += STEP - 1
 
 		else:
-			print label_data[i : i + STEP, :]
-			print label_data[i : i + STEP, :].shape
+			print i
+			#print label_data[i : i + STEP, :]
+			#print label_data[i : i + STEP, :].shape
+
 			grouped_labels[person_index - 1][current_index : current_index + STEP, :] = label_data[i : i + STEP, :]
 			grouped_data[person_index - 1][current_index : current_index + STEP, :] = training_data[i : i + STEP, :]
 
@@ -230,8 +234,8 @@ def buildClassifiers(grouped_data, grouped_labels):
 		new_svm.fit(training_data, training_labels)
 		new_svm_score = new_svm.score(testing_data, testing_labels)
 
-		#rf.fit(training_data, training_labels)
-		#rf_score = rf.score(testing_data, testing_labels)
+		rf.fit(training_data, training_labels)
+		rf_score = rf.score(testing_data, testing_labels)
 
 		#kernel_svm.fit(training_data, training_labels)
 		#kernel_svm_score = kernel_svm.score(testing_data, testing_labels)
@@ -243,14 +247,14 @@ def buildClassifiers(grouped_data, grouped_labels):
 		#cs_score = approx_kernel_svm.score(testing_data, testing_labels)
 
 		#score_set = [new_svm_score, kernel_svm_score, linear_svm_score, score]
-		score_set = [new_svm_score]#, cs_score, rf_score]
+		score_set = [new_svm_score, rf_score]#, cs_score, rf_score]
 		scores.append(score_set)
 
 		#print "linear score: ", linear_svm_score
 		#print "kernel score: ", kernel_svm_score
 		print "histogram intersection score: ", new_svm_score
 		#print "approx chi-squared score: ", cs_score
-		#print "RF score: ", rf_score
+		print "RF score: ", rf_score
 
 	# for now, return this for plotting.
 	print scores
@@ -263,14 +267,14 @@ def buildClassifiers(grouped_data, grouped_labels):
 		summed_hi_score += scores[i][0]
 		#summed_chisquared_score += scores[i][0]
 		#summed_hi_score += scores[i][1]
-		#summed_rf_score += scores[i][2]
+		summed_rf_score += scores[i][1]
 
 	#avg_cs_score = summed_chisquared_score/float(NUMBER_OF_PEOPLE)
 	avg_hi_score = summed_hi_score/float(NUMBER_OF_PEOPLE)
 	#avg_rf_score = summed_rf_score/float(NUMBER_OF_PEOPLE)
 	#print "Chi-squared average: ", avg_cs_score
 	print "HI average: ", avg_hi_score
-	#print "RF average: ", avg_rf_score
+	print "RF average: ", avg_rf_score
 	return linear_svm
 
 # visualization based on code from 
@@ -341,8 +345,8 @@ def setupInLibsvmFormat(training_data, label_data, output_filename):
 # entry point
 if __name__ == '__main__':
 
-	data = "C:/data/kth/chris/hist.txt"
-	labels = "C:/data/kth/chris//label.txt"
+	data = "C:/data/kth/chris/run1/hist.txt"
+	labels = "C:/data/kth/chris/run1/label.txt"
 	
 	# Step 1: Reprocess the data into the desired format.
 	label_data = numpy.genfromtxt(labels, delimiter = ',')
