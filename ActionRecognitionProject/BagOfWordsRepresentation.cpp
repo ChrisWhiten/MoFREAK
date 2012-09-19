@@ -395,9 +395,14 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 	// word_1[-2:] is the person.
 	// word_2[:] should match one of the strings...
 	// word_3[1:] is the video number
+
 	for (auto it = qsl.begin(); it != qsl.end(); ++it)
 	{
 		
+		QString temp = (*it);
+		QStringList words = it->split("\\");
+		QString file_name = words[words.length() - 1];
+
 		int action, person, video_number;
 		// get the action.
 		if (it->contains("boxing"))
@@ -429,9 +434,7 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 			action = HANDWAVING; // hopefully we never miss this?  Just giving a default value. 
 		}
 
-		QString temp = (*it);
-		QStringList words = it->split("\\");
-		QString file_name = words[words.length() - 1];
+		
 		// get the person.
 		int first_underscore = file_name.indexOf("_");
 		QString person_string = file_name.mid(first_underscore - 2, 2);
