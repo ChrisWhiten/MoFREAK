@@ -78,6 +78,8 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 	cv::Mat data_pts(mofreak_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
 
 	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES);
+	clustering.setAppearanceDescriptor(16, true);
+	clustering.setMotionDescriptor(64, true);
 
 	ui.frame_label->setText("Formatting features...");
 	ui.frame_label->adjustSize();
@@ -91,7 +93,6 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 
 	//clustering.clusterWithKMeans();
 	clustering.randomClusters();
-	
 
 	// print clusters to file
 	ui.frame_label->setText("Writing clusters to file...");
@@ -105,6 +106,9 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 	qApp->processEvents();
 
 	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE);
+	bow_rep.setAppearanceDescriptor(16, true);
+	bow_rep.setMotionDescriptor(64, true);
+	bow_rep.computeBagOfWords();
 
 	ui.frame_label->setText("BOW Representation Computed.");
 	ui.frame_label->adjustSize();
@@ -121,6 +125,8 @@ void ActionRecognitionProject::clusterMoSIFTPoints()
 	cv::Mat data_pts(mosift_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
 
 	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES);
+	clustering.setAppearanceDescriptor(128, false);
+	clustering.setMotionDescriptor(128, false);
 
 	ui.frame_label->setText("Formatting features...");
 	ui.frame_label->adjustSize();
@@ -147,6 +153,9 @@ void ActionRecognitionProject::clusterMoSIFTPoints()
 	qApp->processEvents();
 
 	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE);
+	bow_rep.setAppearanceDescriptor(128, false);
+	bow_rep.setMotionDescriptor(128, false);
+	bow_rep.computeBagOfWords();
 
 	ui.frame_label->setText("BOW Representation Computed.");
 	ui.frame_label->adjustSize();
@@ -284,7 +293,7 @@ void ActionRecognitionProject::convertMoSIFTToMoFREAK()
 		// ship it away for modification
 		mofreak.buildMoFREAKFeaturesFromMoSIFT(*it, video_path.toStdString());
 		it->append(".mofreak.txt");
-		mofreak.writeMoFREAKFeaturesToFile(it->toStdString());
+		mofreak.writeMoFREAKFeaturesToFile(it->toStdString(), false);
 	}
 }
 

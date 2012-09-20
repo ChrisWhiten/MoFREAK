@@ -43,16 +43,18 @@ vector<unsigned int> MoFREAKUtilities::extractFREAK_ID(cv::Mat &frame, cv::Mat &
 	{
 		for (unsigned col = 0; col < frame.cols; ++col)
 		{
-			int diff_val = frame.at<unsigned int>(row, col) - prev_frame.at<unsigned int>(row, col);
+			int f_val = frame.at<unsigned char>(row, col);
+			int p_val = prev_frame.at<unsigned char>(row, col);
+			int diff_val = f_val - p_val;
 			unsigned int shifted_val = (diff_val/2) + 128;
-			difference_image.at<unsigned int>(row, col) = shifted_val;
+			difference_image.at<unsigned char>(row, col) = shifted_val;
 		}
 	}
 
-	// difference iage is computed.  Now extract the FREAK point.
+	// difference image is computed.  Now extract the FREAK point.
 	// [TODO] for efficiency, future iteration should only compute 
 	// this difference image once per frame/prev_frame pair!
-	vector<unsigned int> descriptor = extractFREAKFeature(difference_image, x, y, scale);
+	vector<unsigned int> descriptor = extractFREAKFeature(difference_image, x, y, scale, true);
 	return descriptor;
 }
 
@@ -170,11 +172,17 @@ void MoFREAKUtilities::computeMoFREAKFromFile(QString filename, bool clear_featu
 
 }
 
-vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float x, float y, float scale)
+vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float x, float y, float scale, bool extract_full_descriptor)
 {
 	const float SCALE_MULTIPLIER = 1;//6;
 	cv::Mat descriptor;
 	vector<cv::KeyPoint> ftrs;
+	unsigned int DESCRIPTOR_SIZE;
+
+	if (extract_full_descriptor)
+		DESCRIPTOR_SIZE = 64;
+	else
+		DESCRIPTOR_SIZE = 16;
 
 	// gather keypoint from image.
 	cv::KeyPoint ftr;
@@ -192,7 +200,7 @@ vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float
 	// when the feature is too close to the boundary, FREAK returns a null descriptor.  No good.
 	if (descriptor.rows > 0)
 	{
-		for (unsigned i = 0; i < 16; ++i)//descriptor.cols; ++i)
+		for (unsigned i = 0; i < DESCRIPTOR_SIZE; ++i)//descriptor.cols; ++i)
 		{
 			ret_val.push_back(descriptor.at<unsigned char>(0, i));
 		}
@@ -220,9 +228,11 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, strin
 		capture.set(CV_CAP_PROP_POS_FRAMES, it->frame_number);
 		cv::Mat frame;
 		capture >> frame;
-		vector<unsigned int> freak_ftr = extractFREAKFeature(frame, it->x, it->y, it->scale);
+
+		vector<unsigned int> freak_ftr = extractFREAKFeature(frame, it->x, it->y, it->scale, false);
 
 		// compute motion as image difference.
+		/*
 		unsigned int image_difference = 0;
 		if (it->frame_number != 1)
 		{
@@ -232,9 +242,21 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, strin
 			capture >> prev_frame;
 
 			image_difference = extractMotionByImageDifference(frame, prev_frame, it->x, it->y);
+		}*/
+
+		vector<unsigned int> interfreak;
+		if (it->frame_number > 4)
+		{
+			frame = frame.clone();
+			// set the capture to 5 frames back.
+			capture.set(CV_CAP_PROP_POS_FRAMES, it->frame_number - 5);
+			cv::Mat prev_frame;
+			capture >> prev_frame;
+
+			interfreak = extractFREAK_ID(frame, prev_frame, it->x, it->y, it->scale);
 		}
 
-		if (freak_ftr.size() > 0)
+		if ((freak_ftr.size()) > 0 && (interfreak.size() > 0))
 		{
 			// build MoFREAK feature and add it to our feature list.
 			MoFREAKFeature ftr;
@@ -245,8 +267,8 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, strin
 			ftr.motion_y = it->motion_y;
 			ftr.frame_number = it->frame_number;
 
-			for (unsigned i = 0; i < 128; ++i)
-				ftr.motion[i] = it->motion[i];
+			for (unsigned i = 0; i < 64; ++i)//128; ++i)
+				ftr.motion[i] = interfreak[i];//it->motion[i];
 
 			for (unsigned i = 0; i < 16; ++i)//64; ++i)
 				ftr.FREAK[i] = freak_ftr[i];
@@ -308,7 +330,7 @@ void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file, bool img_d
 		else
 		{
 			// motion
-			for (int i = 0; i < 128; ++i)
+			for (int i = 0; i < 64; ++i)//128; ++i)
 			{
 				int z = it->motion[i];
 				f << z << " ";

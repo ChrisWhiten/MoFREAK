@@ -30,7 +30,7 @@ struct MoFREAKFeature
 
 	int frame_number;
 	unsigned int FREAK[16];//[64];
-	unsigned char motion[128]; // is there a difference between unsigned int and unsigned char?  to investigate..
+	unsigned int motion[64];//char motion[128]; // is there a difference between unsigned int and unsigned char?  to investigate..
 	unsigned int img_diff;
 
 	int action;
@@ -49,7 +49,7 @@ public:
 
 private:
 	string toBinaryString(unsigned int x);
-	vector<unsigned int> extractFREAKFeature(cv::Mat &frame, float x, float y, float scale);
+	vector<unsigned int> extractFREAKFeature(cv::Mat &frame, float x, float y, float scale, bool extract_full_descriptor = false);
 	vector<unsigned int> extractFREAK_ID(cv::Mat &frame, cv::Mat &prev_frame, float x, float y, float scale);
 	unsigned int extractMotionByImageDifference(cv::Mat &frame, cv::Mat &prev_frame, float x, float y); // I suppose we don't need scale for this.
 	unsigned int hammingDistance(unsigned int a, unsigned int b);

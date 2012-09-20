@@ -11,19 +11,45 @@ BagOfWordsFeature::BagOfWordsFeature(const BagOfWordsFeature &b)
 
 void BagOfWordsRepresentation::normalizeClusters()
 {
-	const int MOTION_START = 16;//64;
-	const int MOTION_END = 144;//192;
-
 	for (unsigned int clust = 0; clust < clusters->rows; ++clust)
 	{
+		normalizeAppearanceOfFeature((*clusters)(cv::Range(clust, clust + 1), cv::Range(0, clusters->cols)));
 		normalizeMotionOfFeature((*clusters)(cv::Range(clust, clust + 1), cv::Range(0, clusters->cols)));
+	}
+}
+
+void BagOfWordsRepresentation::normalizeAppearanceOfFeature(cv::Mat &ftr)
+{
+	// only normalize euclidean motion spaces
+	if (appearance_is_binary)
+		return;
+
+	const int APPEARANCE_START = 0;
+	const int APPEARANCE_END = appearance_descriptor_size;
+
+	float normalizer = 0.0;
+
+	// compute normalizer
+	for (unsigned col = APPEARANCE_START; col < APPEARANCE_END; ++col)
+	{
+		normalizer += ftr.at<float>(0, col);
+	}
+
+	// divide each val by the normalizer.
+	for (unsigned col = APPEARANCE_START; col < APPEARANCE_END; ++col)
+	{
+		ftr.at<float>(0, col) = ftr.at<float>(0, col)/normalizer;
 	}
 }
 
 void BagOfWordsRepresentation::normalizeMotionOfFeature(cv::Mat &ftr)
 {
-	const int MOTION_START = 16;//64;
-	const int MOTION_END = 144;//192;
+	// only normalize euclidean motion spaces
+	if (motion_is_binary)
+		return;
+
+	const int MOTION_START = appearance_descriptor_size;//64;
+	const int MOTION_END = appearance_descriptor_size + motion_descriptor_size;//192;
 
 	float normalizer = 0.0;
 
@@ -147,60 +173,93 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndFrameDifference(cv::Mat &fea
 void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file)
 {
 	// constants
-	const int FREAK_HAMMING_DIST_NORM = 512;
-	const int FREAK_START_INDEX = 0;
-	const int FREAK_END_INDEX = 16;//64;
-	const int MOTION_START_INDEX = 16;//64;
-	const int MOTION_END_INDEX = 144;//192;
+	const unsigned int APPEARANCE_HAMMING_DIST_NORM = appearance_descriptor_size * 8;
+	const unsigned int APPEARANCE_START_INDEX = 0;
+	const unsigned int APPEARNCE_END_INDEX = appearance_descriptor_size;
+	const unsigned int MOTION_HAMMING_DIST_NORM = motion_descriptor_size * 8;
+	const unsigned int MOTION_START_INDEX = appearance_descriptor_size;
+	const unsigned int MOTION_END_INDEX = appearance_descriptor_size + motion_descriptor_size;
+
 
 	// clusters a pre-normalized.  normalize feature vector.
 	normalizeMotionOfFeature(feature_vector);
+	normalizeAppearanceOfFeature(feature_vector);
 
 	// base case: initialize with the score/index of the 0th cluster.
 	best_cluster_index = 0;
+	float appearance_distance = 0.0;
+	float motion_distance = 0.0;
 
-	// start with the hamming distance over FREAK points.
-	float FREAK_distance = 0.0;
+	// Compute the distance between the appearance components
+	cv::Mat query_appearance_descriptor, cluster_appearance_descriptor;
+	query_appearance_descriptor = feature_vector(cv::Range(0, 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
+	cluster_appearance_descriptor = clusters(cv::Range(0, 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
 
-	cv::Mat query_FREAK_descriptor = feature_vector(cv::Range(0, 1), cv::Range(FREAK_START_INDEX, FREAK_END_INDEX));
-	cv::Mat cluster_FREAK_descriptor = clusters(cv::Range(0, 1), cv::Range(FREAK_START_INDEX, FREAK_END_INDEX));
+	if (appearance_is_binary)
+	{
+		appearance_distance = hammingDistance(query_appearance_descriptor, cluster_appearance_descriptor);
+		appearance_distance /= APPEARANCE_HAMMING_DIST_NORM;
+	}
+	else
+	{
+		motion_distance = standardEuclideanDistance(query_appearance_descriptor, cluster_appearance_descriptor);
+	}
 
-	FREAK_distance = hammingDistance(query_FREAK_descriptor, cluster_FREAK_descriptor);
-	FREAK_distance /= FREAK_HAMMING_DIST_NORM;
-	file << FREAK_distance << ", ";
+	// Compute the distance between the motion components
+	cv::Mat query_motion_descriptor, cluster_motion_descriptor;
+	query_motion_descriptor = feature_vector(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
+	cluster_motion_descriptor = clusters(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
 
-	cv::Mat query_motion_descriptor = feature_vector(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
-	cv::Mat cluster_motion_descriptor = clusters(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
+	if (motion_is_binary)
+	{
+		motion_distance = hammingDistance(query_motion_descriptor, cluster_motion_descriptor);
+		motion_distance /= MOTION_HAMMING_DIST_NORM;
+	}
+	else
+	{
+		motion_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
+	}
 
-	float euclidean_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
-	file << euclidean_distance << ", ";
-
-	float final_dist = FREAK_distance + euclidean_distance;
-	file << final_dist << std::endl;
+	float final_dist = appearance_distance + motion_distance;
 
 	best_cluster_score = final_dist;
 
-	// now the remaining points.
+	// Previous computations were just so everything was initialized (for the base case)
+	// Now run those computations against all other clusters.
 	for (unsigned cluster = 1; cluster < clusters.rows; ++cluster)
 	{
 		final_dist = 0.0;
-		euclidean_distance = 0.0;
-		FREAK_distance = 0.0;
+		motion_distance = 0.0;
+		appearance_distance = 0.0;
 
-		cluster_FREAK_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(FREAK_START_INDEX, FREAK_END_INDEX));
+		query_appearance_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
 		cluster_motion_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
 
-		FREAK_distance = hammingDistance(query_FREAK_descriptor, cluster_FREAK_descriptor);
-		FREAK_distance /= FREAK_HAMMING_DIST_NORM;
-		file << FREAK_distance << ", ";
+		// Appearance distance.
+		if (appearance_is_binary)
+		{
+			appearance_distance = hammingDistance(query_appearance_descriptor, cluster_appearance_descriptor);
+			appearance_distance /= APPEARANCE_HAMMING_DIST_NORM;
+		}
+		else
+		{
+			appearance_distance = standardEuclideanDistance(query_appearance_descriptor, cluster_appearance_descriptor);
+		}
 
-		euclidean_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
-		file << euclidean_distance << ", ";
+		// Motion distance.
+		if (motion_is_binary)
+		{
+			motion_distance = hammingDistance(query_motion_descriptor, cluster_motion_descriptor);
+			motion_distance /= MOTION_HAMMING_DIST_NORM;
+		}
+		else
+		{
+			motion_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
+		}
 
-		final_dist = FREAK_distance + euclidean_distance;
-		file << final_dist << std::endl;
+		final_dist = appearance_distance + motion_distance;
 
-		// compare to best.
+		// If we have a new shortest distance, store that.
 		if (final_dist < best_cluster_score)
 		{
 			best_cluster_score = final_dist;
@@ -291,12 +350,6 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(QString &file)
 	}
 
 	distances.close();
-	ofstream unnormed_hist("unnormed.txt");
-	for (unsigned col = 0; col < histogram.cols; ++col)
-	{
-		unnormed_hist << histogram.at<float>(0, col) << ", ";
-	}
-	unnormed_hist.close();
 
 	// after doing that for all lines in file, normalize.
 	float histogram_sum = 0;
@@ -333,12 +386,9 @@ void BagOfWordsRepresentation::loadClusters()
 	}
 }
 
-BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people) : NUMBER_OF_CLUSTERS(num_clust), 
-	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people)
+void BagOfWordsRepresentation::computeBagOfWords()
 {
-	loadClusters();
-	normalizeClusters();
-
+	
 	// open file streams to write data for SVM
 	ofstream hist_file("hist.txt");
 	ofstream label_file("label.txt");
@@ -381,36 +431,36 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 	// word_2[:] should match one of the strings...
 	// word_3[1:] is the video number
 #pragma omp parallel for
-	for (int i = 0; i < qsl.size(); ++i)// = qsl.begin(); it != qsl.end(); ++it)
+	for (int i = 0; i < files.size(); ++i)// = qsl.begin(); it != qsl.end(); ++it)
 	{
 		
-		QString temp = qsl[i];
-		QStringList words = qsl[i].split("\\");
+		QString temp = files[i];
+		QStringList words = files[i].split("\\");
 		QString file_name = words[words.length() - 1];
 
 		int action, person, video_number;
 		// get the action.
-		if (qsl[i].contains("boxing"))
+		if (files[i].contains("boxing"))
 		{
 			action = BOXING;
 		}
-		else if (qsl[i].contains("walking"))
+		else if (files[i].contains("walking"))
 		{
 			action = WALKING;
 		}
-		else if (qsl[i].contains("jogging"))
+		else if (files[i].contains("jogging"))
 		{
 			action = JOGGING;
 		}
-		else if (qsl[i].contains("running"))
+		else if (files[i].contains("running"))
 		{
 			action = RUNNING;
 		}
-		else if (qsl[i].contains("handclapping"))
+		else if (files[i].contains("handclapping"))
 		{
 			action = HANDCLAPPING;
 		}
-		else if (qsl[i].contains("handwaving"))
+		else if (files[i].contains("handwaving"))
 		{
 			action = HANDWAVING;
 		}
@@ -431,7 +481,7 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 		video_number = video_string.toInt();
 
 		// now extract each mosift point and assign it to the correct codeword.
-		cv::Mat hist = buildHistogram(qsl[i]);
+		cv::Mat hist = buildHistogram(files[i]);
 
 		// prepare line to be written to file.
 		stringstream ss;
@@ -453,29 +503,12 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 			{
 				// to print histogram to testing file.  leave this one out!
 				testing_file_lines[p].push_back(current_line);
-
-				/*
-				(*(testing_files[p])) << action + 1 << " ";
-				for (unsigned col = 0; col < hist.cols; ++col)
-				{
-					(*(testing_files[p])) << col + 1 << ":" << hist.at<float>(0, col) << " ";
-				}
-				(*(testing_files[p])) << std::endl;
-				*/
 			}
 
 			// this shouldn't be left out. print to training file.
 			else
 			{
 				training_file_lines[p].push_back(current_line);
-				/*
-				(*(training_files[p])) << action + 1 << " ";
-				for (unsigned col = 0; col < hist.cols; ++col)
-				{
-					(*(training_files[p])) << col + 1 << ":" << hist.at<float>(0, col) << " ";
-				}
-				(*(training_files[p])) << std::endl;
-				*/
 			}
 		}
 
@@ -512,4 +545,30 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 		training_files[i]->close();
 		testing_files[i]->close();
 	}
+}
+
+BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people) : NUMBER_OF_CLUSTERS(num_clust), 
+	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people)
+{
+	files = qsl;
+	loadClusters();
+	normalizeClusters();
+
+	// default values.
+	motion_descriptor_size = 128; 
+	appearance_descriptor_size = 128;
+	motion_is_binary = false;
+	appearance_is_binary = false;
+}
+
+void BagOfWordsRepresentation::setMotionDescriptor(unsigned int size, bool binary)
+{
+	motion_is_binary = binary;
+	motion_descriptor_size = size;
+}
+
+void BagOfWordsRepresentation::setAppearanceDescriptor(unsigned int size, bool binary)
+{
+	appearance_is_binary = binary;
+	appearance_descriptor_size = size;
 }

@@ -24,6 +24,11 @@
  Clustering::Clustering(int dim, int num_clust, int num_pts, int num_classes) : DIMENSIONALITY(dim), NUMBER_OF_CLUSTERS(num_clust), 
 	 NUMBER_OF_POINTS_TO_SAMPLE(num_pts), NUMBER_OF_CLASSES(num_classes)
  {
+	 // default values. MoSIFT.
+	motion_descriptor_size = 128; 
+	appearance_descriptor_size = 128;
+	motion_is_binary = false;
+	appearance_is_binary = false;
  }
 
  void Clustering::buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff)
@@ -43,20 +48,20 @@
 		data_pts->at<float>(row, 1) = ftr.person;
 		data_pts->at<float>(row, 2) = ftr.video_number;
 
-		for (unsigned col = 0; col < 16; ++col)//64; ++col)
+		for (unsigned col = 0; col < appearance_descriptor_size; ++col)//64; ++col)
 		{
 			data_pts->at<float>(row, col + 3) = (float)ftr.FREAK[col];
 		}
 
 		if (img_diff)
 		{
-			data_pts->at<float>(row, 67) = (float)ftr.img_diff; // 67 = 3(meta) + 64(freak)
+			data_pts->at<float>(row, 3 + appearance_descriptor_size) = (float)ftr.img_diff; // 67 = 3(meta) + 64(freak)
 		}
 		else
 		{
-			for (unsigned col = 0; col < 128; ++col)
+			for (unsigned col = 0; col < motion_descriptor_size; ++col)
 			{
-				data_pts->at<float>(row, col + 19) = (float)ftr.motion[col];//67) = (float)ftr.motion[col]; // 67 = 3 + 64.
+				data_pts->at<float>(row, col + appearance_descriptor_size + 3) = (float)ftr.motion[col];//67) = (float)ftr.motion[col]; // 67 = 3 + 64.
 			}
 		}
 	 }
@@ -189,3 +194,15 @@
 	}
 	output_file.close();
  }
+
+ void Clustering::setMotionDescriptor(unsigned int size, bool binary)
+{
+	motion_is_binary = binary;
+	motion_descriptor_size = size;
+}
+
+void Clustering::setAppearanceDescriptor(unsigned int size, bool binary)
+{
+	appearance_is_binary = binary;
+	appearance_descriptor_size = size;
+}

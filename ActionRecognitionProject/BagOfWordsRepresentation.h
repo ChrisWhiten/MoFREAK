@@ -31,18 +31,22 @@ class BagOfWordsRepresentation
 {
 public:
 	BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people);
+	void computeBagOfWords();
+	void setMotionDescriptor(unsigned int size, bool binary = false);
+	void setAppearanceDescriptor(unsigned int size, bool binary = false);
 
 private:
 	void loadClusters();
 	cv::Mat buildHistogram(QString &file);
-	//float standardEuclideanDistance(vector<float> a, vector<float> b) const;
 	float standardEuclideanDistance(cv::Mat &a, cv::Mat &b) const;
 	void findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score);
 	void findBestMatchFREAKAndOpticalFlow(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file);
 	void findBestMatchFREAKAndFrameDifference(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score);
 	unsigned int hammingDistance(cv::Mat &a, cv::Mat &b);
+
 	void normalizeClusters();
 	void normalizeMotionOfFeature(cv::Mat &ftr);
+	void normalizeAppearanceOfFeature(cv::Mat &ftr);
 
 	QStringList files;
 	const int NUMBER_OF_CLUSTERS;
@@ -50,5 +54,10 @@ private:
 	const int NUMBER_OF_PEOPLE;
 	cv::Mat *clusters;
 	enum class_action {BOXING, HANDCLAPPING, HANDWAVING, JOGGING, RUNNING, WALKING};
+
+	unsigned int motion_descriptor_size;
+	unsigned int appearance_descriptor_size;
+	bool motion_is_binary;
+	bool appearance_is_binary;
 };
 #endif
