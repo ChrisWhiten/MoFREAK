@@ -11,8 +11,8 @@ BagOfWordsFeature::BagOfWordsFeature(const BagOfWordsFeature &b)
 
 void BagOfWordsRepresentation::normalizeClusters()
 {
-	const int MOTION_START = 64;
-	const int MOTION_END = 192;
+	const int MOTION_START = 16;//64;
+	const int MOTION_END = 144;//192;
 
 	for (unsigned int clust = 0; clust < clusters->rows; ++clust)
 	{
@@ -22,8 +22,8 @@ void BagOfWordsRepresentation::normalizeClusters()
 
 void BagOfWordsRepresentation::normalizeMotionOfFeature(cv::Mat &ftr)
 {
-	const int MOTION_START = 64;
-	const int MOTION_END = 192;
+	const int MOTION_START = 16;//64;
+	const int MOTION_END = 144;//192;
 
 	float normalizer = 0.0;
 
@@ -149,9 +149,9 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 	// constants
 	const int FREAK_HAMMING_DIST_NORM = 512;
 	const int FREAK_START_INDEX = 0;
-	const int FREAK_END_INDEX = 64;
-	const int MOTION_START_INDEX = 64;
-	const int MOTION_END_INDEX = 192;
+	const int FREAK_END_INDEX = 16;//64;
+	const int MOTION_START_INDEX = 16;//64;
+	const int MOTION_END_INDEX = 144;//192;
 
 	// clusters a pre-normalized.  normalize feature vector.
 	normalizeMotionOfFeature(feature_vector);
@@ -345,6 +345,8 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 
 	vector<ofstream *> training_files;
 	vector<ofstream *> testing_files;
+	vector<vector<string> > training_file_lines;
+	vector<vector<string> > testing_file_lines;
 
 	for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)
 	{
@@ -364,6 +366,12 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 
 		training_files.push_back(training_file);
 		testing_files.push_back(testing_file);
+
+		vector<string> training_lines;
+		vector<string> testing_lines;
+		training_file_lines.push_back(training_lines);
+		testing_file_lines.push_back(testing_lines);
+
 	}
 
 	// for each file, find the action + person number + video number
@@ -425,29 +433,49 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 		// now extract each mosift point and assign it to the correct codeword.
 		cv::Mat hist = buildHistogram(qsl[i]);
 
+		// prepare line to be written to file.
+		stringstream ss;
+		string current_line;
+
+		ss << (action + 1) << " ";
+		for (unsigned col = 0; col < hist.cols; ++col)
+		{
+			ss << (col + 1) << ":" << hist.at<float>(0, col) << " ";
+		}
+		current_line = ss.str();
+		ss.str("");
+		ss.clear();
+
 		// print output to correct files. libsvm-ready
 		for (unsigned int p = 0; p < NUMBER_OF_PEOPLE; ++p)
 		{
 			if ((p + 1) == person)
 			{
-				// print histogram to testing file.  leave this one out!
+				// to print histogram to testing file.  leave this one out!
+				testing_file_lines[p].push_back(current_line);
+
+				/*
 				(*(testing_files[p])) << action + 1 << " ";
 				for (unsigned col = 0; col < hist.cols; ++col)
 				{
 					(*(testing_files[p])) << col + 1 << ":" << hist.at<float>(0, col) << " ";
 				}
 				(*(testing_files[p])) << std::endl;
+				*/
 			}
 
 			// this shouldn't be left out. print to training file.
 			else
 			{
+				training_file_lines[p].push_back(current_line);
+				/*
 				(*(training_files[p])) << action + 1 << " ";
 				for (unsigned col = 0; col < hist.cols; ++col)
 				{
 					(*(training_files[p])) << col + 1 << ":" << hist.at<float>(0, col) << " ";
 				}
 				(*(training_files[p])) << std::endl;
+				*/
 			}
 		}
 
@@ -464,6 +492,19 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clu
 	}
 	hist_file.close();
 	label_file.close();
+
+	for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+	{
+		for (unsigned line = 0; line < training_file_lines[i].size(); ++line)
+		{
+			*training_files[i] << training_file_lines[i][line] << endl;
+		}
+		
+		for (unsigned line = 0; line < testing_file_lines[i].size(); ++line)
+		{
+			*testing_files[i] << testing_file_lines[i][line] << endl;
+		}
+	}
 
 	// close the libsvm training and testing files.
 	for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)

@@ -192,7 +192,7 @@ vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float
 	// when the feature is too close to the boundary, FREAK returns a null descriptor.  No good.
 	if (descriptor.rows > 0)
 	{
-		for (unsigned i = 0; i < descriptor.cols; ++i)
+		for (unsigned i = 0; i < 16; ++i)//descriptor.cols; ++i)
 		{
 			ret_val.push_back(descriptor.at<unsigned char>(0, i));
 		}
@@ -248,7 +248,7 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, strin
 			for (unsigned i = 0; i < 128; ++i)
 				ftr.motion[i] = it->motion[i];
 
-			for (unsigned i = 0; i < 64; ++i)
+			for (unsigned i = 0; i < 16; ++i)//64; ++i)
 				ftr.FREAK[i] = freak_ftr[i];
 
 			features.push_back(ftr);
@@ -294,7 +294,7 @@ void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file, bool img_d
 			<< " " << it->scale << " " << it->motion_x << " " << it->motion_y << " ";
 
 		// FREAK
-		for (int i = 0; i < 64; ++i)
+		for (int i = 0; i < 16; ++i) // 64
 		{
 			int z = it->FREAK[i];
 			f << it->FREAK[i] << " ";
@@ -448,7 +448,7 @@ void MoFREAKUtilities::readMoFREAKFeatures(QString filename, bool img_diff)
 		stream >> ftr.x >> ftr.y >> ftr.frame_number >> ftr.scale >> ftr.motion_x >> ftr.motion_y;
 	
 		// FREAK
-		for (unsigned i = 0; i < 64; ++i)
+		for (unsigned i = 0; i < 16; ++i)//64; ++i)
 		{
 			unsigned int a;
 			stream >> a;

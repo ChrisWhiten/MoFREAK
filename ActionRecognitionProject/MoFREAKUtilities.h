@@ -29,7 +29,7 @@ struct MoFREAKFeature
 	float motion_y;
 
 	int frame_number;
-	unsigned int FREAK[64];
+	unsigned int FREAK[16];//[64];
 	unsigned char motion[128]; // is there a difference between unsigned int and unsigned char?  to investigate..
 	unsigned int img_diff;
 

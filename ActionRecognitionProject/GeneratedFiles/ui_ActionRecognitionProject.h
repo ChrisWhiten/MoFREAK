@@ -1,8 +1,8 @@
 /********************************************************************************
 ** Form generated from reading UI file 'ActionRecognitionProject.ui'
 **
-** Created: Tue Sep 18 10:34:54 2012
-**      by: Qt User Interface Compiler version 4.8.1
+** Created: Wed Sep 19 17:09:38 2012
+**      by: Qt User Interface Compiler version 4.8.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
