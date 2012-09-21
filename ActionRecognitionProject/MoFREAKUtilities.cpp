@@ -45,9 +45,11 @@ vector<unsigned int> MoFREAKUtilities::extractFREAK_ID(cv::Mat &frame, cv::Mat &
 		{
 			int f_val = frame.at<unsigned char>(row, col);
 			int p_val = prev_frame.at<unsigned char>(row, col);
-			int diff_val = f_val - p_val;
-			unsigned int shifted_val = (diff_val/2) + 128;
-			difference_image.at<unsigned char>(row, col) = shifted_val;
+			//int diff_val = f_val - p_val;
+			//unsigned int shifted_val = (diff_val/2) + 128;
+			//difference_image.at<unsigned char>(row, col) = shifted_val;
+			unsigned int diff_val = abs(f_val - p_val);
+			difference_image.at<unsigned char>(row, col) = diff_val;
 		}
 	}
 
@@ -484,7 +486,7 @@ void MoFREAKUtilities::readMoFREAKFeatures(QString filename, bool img_diff)
 		}
 		else
 		{
-			for (unsigned i = 0; i < 128; ++i)
+			for (unsigned i = 0; i < 16; ++i)//64; ++i)//128; ++i)
 			{
 				unsigned int a;
 				stream >> a;

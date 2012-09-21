@@ -1,7 +1,5 @@
 #include "Clustering.h"
 
-
-
 // taken from feng's work.
  void Clustering::shuffleCVMat(cv::Mat &mx)
  {

@@ -21,6 +21,8 @@ public:
 	void clusterWithKMeans();
 	void randomClusters();
 	void writeClusters();
+	void setMotionDescriptor(unsigned int size, bool binary = false);
+	void setAppearanceDescriptor(unsigned int size, bool binary = false);
 private:
 	void shuffleCVMat(cv::Mat &mx);
 
@@ -28,6 +30,11 @@ private:
 	const int NUMBER_OF_CLUSTERS;
 	const int NUMBER_OF_POINTS_TO_SAMPLE;
 	const int NUMBER_OF_CLASSES;
+
+	unsigned int motion_descriptor_size;
+	unsigned int appearance_descriptor_size;
+	bool motion_is_binary;
+	bool appearance_is_binary;
 
 	cv::Mat *centers;
 	cv::Mat *data_pts;

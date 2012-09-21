@@ -30,7 +30,7 @@ public:
 class BagOfWordsRepresentation
 {
 public:
-	BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people);
+	BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin);
 	void computeBagOfWords();
 	void setMotionDescriptor(unsigned int size, bool binary = false);
 	void setAppearanceDescriptor(unsigned int size, bool binary = false);
@@ -40,7 +40,7 @@ private:
 	cv::Mat buildHistogram(QString &file);
 	float standardEuclideanDistance(cv::Mat &a, cv::Mat &b) const;
 	void findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score);
-	void findBestMatchFREAKAndOpticalFlow(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file);
+	void findBestMatchDescriptorInvariant(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file);
 	void findBestMatchFREAKAndFrameDifference(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score);
 	unsigned int hammingDistance(cv::Mat &a, cv::Mat &b);
 

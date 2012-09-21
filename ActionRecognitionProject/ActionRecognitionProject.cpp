@@ -70,7 +70,7 @@ void ActionRecognitionProject::loadFiles()
 void ActionRecognitionProject::clusterMoFREAKPoints()
 {
 	// organize pts into a cv::Mat.
-	const int FEATURE_DIMENSIONALITY = 192;//65;//192;
+	const int FEATURE_DIMENSIONALITY = 32;//192;//65;//192;
 	const int NUM_CLUSTERS = 600;
 	const int POINTS_TO_SAMPLE = 12000;
 	const int NUM_CLASSES = 6;
@@ -79,7 +79,7 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 
 	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES);
 	clustering.setAppearanceDescriptor(16, true);
-	clustering.setMotionDescriptor(64, true);
+	clustering.setMotionDescriptor(16, true);
 
 	ui.frame_label->setText("Formatting features...");
 	ui.frame_label->adjustSize();
@@ -105,9 +105,9 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 	ui.frame_label->adjustSize();
 	qApp->processEvents();
 
-	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE);
+	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE, true, true);
 	bow_rep.setAppearanceDescriptor(16, true);
-	bow_rep.setMotionDescriptor(64, true);
+	bow_rep.setMotionDescriptor(16, true);
 	bow_rep.computeBagOfWords();
 
 	ui.frame_label->setText("BOW Representation Computed.");
@@ -152,7 +152,7 @@ void ActionRecognitionProject::clusterMoSIFTPoints()
 	ui.frame_label->adjustSize();
 	qApp->processEvents();
 
-	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE);
+	BagOfWordsRepresentation bow_rep(files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE, false, false);
 	bow_rep.setAppearanceDescriptor(128, false);
 	bow_rep.setMotionDescriptor(128, false);
 	bow_rep.computeBagOfWords();

@@ -170,10 +170,10 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndFrameDifference(cv::Mat &fea
 	}
 }
 
-void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file)
+void BagOfWordsRepresentation::findBestMatchDescriptorInvariant(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file)
 {
 	// constants
-	const unsigned int APPEARANCE_HAMMING_DIST_NORM = appearance_descriptor_size * 8;
+	const unsigned int APPEARANCE_HAMMING_DIST_NORM = 1024;//appearance_descriptor_size * 8;//512;//appearance_descriptor_size * 8;
 	const unsigned int APPEARANCE_START_INDEX = 0;
 	const unsigned int APPEARNCE_END_INDEX = appearance_descriptor_size;
 	const unsigned int MOTION_HAMMING_DIST_NORM = motion_descriptor_size * 8;
@@ -341,7 +341,7 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(QString &file)
 		float best_cluster_score;
 		
 		//findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
-		findBestMatchFREAKAndOpticalFlow(feature_vector, *clusters, best_cluster_index, best_cluster_score, distances);
+		findBestMatchDescriptorInvariant(feature_vector, *clusters, best_cluster_index, best_cluster_score, distances);
 		//findBestMatchFREAKAndFrameDifference(feature_vector, *clusters, best_cluster_index, best_cluster_score);
 
 
@@ -547,18 +547,16 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	}
 }
 
-BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people) : NUMBER_OF_CLUSTERS(num_clust), 
-	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people)
+BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin) : NUMBER_OF_CLUSTERS(num_clust), 
+	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people), motion_is_binary(motion_is_bin), appearance_is_binary(appearance_is_bin)
 {
 	files = qsl;
 	loadClusters();
 	normalizeClusters();
 
-	// default values.
+	// default values. MoSIFT.
 	motion_descriptor_size = 128; 
 	appearance_descriptor_size = 128;
-	motion_is_binary = false;
-	appearance_is_binary = false;
 }
 
 void BagOfWordsRepresentation::setMotionDescriptor(unsigned int size, bool binary)
