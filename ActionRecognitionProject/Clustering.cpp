@@ -48,22 +48,18 @@
 		data_pts->at<float>(row, 1) = ftr.person;
 		data_pts->at<float>(row, 2) = ftr.video_number;
 
+		// appearance.
 		for (unsigned col = 0; col < appearance_descriptor_size; ++col)//64; ++col)
 		{
 			data_pts->at<float>(row, col + 3) = (float)ftr.FREAK[col];
 		}
 
-		if (img_diff)
+		// motion.
+		for (unsigned col = 0; col < motion_descriptor_size; ++col)
 		{
-			data_pts->at<float>(row, 3 + appearance_descriptor_size) = (float)ftr.img_diff; // 67 = 3(meta) + 64(freak)
+			data_pts->at<float>(row, col + appearance_descriptor_size + 3) = (float)ftr.motion[col];//67) = (float)ftr.motion[col]; // 67 = 3 + 64.
 		}
-		else
-		{
-			for (unsigned col = 0; col < motion_descriptor_size; ++col)
-			{
-				data_pts->at<float>(row, col + appearance_descriptor_size + 3) = (float)ftr.motion[col];//67) = (float)ftr.motion[col]; // 67 = 3 + 64.
-			}
-		}
+		
 	 }
 
 	// sample points for computational efficiency.

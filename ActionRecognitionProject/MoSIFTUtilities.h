@@ -6,7 +6,8 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <qstring.h>
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
@@ -31,11 +32,13 @@ struct MoSIFTFeature
 class MoSIFTUtilities
 {
 public:
-	void readMoSIFTFeatures(QString filename);
+	void readMoSIFTFeatures(std::string filename);
 	vector<MoSIFTFeature> getMoSIFTFeatures();
 
 private:
-	void readMetadata(QString filename, int &action, int &video_number, int &person);
+	void readMetadata(std::string filename, int &action, int &video_number, int &person);
+	std::vector<std::string> split(const std::string &s, char delim);
+	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
 	vector<MoSIFTFeature> features;
 };
