@@ -33,6 +33,15 @@ char* SVMInterface::readline(FILE *input)
 	return line;
 }
 
+// we don't need to do all the file parsing here!
+// just read in the data into x[0] and send it off for classification!
+// svm_predict_probability(model,x,prob_estimates); 
+// that returns a double, which is the classification.
+double SVMInterface::predictAndReturnData(FILE *input, std::vector<double> &labels, std::vector<double> &probs, int &best_label_index)
+{
+	return 0.0;
+}
+
 double SVMInterface::predict(FILE *input, FILE *output)
 {
 	int correct = 0;
@@ -53,7 +62,11 @@ double SVMInterface::predict(FILE *input, FILE *output)
 			printf("Prob. model for test data: target value = predicted value + z,\nz: Laplace distribution e^(-|z|/sigma)/(2sigma),sigma=%g\n",svm_get_svr_probability(model));
 		else
 		{
+			// print the initial line showing the label header
+			// and allocate space for probability estimates and label estimates.
 			int *labels=(int *) malloc(nr_class*sizeof(int));
+
+			// i can not explain why svm_get_labels does not print the labels in order...
 			svm_get_labels(model,labels);
 			prob_estimates = (double *) malloc(nr_class*sizeof(double));
 			fprintf(output,"labels");		
@@ -73,45 +86,56 @@ double SVMInterface::predict(FILE *input, FILE *output)
 		char *idx, *val, *label, *endptr;
 		int inst_max_index = -1; // strtol gives 0 if wrong format, and precomputed kernel has <index> start from 0
 
+		// strtok up to first space... just grabs the first part, the label.
 		label = strtok(line," \t\n");
 		if(label == NULL) // empty line
 			exit_input_error(total+1);
 
+		//strtod is string to double.
 		target_label = strtod(label,&endptr);
 		if(endptr == label || *endptr != '\0')
 			exit_input_error(total+1);
 
+		// now read in remainder of feature:value pairs.
 		while(1)
 		{
+			// need more attribute space.  gets allocated here.
 			if(i>=max_nr_attr-1)	// need one more for index = -1
 			{
 				max_nr_attr *= 2;
 				x = (struct svm_node *) realloc(x,max_nr_attr*sizeof(struct svm_node));
 			}
 
+			// idx is the feature id.
 			idx = strtok(NULL,":");
+			// val is the feature value.
 			val = strtok(NULL," \t");
 
 			if(val == NULL)
 				break;
 			errno = 0;
+			// strtol is string to long.  stores the feature id into the long value x[i].index
 			x[i].index = (int) strtol(idx,&endptr,10);
 			if(endptr == idx || errno != 0 || *endptr != '\0' || x[i].index <= inst_max_index)
 				exit_input_error(total+1);
 			else
-				inst_max_index = x[i].index;
+				inst_max_index = x[i].index; // maximum feature index for this instance.
 
 			errno = 0;
+			// store value as a double in x[i].value
 			x[i].value = strtod(val,&endptr);
 			if(endptr == val || errno != 0 || (*endptr != '\0' && !isspace(*endptr)))
 				exit_input_error(total+1);
 
 			++i;
 		}
+		// we denote the end of the features by setting the index after the last feature index to -1.
 		x[i].index = -1;
 
+		// prob_estimates holds the probability estimates for each class...
 		if (predict_probability && (svm_type==C_SVC || svm_type==NU_SVC))
 		{
+			// x holds all of the feature/instance pairs.
 			predict_label = svm_predict_probability(model,x,prob_estimates);
 			fprintf(output,"%g",predict_label);
 			for(j=0;j<nr_class;j++)
@@ -124,6 +148,7 @@ double SVMInterface::predict(FILE *input, FILE *output)
 			fprintf(output,"%g\n",predict_label);
 		}
 
+		// correctly labeled.
 		if(predict_label == target_label)
 			++correct;
 		error += (predict_label-target_label)*(predict_label-target_label);
@@ -278,6 +303,22 @@ void SVMInterface::setParameters(svm_parameter *param)
 	param->weight = NULL;
 }
 
+void SVMInterface::trainModelProb(std::string training_data_file)
+{
+	const char *error_msg;
+	const std::string model_file_name = "C:/data/kth/chris/trained_svm.model";
+
+	read_problem(training_data_file);
+	setParameters(&param);
+	param.probability = 1;
+	error_msg = svm_check_parameter(&prob, &param);
+
+	std::cout << "training model" << std::endl;
+	model = svm_train(&prob, &param);
+	svm_save_model(model_file_name.c_str(), model);
+	std::cout << "Model trained." << std::endl;
+}
+
 void SVMInterface::trainModel(std::string training_data_file)
 {
 	const char *error_msg;
@@ -291,6 +332,31 @@ void SVMInterface::trainModel(std::string training_data_file)
 	model = svm_train(&prob, &param);
 	svm_save_model(model_file_name.c_str(), model);
 	std::cout << "Model trained." << std::endl;
+}
+
+
+double SVMInterface::testModelProb(std::string testing_data_file)
+{
+	const std::string model_file_name = "C:/data/kth/chris/trained_svm.model";
+	const std::string output_file = "C:/data/kth/chris/libsvm_output.txt";
+	predict_probability = 1;
+
+	FILE *testing_data, *output;
+	testing_data = fopen(testing_data_file.c_str(), "r");
+	output = fopen(output_file.c_str(), "w");
+
+	model = svm_load_model(model_file_name.c_str());
+	x = (struct svm_node *) malloc(max_nr_attr * sizeof(struct svm_node));
+	double accuracy = predict(testing_data, output);
+	
+	fclose(output);
+
+	return accuracy;
+}
+
+bool SVMInterface::classifyInstance(std::string instance, int label, float label_probability)
+{
+	return false;
 }
 
 double SVMInterface::testModel(std::string testing_data_file)

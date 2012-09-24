@@ -77,7 +77,7 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 	}
 
 	// organize pts into a cv::Mat.
-	const int FEATURE_DIMENSIONALITY = 32;//32;//80;//192;//65;//192;
+	const int FEATURE_DIMENSIONALITY = 24;//32;//80;//192;//65;//192;
 	const int NUM_CLUSTERS = 600;
 	const int POINTS_TO_SAMPLE = 12000;
 	const int NUM_CLASSES = 6;
@@ -86,7 +86,7 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 
 	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES);
 	clustering.setAppearanceDescriptor(16, true);
-	clustering.setMotionDescriptor(16, true);
+	clustering.setMotionDescriptor(8, true);
 
 	ui.frame_label->setText("Formatting features...");
 	ui.frame_label->adjustSize();
@@ -114,7 +114,7 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 
 	BagOfWordsRepresentation bow_rep(filenames, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE, true, true);
 	bow_rep.setAppearanceDescriptor(16, true);
-	bow_rep.setMotionDescriptor(16, true);
+	bow_rep.setMotionDescriptor(8, true);
 	bow_rep.computeBagOfWords();
 
 	ui.frame_label->setText("BOW Representation Computed.");
@@ -198,11 +198,11 @@ void ActionRecognitionProject::evaluateSVMWithLeaveOneOut()
 		qApp->processEvents();
 
 		// build model.
-		svm_guy.trainModel(svm_training_files[i].toStdString());
+		svm_guy.trainModelProb(svm_training_files[i].toStdString());
 
 		// get accuracy.
 		string test_filename = svm_testing_files[i].toStdString();
-		double accuracy = svm_guy.testModel(test_filename);
+		double accuracy = svm_guy.testModelProb(test_filename);
 		summed_accuracy += accuracy;
 
 		// debugging...print to testing file.

@@ -15,6 +15,7 @@
 #include <string.h>
 #include <errno.h>
 #include <iostream>
+#include <vector>
 
 #define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 
@@ -23,12 +24,16 @@ class SVMInterface
 public:
 	SVMInterface();
 	void trainModel(std::string training_file);
+	void trainModelProb(std::string training_file);
 	double testModel(std::string testing_file);
+	double testModelProb(std::string testing_file);
+	bool classifyInstance(std::string instance, int label, float label_probability);
 
 private:
 	void setParameters(svm_parameter *param);
 	void read_problem(const std::string filename);
 	double predict(FILE *input, FILE *output);
+	double predictAndReturnData(FILE *input, std::vector<double> &labels, std::vector<double> &probs, int &best_label_index);
 	static char* readline(FILE *input);
 	void exit_input_error(int line_num);
 

@@ -18,7 +18,7 @@
 #include "MoSIFTUtilities.h"
 using namespace std;
 
-#define MOTION_BYTES 16
+#define MOTION_BYTES 8
 #define APPEARANCE_BYTES 16
 
 struct MoFREAKFeature
