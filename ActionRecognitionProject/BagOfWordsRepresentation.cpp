@@ -1,5 +1,23 @@
 #include "BagOfWordsRepresentation.h"
 
+// vanilla string split operation.  Direct copy-paste from stack overflow
+// source: http://stackoverflow.com/questions/236129/splitting-a-string-in-c
+std::vector<std::string> &BagOfWordsRepresentation::split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while(std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+
+std::vector<std::string> BagOfWordsRepresentation::split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    return split(s, delim, elems);
+}
+
+
 BagOfWordsFeature::BagOfWordsFeature() : bag_of_words(cv::Mat()), _ft(NULL), number_of_words(0), matcher_type(BF_L2)
 {
 	matcher = NULL;
@@ -173,7 +191,7 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndFrameDifference(cv::Mat &fea
 void BagOfWordsRepresentation::findBestMatchDescriptorInvariant(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file)
 {
 	// constants
-	const unsigned int APPEARANCE_HAMMING_DIST_NORM = 1024;//appearance_descriptor_size * 8;//512;//appearance_descriptor_size * 8;
+	const unsigned int APPEARANCE_HAMMING_DIST_NORM = appearance_descriptor_size * 8;//1024;//= appearance_descriptor_size * 8;
 	const unsigned int APPEARANCE_START_INDEX = 0;
 	const unsigned int APPEARNCE_END_INDEX = appearance_descriptor_size;
 	const unsigned int MOTION_HAMMING_DIST_NORM = motion_descriptor_size * 8;
@@ -191,19 +209,21 @@ void BagOfWordsRepresentation::findBestMatchDescriptorInvariant(cv::Mat &feature
 	float motion_distance = 0.0;
 
 	// Compute the distance between the appearance components
+	
 	cv::Mat query_appearance_descriptor, cluster_appearance_descriptor;
 	query_appearance_descriptor = feature_vector(cv::Range(0, 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
 	cluster_appearance_descriptor = clusters(cv::Range(0, 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
 
-	if (appearance_is_binary)
+	if (appearance_is_binary && (appearance_descriptor_size > 0))
 	{
 		appearance_distance = hammingDistance(query_appearance_descriptor, cluster_appearance_descriptor);
 		appearance_distance /= APPEARANCE_HAMMING_DIST_NORM;
 	}
 	else
 	{
-		motion_distance = standardEuclideanDistance(query_appearance_descriptor, cluster_appearance_descriptor);
+		appearance_distance = standardEuclideanDistance(query_appearance_descriptor, cluster_appearance_descriptor);
 	}
+	
 
 	// Compute the distance between the motion components
 	cv::Mat query_motion_descriptor, cluster_motion_descriptor;
@@ -236,7 +256,8 @@ void BagOfWordsRepresentation::findBestMatchDescriptorInvariant(cv::Mat &feature
 		cluster_motion_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
 
 		// Appearance distance.
-		if (appearance_is_binary)
+		
+		if (appearance_is_binary && (appearance_descriptor_size > 0))
 		{
 			appearance_distance = hammingDistance(query_appearance_descriptor, cluster_appearance_descriptor);
 			appearance_distance /= APPEARANCE_HAMMING_DIST_NORM;
@@ -245,6 +266,7 @@ void BagOfWordsRepresentation::findBestMatchDescriptorInvariant(cv::Mat &feature
 		{
 			appearance_distance = standardEuclideanDistance(query_appearance_descriptor, cluster_appearance_descriptor);
 		}
+		
 
 		// Motion distance.
 		if (motion_is_binary)
@@ -303,14 +325,14 @@ void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &c
 	}
 }
 
-cv::Mat BagOfWordsRepresentation::buildHistogram(QString &file)
+cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file)
 {
 	cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
 	for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
 		histogram.at<float>(0, col) = 0;
 
 	// open file.
-	ifstream input_file(file.toStdString());
+	ifstream input_file(file);
 	string line;
 
 	ofstream distances("distances.txt");
@@ -388,7 +410,9 @@ void BagOfWordsRepresentation::loadClusters()
 
 void BagOfWordsRepresentation::computeBagOfWords()
 {
-	
+	ofstream test("test.txt");
+	test << "computing" << endl;
+	test.close();
 	// open file streams to write data for SVM
 	ofstream hist_file("hist.txt");
 	ofstream label_file("label.txt");
@@ -433,34 +457,34 @@ void BagOfWordsRepresentation::computeBagOfWords()
 #pragma omp parallel for
 	for (int i = 0; i < files.size(); ++i)// = qsl.begin(); it != qsl.end(); ++it)
 	{
-		
-		QString temp = files[i];
-		QStringList words = files[i].split("\\");
-		QString file_name = words[words.length() - 1];
+		boost::filesystem::path file_path(files[i]);
+		boost::filesystem::path file_name = file_path.filename();
+		std::string file_name_str = file_name.generic_string();
 
 		int action, person, video_number;
+
 		// get the action.
-		if (files[i].contains("boxing"))
+		if (boost::contains(file_name_str, "boxing"))
 		{
 			action = BOXING;
 		}
-		else if (files[i].contains("walking"))
+		else if (boost::contains(file_name_str, "walking"))
 		{
 			action = WALKING;
 		}
-		else if (files[i].contains("jogging"))
+		else if (boost::contains(file_name_str, "jogging"))
 		{
 			action = JOGGING;
 		}
-		else if (files[i].contains("running"))
+		else if (boost::contains(file_name_str, "running"))
 		{
 			action = RUNNING;
 		}
-		else if (files[i].contains("handclapping"))
+		else if (boost::contains(file_name_str, "handclapping"))
 		{
 			action = HANDCLAPPING;
 		}
-		else if (files[i].contains("handwaving"))
+		else if (boost::contains(file_name_str, "handwaving"))
 		{
 			action = HANDWAVING;
 		}
@@ -469,16 +493,14 @@ void BagOfWordsRepresentation::computeBagOfWords()
 			action = HANDWAVING; // hopefully we never miss this?  Just giving a default value. 
 		}
 
-		
-		// get the person.
-		int first_underscore = file_name.indexOf("_");
-		QString person_string = file_name.mid(first_underscore - 2, 2);
-		person = person_string.toInt();
+		// parse the filename...
+		std::vector<std::string> filename_parts = split(file_name_str, '_');
 
-		// get the video number.
-		int last_underscore = file_name.lastIndexOf("_");
-		QString video_string = file_name.mid(last_underscore - 1, 1);
-		video_number = video_string.toInt();
+		// the person is the last 2 characters of the first section of the filename.
+		std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> person;
+
+		// the video number is the last character of the 3rd section of the filename.
+		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
 
 		// now extract each mosift point and assign it to the correct codeword.
 		cv::Mat hist = buildHistogram(files[i]);
@@ -547,10 +569,10 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	}
 }
 
-BagOfWordsRepresentation::BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin) : NUMBER_OF_CLUSTERS(num_clust), 
+BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &file_list, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin) : NUMBER_OF_CLUSTERS(num_clust), 
 	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people), motion_is_binary(motion_is_bin), appearance_is_binary(appearance_is_bin)
 {
-	files = qsl;
+	files = file_list;
 	loadClusters();
 	normalizeClusters();
 

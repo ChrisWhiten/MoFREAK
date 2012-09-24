@@ -21,8 +21,9 @@ public:
 	void clusterWithKMeans();
 	void randomClusters();
 	void writeClusters();
-	void setMotionDescriptor(unsigned int size, bool binary = false);
-	void setAppearanceDescriptor(unsigned int size, bool binary = false);
+
+	void setMotionDescriptor(unsigned int size, bool binary);
+	void setAppearanceDescriptor(unsigned int size, bool binary);
 private:
 	void shuffleCVMat(cv::Mat &mx);
 
@@ -39,6 +40,12 @@ private:
 	cv::Mat *centers;
 	cv::Mat *data_pts;
 	cv::Mat labels;
+
+	 // default values. MoSIFT.
+	int motion_descriptor_size; 
+	int appearance_descriptor_size;
+	bool motion_is_binary;
+	bool appearance_is_binary;
 };
 
 #endif

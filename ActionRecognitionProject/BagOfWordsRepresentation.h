@@ -4,8 +4,11 @@
 #include <opencv2\core\core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <fstream>
-#include <qstringlist.h>
-#include <qstring.h>
+//#include <qstringlist.h>
+//#include <qstring.h>
+
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
@@ -30,14 +33,14 @@ public:
 class BagOfWordsRepresentation
 {
 public:
-	BagOfWordsRepresentation(QStringList &qsl, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin);
+	BagOfWordsRepresentation(std::vector<std::string> &file_list, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin);
 	void computeBagOfWords();
 	void setMotionDescriptor(unsigned int size, bool binary = false);
 	void setAppearanceDescriptor(unsigned int size, bool binary = false);
 
 private:
 	void loadClusters();
-	cv::Mat buildHistogram(QString &file);
+	cv::Mat buildHistogram(std::string &file);
 	float standardEuclideanDistance(cv::Mat &a, cv::Mat &b) const;
 	void findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score);
 	void findBestMatchDescriptorInvariant(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file);
@@ -48,7 +51,11 @@ private:
 	void normalizeMotionOfFeature(cv::Mat &ftr);
 	void normalizeAppearanceOfFeature(cv::Mat &ftr);
 
-	QStringList files;
+	std::vector<std::string> split(const std::string &s, char delim);
+	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
+
+	//QStringList files;
+	std::vector<std::string> files;
 	const int NUMBER_OF_CLUSTERS;
 	const int FEATURE_DIMENSIONALITY;
 	const int NUMBER_OF_PEOPLE;

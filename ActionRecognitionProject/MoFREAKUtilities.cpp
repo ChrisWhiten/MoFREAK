@@ -1,5 +1,23 @@
 #include "MoFREAKUtilities.h"
 
+// vanilla string split operation.  Direct copy-paste from stack overflow
+// source: http://stackoverflow.com/questions/236129/splitting-a-string-in-c
+std::vector<std::string> &MoFREAKUtilities::split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while(std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+
+std::vector<std::string> MoFREAKUtilities::split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    return split(s, delim, elems);
+}
+
+
 // this is only implemented here, but not being used right now.
 // the general idea is that we are going to replace optical flow by simple image difference.
 // representing motion as a single unsigned integer.
@@ -32,7 +50,6 @@ unsigned int totalframediff(cv::Mat &frame, cv::Mat &prev)
 }
 
 // FREAK over the image difference image.
-// UNTESTED [TODO]
 vector<unsigned int> MoFREAKUtilities::extractFREAK_ID(cv::Mat &frame, cv::Mat &prev_frame, float x, float y, float scale)
 {
 	// build the difference image.
@@ -60,23 +77,59 @@ vector<unsigned int> MoFREAKUtilities::extractFREAK_ID(cv::Mat &frame, cv::Mat &
 	return descriptor;
 }
 
-
-void MoFREAKUtilities::computeMoFREAKFromFile(QString filename, bool clear_features_after_computation)
+void MoFREAKUtilities::computeDifferenceImage(cv::Mat &current_frame, cv::Mat &prev_frame, cv::Mat &diff_img)
 {
-	QString debug_filename = filename + ".dbg";
-	ofstream debug_stream(debug_filename.toStdString());
+	for (unsigned row = 0; row < current_frame.rows; ++row)
+	{
+		for (unsigned col = 0; col < current_frame.cols; ++col)
+		{
+			int f_val = current_frame.at<unsigned char>(row, col);
+			int p_val = prev_frame.at<unsigned char>(row, col);
+			int diff_val = f_val - p_val;
+			diff_img.at<unsigned char>(row, col) = abs(diff_val);
+		}
+	}
+}
+
+bool MoFREAKUtilities::sufficientMotion(cv::Mat &diff_integral_img, float &x, float &y, float &scale, int &motion)
+{
+	const int MOTION_THRESHOLD = 4096;
+	// compute the sum of the values within this patch in the difference image.  It's that simple.
+	int radius = ceil((scale)/2);
+
+	// always + 1, since the integral image adds a row and col of 0s to the top-left.
+	int tl_x = MAX(0, x - radius + 1);
+	int tl_y = MAX(0, y - radius + 1);
+	int br_x = MIN(diff_integral_img.cols, x + radius + 1);
+	int br_y = MIN(diff_integral_img.rows, y + radius + 1);
+
+	int br = diff_integral_img.at<int>(br_y, br_x);
+	int tl = diff_integral_img.at<int>(tl_y, tl_x);
+	int tr = diff_integral_img.at<int>(tl_y, br_x);
+	int bl = diff_integral_img.at<int>(br_y, tl_x);
+	motion = br + tl - tr - bl;
+
+	return (motion > MOTION_THRESHOLD);
+}
+
+//void MoFREAKUtilities::computeMoFREAKFromFile(QString filename, bool clear_features_after_computation)
+void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_features_after_computation)
+{
+	std::string debug_filename = filename;
+	debug_filename.append(".dbg");
+	ofstream debug_stream(debug_filename);
 	// ignore the first frame because we can't compute the frame difference with it.
 	// Beyond that, go over all frames, extract FAST/SURF points, compute frame difference,
 	// if frame difference is above some threshold, compute FREAK point and save.
-	const int MOTION_THRESHOLD = 4;//64;
+	const int MOTION_THRESHOLD = 4;
 	const int GAP_FOR_FRAME_DIFFERENCE = 5;
 
 	cv::VideoCapture capture;
-	capture.open(filename.toStdString());
+	capture.open(filename);
 
 	if (!capture.isOpened())
 	{
-		debug_stream << "file wasn't opened! " << filename.toStdString() << endl;
+		debug_stream << "file wasn't opened! " << filename << endl;
 	}
 
 	cv::Mat current_frame;
@@ -100,42 +153,88 @@ void MoFREAKUtilities::computeMoFREAKFromFile(QString filename, bool clear_featu
 			break;
 		}
 
+		// compute the difference image for use in later computations.
+		cv::Mat diff_img(current_frame.rows, current_frame.cols, CV_8U);
+		cv::absdiff(current_frame, prev_frame, diff_img);
+		//computeDifferenceImage(current_frame, prev_frame, diff_img);
+
+		cv::Mat diff_integral_image(diff_img.rows + 1, diff_img.cols + 1, CV_32S);
+		cv::integral(diff_img, diff_integral_image);
+
 		vector<cv::KeyPoint> keypoints;
 		cv::Mat descriptors;
 		
-		cv::SurfFeatureDetector detector(2000, 4);
-		detector.detect(current_frame, keypoints);
+		// detect all keypoints.
+		cv::StarFeatureDetector *detector = new cv::StarFeatureDetector(15, 45, 50, 40);
+		detector->detect(current_frame, keypoints);
 		debug_stream << "detected " << keypoints.size() << " keypoints." << endl;
 
+		// extract the FREAK descriptors efficiently over the whole frame
+		// For now, we are just computing the motion FREAK!  It seems to be giving better results.
+		cv::FREAK extractor;
+		extractor.compute(diff_img, keypoints, descriptors);
+		
+
 		// for each detected keypoint
+		unsigned char *pointer_to_descriptor_row = 0;
+		unsigned int keypoint_row = 0;
 		for (auto keypt = keypoints.begin(); keypt != keypoints.end(); ++keypt)
 		{
+			pointer_to_descriptor_row = descriptors.ptr<unsigned char>(keypoint_row);
+
 			// only take points with sufficient motion.
-			unsigned int frame_diff = extractMotionByImageDifference(current_frame, prev_frame, keypt->pt.x, keypt->pt.y);				
-
-			if (frame_diff >= MOTION_THRESHOLD)
+			int motion = 0;
+			if (sufficientMotion(diff_integral_image, keypt->pt.x, keypt->pt.y, keypt->size, motion))
 			{
-				debug_stream << "frame " << frame_num << endl;
-				debug_stream << "frame_diff: " << frame_diff << endl;
-				vector<unsigned int> freak_descriptor = extractFREAKFeature(current_frame, keypt->pt.x, keypt->pt.y, keypt->size);
-				if (freak_descriptor.size() > 0)
+				debug_stream << "accepted motion of " << motion << " with scale " << keypt->size <<  endl;
+
+				//vector<unsigned int> freak_descriptor = extractFREAKFeature(current_frame, keypt->pt.x, keypt->pt.y, keypt->size, false);
+				//vector<unsigned int> motion_descriptor = extractFREAKFeature(diff_img, keypt->pt.x, keypt->pt.y, keypt->size, false);
+
+				MoFREAKFeature ftr;
+				ftr.frame_number = frame_num;
+				ftr.scale = keypt->size;
+				ftr.x = keypt->pt.x;
+				ftr.y = keypt->pt.y;
+
+				for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
 				{
-					debug_stream << "getting a feature! " << endl;
+					ftr.motion[i] = pointer_to_descriptor_row[i];
+				}
+
+				// gather metadata.
+				int action, person, video_number;
+				readMetadata(filename, action, video_number, person);
+
+				ftr.action = action;
+				ftr.video_number = video_number;
+				ftr.person = person;
+
+				// these parameters aren't useful right now.
+				ftr.motion_x = 0;
+				ftr.motion_y = 0;
+
+				features.push_back(ftr);
+
+				/*
+				if ((freak_descriptor.size()) > 0 && (motion_descriptor.size() > 0))
+				{
 					MoFREAKFeature ftr;
-
-					ftr.using_image_difference = true;
 					ftr.frame_number = frame_num;
-
 					ftr.scale = keypt->size;
 					ftr.x = keypt->pt.x;
 					ftr.y = keypt->pt.y;
-					ftr.img_diff = frame_diff;
 
 					for (unsigned i = 0; i < freak_descriptor.size(); ++i)
 					{
 						ftr.FREAK[i] = freak_descriptor[i];
 					}
-					
+
+					for (unsigned i = 0; i < motion_descriptor.size(); ++i)
+					{
+						ftr.motion[i] = motion_descriptor[i];
+					}
+
 					// gather metadata.
 					int action, person, video_number;
 					readMetadata(filename, action, video_number, person);
@@ -150,12 +249,15 @@ void MoFREAKUtilities::computeMoFREAKFromFile(QString filename, bool clear_featu
 
 					features.push_back(ftr);
 				}
-				else
-				{
-					debug_stream << "feature too close to boundary." << endl;
-				}
+				*/
 			}
-		}
+			/*else
+			{
+				debug_stream << "rejected motion of " << motion << " with scale " << keypt->size <<  endl;
+			}*/
+			keypoint_row++;
+		} // at this point, gathered all the mofreak pts from the frame.
+		debug_stream << "kept " << features.size() << " keypoints total." << endl;
 
 		frame_queue.push(current_frame.clone());
 		prev_frame = frame_queue.front();
@@ -164,10 +266,11 @@ void MoFREAKUtilities::computeMoFREAKFromFile(QString filename, bool clear_featu
 	}
 
 	// in the end, print the mofreak file and reset the features for a new file.
-	QString mofreak_file = filename + ".mofreak";
+	std::string mofreak_file = filename;
+	mofreak_file.append(".mofreak");
 	debug_stream << "writing this many features: " << features.size() << endl;
 	debug_stream.close();
-	writeMoFREAKFeaturesToFile(mofreak_file.toStdString(), true);
+	writeMoFREAKFeaturesToFile(mofreak_file);
 
 	if (clear_features_after_computation)
 		features.clear();
@@ -211,7 +314,7 @@ vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float
 	return ret_val;
 }
 
-void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, string video_path)
+void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, string video_path)
 {
 	// remove old mofreak points.
 	features.clear();
@@ -269,11 +372,11 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(QString mosift_file, strin
 			ftr.motion_y = it->motion_y;
 			ftr.frame_number = it->frame_number;
 
-			for (unsigned i = 0; i < 64; ++i)//128; ++i)
-				ftr.motion[i] = interfreak[i];//it->motion[i];
+			for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
+				ftr.motion[i] = interfreak[i];
 
-			for (unsigned i = 0; i < 16; ++i)//64; ++i)
-				ftr.FREAK[i] = freak_ftr[i];
+			/*for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)
+				ftr.FREAK[i] = freak_ftr[i];*/
 
 			features.push_back(ftr);
 		}
@@ -307,7 +410,7 @@ string MoFREAKUtilities::toBinaryString(unsigned int x)
 	return ret_val;
 }
 
-void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file, bool img_diff)
+void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file)
 {
 	ofstream f(output_file);
 
@@ -318,25 +421,18 @@ void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file, bool img_d
 			<< " " << it->scale << " " << it->motion_x << " " << it->motion_y << " ";
 
 		// FREAK
-		for (int i = 0; i < 16; ++i) // 64
+		/*for (int i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i) // 64
 		{
 			int z = it->FREAK[i];
 			f << it->FREAK[i] << " ";
 			//f << toBinaryString(z) << " ";
-		}
+		}*/
 
-		if (img_diff)
+		// motion
+		for (int i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)//64; ++i)//128; ++i)
 		{
-			f << it->img_diff << " ";
-		}
-		else
-		{
-			// motion
-			for (int i = 0; i < 64; ++i)//128; ++i)
-			{
-				int z = it->motion[i];
-				f << z << " ";
-			}
+			int z = it->motion[i];
+			f << z << " ";
 		}
 		f << "\n";
 	}
@@ -405,34 +501,45 @@ double MoFREAKUtilities::motionNormalizedEuclideanDistance(vector<unsigned int> 
 	return distance;
 }
 
-void MoFREAKUtilities::readMetadata(QString filename, int &action, int &video_number, int &person)
+//void MoFREAKUtilities::readMetadata(QString filename, int &action, int &video_number, int &person)
+void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &video_number, int &person)
 {
+	//boost::filesystem::path file_path(filename.toStdString());
+	boost::filesystem::path file_path(filename);
+	boost::filesystem::path file_name = file_path.filename();
+	std::string file_name_str = file_name.generic_string();
 	
-		QStringList words = filename.split("\\");
-		QString file_name = words[words.length() - 1];
+		//QStringList words = filename.split("\\");
+		//QString file_name = words[words.length() - 1];
 
 		// get the action.
-		if (file_name.contains("boxing"))
+		//if (file_name.contains("boxing"))
+		if (boost::contains(file_name_str, "boxing"))
 		{
 			action = BOXING;
 		}
-		else if (file_name.contains("walking"))
+		//else if (file_name.contains("walking"))
+		else if (boost::contains(file_name_str, "walking"))
 		{
 			action = WALKING;
 		}
-		else if (file_name.contains("jogging"))
+		//else if (file_name.contains("jogging"))
+		else if (boost::contains(file_name_str, "jogging"))
 		{
 			action = JOGGING;
 		}
-		else if (file_name.contains("running"))
+		//else if (file_name.contains("running"))
+		else if (boost::contains(file_name_str, "running"))
 		{
 			action = RUNNING;
 		}
-		else if (file_name.contains("handclapping"))
+		//else if (file_name.contains("handclapping"))
+		else if (boost::contains(file_name_str, "handclapping"))
 		{
 			action = HANDCLAPPING;
 		}
-		else if (file_name.contains("handwaving"))
+		//else if (file_name.contains("handwaving"))
+		else if (boost::contains(file_name_str, "handwaving"))
 		{
 			action = HANDWAVING;
 		}
@@ -441,7 +548,19 @@ void MoFREAKUtilities::readMetadata(QString filename, int &action, int &video_nu
 			action = HANDWAVING; // hopefully we never miss this?  Just giving a default value. 
 		}
 
-		// get the person.
+
+		// parse the filename...
+		std::vector<std::string> filename_parts = split(file_name_str, '_');
+
+		// the person is the last 2 characters of the first section of the filename.
+		std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> person;
+		//person = atoi((filename_parts[0].substr(filename_parts[0].length() - 2, 2)).c_str());
+
+		// the video number is the last character of the 3rd section of the filename.
+		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
+		//video_number = atoi((filename_parts[2].substr(filename_parts[2].length() - 1, 1)).c_str());
+
+		/*
 		int first_underscore = file_name.indexOf("_");
 		QString person_string = file_name.mid(first_underscore - 2, 2);
 		person = person_string.toInt();
@@ -450,15 +569,18 @@ void MoFREAKUtilities::readMetadata(QString filename, int &action, int &video_nu
 		int last_underscore = file_name.lastIndexOf("_");
 		QString video_string = file_name.mid(last_underscore - 1, 1);
 		video_number = video_string.toInt();
+		*/
 }
 
-void MoFREAKUtilities::readMoFREAKFeatures(QString filename, bool img_diff)
+//void MoFREAKUtilities::readMoFREAKFeatures(QString filename)
+void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 {
 	int action, video_number, person;
 	readMetadata(filename, action, video_number, person);
 
 	ifstream stream;
-	stream.open(filename.toStdString());
+	//stream.open(filename.toStdString());
+	stream.open(filename);
 	
 	while (!stream.eof())
 	{
@@ -472,26 +594,21 @@ void MoFREAKUtilities::readMoFREAKFeatures(QString filename, bool img_diff)
 		stream >> ftr.x >> ftr.y >> ftr.frame_number >> ftr.scale >> ftr.motion_x >> ftr.motion_y;
 	
 		// FREAK
-		for (unsigned i = 0; i < 16; ++i)//64; ++i)
+		
+		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)//64; ++i)
 		{
 			unsigned int a;
 			stream >> a;
 			ftr.FREAK[i] = a;
 		}
+		
 
 		// motion
-		if (img_diff)
+		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)//64; ++i)//128; ++i)
 		{
-			stream >> ftr.img_diff;
-		}
-		else
-		{
-			for (unsigned i = 0; i < 16; ++i)//64; ++i)//128; ++i)
-			{
-				unsigned int a;
-				stream >> a;
-				ftr.motion[i] = a;
-			}
+			unsigned int a;
+			stream >> a;
+			ftr.motion[i] = a;
 		}
 
 		// metadata
