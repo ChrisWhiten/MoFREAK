@@ -28,7 +28,11 @@
 #include "Clustering.h"
 #include "BagOfWordsRepresentation.h"
 
+#include <boost\filesystem.hpp>
+
+
 using namespace std;
+using namespace boost::filesystem;
 
 class ActionRecognitionProject : public QMainWindow
 {
@@ -83,9 +87,14 @@ private:
 	void play();
 	void shuffleCVMat(cv::Mat &mx);
 
+	void newSVMEvaluation();
+
 
 	enum states {PAUSED, PLAYING, STOPPED};
 	static const bool USING_IMG_DIFF = false;
+
+	string SVM_PATH;
+	string MOFREAK_PATH;
 };
 
 #endif // ACTIONRECOGNITIONPROJECT_H

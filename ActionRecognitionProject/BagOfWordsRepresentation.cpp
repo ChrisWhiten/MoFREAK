@@ -191,7 +191,7 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndFrameDifference(cv::Mat &fea
 void BagOfWordsRepresentation::findBestMatchDescriptorInvariant(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file)
 {
 	// constants
-	const unsigned int APPEARANCE_HAMMING_DIST_NORM = appearance_descriptor_size * 8;//1024;//= appearance_descriptor_size * 8;
+	const unsigned int APPEARANCE_HAMMING_DIST_NORM = 99999999;//1024;//= appearance_descriptor_size * 8;
 	const unsigned int APPEARANCE_START_INDEX = 0;
 	const unsigned int APPEARNCE_END_INDEX = appearance_descriptor_size;
 	const unsigned int MOTION_HAMMING_DIST_NORM = motion_descriptor_size * 8;
@@ -241,6 +241,7 @@ void BagOfWordsRepresentation::findBestMatchDescriptorInvariant(cv::Mat &feature
 	}
 
 	float final_dist = appearance_distance + motion_distance;
+	file << final_dist << endl;
 
 	best_cluster_score = final_dist;
 
@@ -280,6 +281,7 @@ void BagOfWordsRepresentation::findBestMatchDescriptorInvariant(cv::Mat &feature
 		}
 
 		final_dist = appearance_distance + motion_distance;
+		file << final_dist << endl;
 
 		// If we have a new shortest distance, store that.
 		if (final_dist < best_cluster_score)
@@ -325,8 +327,10 @@ void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &c
 	}
 }
 
-cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file)
+cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &success)
 {
+	success = false;
+
 	cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
 	for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
 		histogram.at<float>(0, col) = 0;
@@ -369,9 +373,13 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file)
 
 		// + 1 to that codeword
 		histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
+		success = true;
 	}
 
 	distances.close();
+
+	if (!success)
+		return histogram;
 
 	// after doing that for all lines in file, normalize.
 	float histogram_sum = 0;
@@ -503,7 +511,11 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
 
 		// now extract each mosift point and assign it to the correct codeword.
-		cv::Mat hist = buildHistogram(files[i]);
+		bool success;
+		cv::Mat hist = buildHistogram(files[i], success);
+
+		if (!success)
+			continue;
 
 		// prepare line to be written to file.
 		stringstream ss;
@@ -513,6 +525,12 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		for (unsigned col = 0; col < hist.cols; ++col)
 		{
 			ss << (col + 1) << ":" << hist.at<float>(0, col) << " ";
+
+			if (!(hist.at<float>(0, col) >= 0))
+			{
+				int zz = 0;
+				zz++;
+			}
 		}
 		current_line = ss.str();
 		ss.str("");

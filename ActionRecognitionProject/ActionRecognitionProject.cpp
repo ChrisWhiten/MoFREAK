@@ -34,6 +34,9 @@ ActionRecognitionProject::ActionRecognitionProject(QWidget *parent, Qt::WFlags f
 
 	frame_number = 0;
 	state = STOPPED;
+
+	SVM_PATH = "C:/data/kth/svm/";
+	MOFREAK_PATH = "C:/Users/chris/Dropbox/newsift/";
 }
 
 ActionRecognitionProject::~ActionRecognitionProject()
@@ -69,15 +72,30 @@ void ActionRecognitionProject::loadFiles()
 
 void ActionRecognitionProject::clusterMoFREAKPoints()
 {
-	// temporary.
-	std::vector<std::string> filenames;
-	for (auto it = files.begin(); it != files.end(); ++it)
+	// gather mofreak files...
+	vector<std::string> mofreak_files;
+
+	path file_path(MOFREAK_PATH);
+	directory_iterator end_iter;
+
+	for (directory_iterator dir_iter(MOFREAK_PATH); dir_iter != end_iter; ++dir_iter)
 	{
-		filenames.push_back(it->toStdString());
+		if (is_regular_file(dir_iter->status()))
+		{
+			path current_file = dir_iter->path();
+			string filename = current_file.filename().generic_string();
+			if (filename.substr(filename.length() - 7, 7) == "mofreak")
+			{
+				mofreak_files.push_back(current_file.string());
+				mofreak.readMoFREAKFeatures(mofreak_files.back());
+			}
+		}
 	}
 
+	mofreak_ftrs = mofreak.getMoFREAKFeatures();
+
 	// organize pts into a cv::Mat.
-	const int FEATURE_DIMENSIONALITY = 24;//32;//80;//192;//65;//192;
+	const int FEATURE_DIMENSIONALITY = 32;//32;//80;//192;//65;//192;
 	const int NUM_CLUSTERS = 600;
 	const int POINTS_TO_SAMPLE = 12000;
 	const int NUM_CLASSES = 6;
@@ -86,7 +104,7 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 
 	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES);
 	clustering.setAppearanceDescriptor(16, true);
-	clustering.setMotionDescriptor(8, true);
+	clustering.setMotionDescriptor(16, true);
 
 	ui.frame_label->setText("Formatting features...");
 	ui.frame_label->adjustSize();
@@ -112,9 +130,9 @@ void ActionRecognitionProject::clusterMoFREAKPoints()
 	ui.frame_label->adjustSize();
 	qApp->processEvents();
 
-	BagOfWordsRepresentation bow_rep(filenames, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE, true, true);
+	BagOfWordsRepresentation bow_rep(mofreak_files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE, true, true);
 	bow_rep.setAppearanceDescriptor(16, true);
-	bow_rep.setMotionDescriptor(8, true);
+	bow_rep.setMotionDescriptor(16, true);
 	bow_rep.computeBagOfWords();
 
 	ui.frame_label->setText("BOW Representation Computed.");
@@ -175,12 +193,44 @@ void ActionRecognitionProject::clusterMoSIFTPoints()
 	ui.frame_label->adjustSize();
 }
 
+void ActionRecognitionProjectnewSVMEvaluation()
+{
+	// gather testing and training files...
+	double summed_accuracy = 0.0;
+}
+
 void ActionRecognitionProject::evaluateSVMWithLeaveOneOut()
 {
+	// gather testing and training files...
+	vector<std::string> testing_files;
+	vector<std::string> training_files;
+
+	path file_path(SVM_PATH);
+	directory_iterator end_iter;
+
+	for (directory_iterator dir_iter(SVM_PATH); dir_iter != end_iter; ++dir_iter)
+	{
+		if (is_regular_file(dir_iter->status()))
+		{
+			path current_file = dir_iter->path();
+			string filename = current_file.filename().generic_string();
+			if (filename.substr(filename.length() - 5, 5) == "train")
+			{
+				training_files.push_back(current_file.string());
+			}
+			else if (filename.substr(filename.length() - 4, 4) == "test")
+			{
+				testing_files.push_back(current_file.string());
+			}
+		}
+	}
+
+
+	// evaluate the SVM with leave-one-out.
 	ofstream output_file("C:/data/kth/chris/whatthe.txt");
 
 	double summed_accuracy = 0.0;
-	for (unsigned i = 0; i < svm_training_files.size(); ++i)
+	for (unsigned i = 0; i < training_files.size(); ++i)
 	{
 		SVMInterface svm_guy;
 		// tell GUI where we're at in the l-o-o process
@@ -198,21 +248,21 @@ void ActionRecognitionProject::evaluateSVMWithLeaveOneOut()
 		qApp->processEvents();
 
 		// build model.
-		svm_guy.trainModelProb(svm_training_files[i].toStdString());
+		svm_guy.trainModelProb(training_files[i]);
 
 		// get accuracy.
-		string test_filename = svm_testing_files[i].toStdString();
+		string test_filename = testing_files[i];
 		double accuracy = svm_guy.testModelProb(test_filename);
 		summed_accuracy += accuracy;
 
 		// debugging...print to testing file.
-		output_file << svm_training_files[i].toStdString() <<", " << svm_testing_files[i].toStdString() << ", " << accuracy << std::endl;
+		output_file << training_files[i] <<", " << testing_files[i] << ", " << accuracy << std::endl;
 	}	
 
 	output_file.close();
 
 	// output average accuracy.
-	double denominator = (double)svm_training_files.size();
+	double denominator = (double)training_files.size();
 	double average_accuracy = summed_accuracy/denominator;
 
 	stringstream ss;

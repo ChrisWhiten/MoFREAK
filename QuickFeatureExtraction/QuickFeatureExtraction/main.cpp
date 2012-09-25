@@ -1,3 +1,10 @@
+// This exists because Qt is making life miserable.
+// Qt is slowing down this process to taking 30 hours for 3 hours of video.
+// That's nowhere near what it should be, so I'm offseting it to a console program.
+// Tada.
+
+
+
 #include <iostream>
 #include <time.h>
 #include <opencv2/nonfree/nonfree.hpp>
@@ -8,11 +15,22 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+#include <limits>
 
 using namespace std;
 using namespace boost::filesystem;
 
-bool  sufficientMotion(cv::Mat &diff_integral_img, float &x, float &y, float scale, int &motion)
+bool CELL_TO_EAR = false;
+bool EMBRACE = false;
+bool OBJECT_PUT = false;
+bool PEOPLE_MEET = false;
+bool PEOPLE_SPLIT_UP = false;
+bool PERSON_RUNS = false;
+bool POINTING = false;
+bool TAKE_PICTURE = false;
+bool ELEVATOR_NO_ENTRY = false;
+
+bool sufficientMotion(cv::Mat &diff_integral_img, float &x, float &y, float scale, int &motion)
 {
 	const int MOTION_THRESHOLD = 1028;
 	// compute the sum of the values within this patch in the difference image.  It's that simple.
@@ -33,19 +51,13 @@ bool  sufficientMotion(cv::Mat &diff_integral_img, float &x, float &y, float sca
 	return  (motion > MOTION_THRESHOLD);
 }
 
-void computeMoFREAK(string video_file)
+void computeMoFREAK(cv::VideoCapture &capture, int start_frame, int end_frame, ofstream &out)
 {
 	clock_t start, finish;
-	cv::VideoCapture capture;
-	capture.open(video_file);
-
-	video_file.append(".mofreak");
-	ofstream out(video_file);
-
 	cv::Mat frame, frame2;
 
 	start = clock();
-	int frame_num = 5;
+	int frame_num = start_frame;
 	while (true)
 	{
 		capture.set(CV_CAP_PROP_POS_FRAMES, frame_num);
@@ -55,7 +67,7 @@ void computeMoFREAK(string video_file)
 		capture.set(CV_CAP_PROP_POS_FRAMES, frame_num - 5);
 		capture >> frame2;
 
-		if (frame.data == NULL)
+		if ((frame.data == NULL) || frame_num > end_frame)
 		{
 			break;
 		}
@@ -67,7 +79,7 @@ void computeMoFREAK(string video_file)
 		cv::integral(diff_img, diff_int_img);
 
 		//cv::StarFeatureDetector *detector_ = new cv::StarFeatureDetector(15, 45, 50, 40);
-		cv::SiftFeatureDetector *detector_ = new cv::SiftFeatureDetector();
+		cv::SiftFeatureDetector *detector_ = new cv::SiftFeatureDetector(2000, 5);
 		
 		vector<cv::KeyPoint> keypoints;
 		vector<cv::KeyPoint> ftrs;
@@ -75,6 +87,11 @@ void computeMoFREAK(string video_file)
 
 		detector_->detect(frame, keypoints);
 
+		// temp. trying this out to see if there's any improvement....
+		/*for (unsigned int i = 0; i < keypoints.size(); ++i)
+		{
+			keypoints[i].size = sqrt((keypoints[i].size * keypoints[i].size) - (0.5 * 0.5));
+		}*/
 
 		// extract FREAK descriptor.
 		cv::FREAK extractor;
@@ -117,14 +134,145 @@ void computeMoFREAK(string video_file)
 	out.close();
 	capture.release();
 	finish = clock();
-	cout << "looped in  " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	cout << "computed mofreak in  " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
 
 }
 
-void main()
+
+void extractFeaturesAtSpecificIntervals(cv::VideoCapture &capture, string &interval_file, ofstream &out)
 {
-	// find all files in this folder that end with .avi.
-	string root_folder = "C:/data/kth/all_in_one/videos/";
+	// each interval is read from one line of the file, in format: start_frame end_frame
+	// just seek to those intervals and compute MoFREAK over that interval.
+	// Write it to the out file
+	ifstream in(interval_file);
+	string dbg_filename = interval_file;
+	dbg_filename.append(".dbg");
+	ofstream dbg_file(dbg_filename);
+
+	unsigned int current_line = 0;
+	while (!in.eof())
+	{
+		int start_frame, end_frame;
+		in >> start_frame >> end_frame;
+
+		dbg_file << "Starting line " << current_line << endl;
+		computeMoFREAK(capture, start_frame, end_frame, out);
+		current_line++;
+	}
+	dbg_file.close();
+}
+
+// pass, as input to this function,
+// a folder containing one video and 
+// a txt file for each action.
+
+// also (for simplicity's sake),
+// just pass the path to the video file directly.
+void processTRECVID(string root_folder, string video_file)
+{
+	clock_t start, finish, total_start, total_finish;
+	total_start = clock();
+
+	cv::VideoCapture capture;
+	capture.open(video_file);
+
+	string mofreak_file_name = video_file;
+	mofreak_file_name.append(".mofreak");
+	ofstream out(mofreak_file_name);
+
+	// figure out which events to process...
+	if (CELL_TO_EAR)
+	{
+		start = clock();
+		string cell_to_ear_name = root_folder;
+		cell_to_ear_name.append("/CellToEar.txt");
+		extractFeaturesAtSpecificIntervals(capture, cell_to_ear_name, out);
+
+		finish = clock();
+		cout << "processed cell to ear in " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	}
+	if (EMBRACE)
+	{
+		start = clock();
+		string embrace_name = root_folder;
+		embrace_name.append("/Embrace.txt");
+
+		finish = clock();
+		cout << "processed embrace in " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	}
+	if (OBJECT_PUT)
+	{
+		start = clock();
+		string put_name = root_folder;
+		put_name.append("/ObjectPut.txt");
+
+		finish = clock();
+		cout << "processed object put in " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	}
+	if (PEOPLE_MEET)
+	{
+		start = clock();
+		string meet_name = root_folder;
+		meet_name.append("/PeopleMeet.txt");
+
+		finish = clock();
+		cout << "processed people meet in " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	}
+	if (PEOPLE_SPLIT_UP)
+	{
+		start = clock();
+		string split_name = root_folder;
+		split_name.append("/PeopleSplitUp.txt");
+
+		finish = clock();
+		cout << "processed people split up in " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	}
+	if (PERSON_RUNS)
+	{
+		start = clock();
+		string runs_name = root_folder;
+		runs_name.append("/PersonRuns.txt");
+
+		finish = clock();
+		cout << "processed person runs in " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	}
+	if (POINTING)
+	{
+		start = clock();
+		string point_name = root_folder;
+		point_name.append("/Pointing.txt");
+
+		finish = clock();
+		cout << "processed pointing in " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	}
+	if (TAKE_PICTURE)
+	{
+		start = clock();
+		string pic_name = root_folder;
+		pic_name.append("/TakePicture.txt");
+
+		finish = clock();
+		cout << "processed take picture in " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	}
+	if (ELEVATOR_NO_ENTRY)
+	{
+		start = clock();
+		string elevator_name = root_folder;
+		elevator_name.append("/ElevatorNoEntry.txt");
+
+		finish = clock();
+		std::cout << "processed elevator no entry in " << (finish - start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+	}
+
+
+	total_finish = clock();
+	std::cout << "processed video in " << (total_finish - total_start)/(double)CLOCKS_PER_SEC << " seconds." << endl;
+}
+
+// pass, as input to this function,
+// the path to one folder containing all video files.
+void processKTH(string root_folder)
+{
 	vector<string> files;
 
 	path file_path(root_folder);
@@ -147,15 +295,30 @@ void main()
 	
 	for (auto it = files.begin(); it != files.end(); ++it)
 	{
-		computeMoFREAK(*it);
+		string mofreak_file = *it;
+		mofreak_file.append(".mofreak");
+		ofstream out(mofreak_file);
+
+		cv::VideoCapture capture;
+		capture.open(*it);
+		// 5 since we go 5 frames back.  We can not pull out the interfreak any earlier.
+		computeMoFREAK(capture, 5, std::numeric_limits<int>::max(), out);
 	}
+}
+
+void main()
+{
+	// find all files in this folder that end with .avi.
+	
+	string root_folder = "C:/data/kth/all_in_one/videos/";
+	processKTH(root_folder);
 	
 	
 	/*string video_file = "C://data//kth//all_in_one//videos/person17_jogging_d1_uncomp.avi";
 	computeMoFREAK(video_file);*/
 	
 
-	cout << "ALL DONE!" << endl;
+	cout << "All done." << endl;
 	int x = 0;
 	cin >> x;
 }

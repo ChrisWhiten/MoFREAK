@@ -40,7 +40,7 @@ public:
 
 private:
 	void loadClusters();
-	cv::Mat buildHistogram(std::string &file);
+	cv::Mat buildHistogram(std::string &file, bool &success);
 	float standardEuclideanDistance(cv::Mat &a, cv::Mat &b) const;
 	void findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score);
 	void findBestMatchDescriptorInvariant(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file);
