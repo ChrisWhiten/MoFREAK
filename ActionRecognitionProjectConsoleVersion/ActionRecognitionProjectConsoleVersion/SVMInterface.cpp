@@ -37,9 +37,146 @@ char* SVMInterface::readline(FILE *input)
 // just read in the data into x[0] and send it off for classification!
 // svm_predict_probability(model,x,prob_estimates); 
 // that returns a double, which is the classification.
-double SVMInterface::predictAndReturnData(FILE *input, std::vector<double> &labels, std::vector<double> &probs, int &best_label_index)
+double SVMInterface::predictAndReturnData(FILE *input, std::vector<int> &example_labels, std::vector<std::vector<int> > class_labels, std::vector<std::vector<double> > &probs, std::vector<int> &best_labels)
 {
-	return 0.0;
+	int correct = 0;
+	int total = 0;
+	double error = 0;
+	double sump = 0, sumt = 0, sumpp = 0, sumtt = 0, sumpt = 0;
+	double returned_accuracy = -1;
+
+	int svm_type=svm_get_svm_type(model);
+	int nr_class=svm_get_nr_class(model);
+	double *prob_estimates=NULL;
+	int j;
+
+	if(predict_probability)
+	{
+		if (svm_type==NU_SVR || svm_type==EPSILON_SVR)
+			printf("Prob. model for test data: target value = predicted value + z,\nz: Laplace distribution e^(-|z|/sigma)/(2sigma),sigma=%g\n",svm_get_svr_probability(model));
+		else
+		{
+			std::vector<int> labels_for_current_instance;
+			// print the initial line showing the label header
+			// and allocate space for probability estimates and label estimates.
+			int *labels=(int *) malloc(nr_class*sizeof(int));
+
+			// i can not explain why svm_get_labels does not print the labels in order...
+			svm_get_labels(model,labels);
+			prob_estimates = (double *) malloc(nr_class*sizeof(double));
+
+			for(j=0;j<nr_class;j++)
+			{
+				labels_for_current_instance.push_back(labels[j]);
+			}
+			free(labels);
+
+			class_labels.push_back(labels_for_current_instance);
+		}
+	}
+
+	max_line_len = 1024;
+	line = (char *)malloc(max_line_len*sizeof(char));
+	while(readline(input) != NULL)
+	{
+		int i = 0;
+		double target_label, predict_label;
+		char *idx, *val, *label, *endptr;
+		int inst_max_index = -1; // strtol gives 0 if wrong format, and precomputed kernel has <index> start from 0
+
+		// strtok up to first space... just grabs the first part, the label.
+		label = strtok(line," \t\n");//(char *)example_labels[i];//strtok(line," \t\n");
+		if(label == NULL) // empty line
+			exit_input_error(total+1);
+
+		//strtod is string to double.
+		target_label = strtod(label,&endptr);
+		if(endptr == label || *endptr != '\0')
+			exit_input_error(total+1);
+
+		// now read in remainder of feature:value pairs.
+		while(1)
+		{
+			// need more attribute space.  gets allocated here.
+			if(i>=max_nr_attr-1)	// need one more for index = -1
+			{
+				max_nr_attr *= 2;
+				x = (struct svm_node *) realloc(x,max_nr_attr*sizeof(struct svm_node));
+			}
+
+			// idx is the feature id.
+			idx = strtok(NULL,":");
+			// val is the feature value.
+			val = strtok(NULL," \t");
+
+			if(val == NULL)
+				break;
+			errno = 0;
+			// strtol is string to long.  stores the feature id into the long value x[i].index
+			x[i].index = (int) strtol(idx,&endptr,10);
+			if(endptr == idx || errno != 0 || *endptr != '\0' || x[i].index <= inst_max_index)
+				exit_input_error(total+1);
+			else
+				inst_max_index = x[i].index; // maximum feature index for this instance.
+
+			errno = 0;
+			// store value as a double in x[i].value
+			x[i].value = strtod(val,&endptr);
+			if(endptr == val || errno != 0 || (*endptr != '\0' && !isspace(*endptr)))
+				exit_input_error(total+1);
+
+			++i;
+		}
+		// we denote the end of the features by setting the index after the last feature index to -1.
+		x[i].index = -1;
+
+		// prob_estimates holds the probability estimates for each class...
+		if (predict_probability && (svm_type==C_SVC || svm_type==NU_SVC))
+		{
+			std::vector<double> probability_estimates;
+			// x holds all of the feature/instance pairs.
+			predict_label = svm_predict_probability(model,x,prob_estimates);
+			best_labels.push_back(predict_label);
+			for(j=0;j<nr_class;j++)
+			{
+				probability_estimates.push_back(prob_estimates[j]);
+			}
+			probs.push_back(probability_estimates);
+		}
+		else
+		{
+			predict_label = svm_predict(model,x);
+		}
+
+		// correctly labeled.
+		if(predict_label == target_label)
+			++correct;
+		error += (predict_label-target_label)*(predict_label-target_label);
+		sump += predict_label;
+		sumt += target_label;
+		sumpp += predict_label*predict_label;
+		sumtt += target_label*target_label;
+		sumpt += predict_label*target_label;
+		++total;
+	}
+	if (svm_type==NU_SVR || svm_type==EPSILON_SVR)
+	{
+		printf("Mean squared error = %g (regression)\n",error/total);
+		printf("Squared correlation coefficient = %g (regression)\n",
+		       ((total*sumpt-sump*sumt)*(total*sumpt-sump*sumt))/
+		       ((total*sumpp-sump*sump)*(total*sumtt-sumt*sumt))
+		       );
+	}
+	else
+	{
+		returned_accuracy = (double) correct / total * 100;
+		printf("Accuracy = %g%% (%d/%d) (classification)\n",
+		       (double)correct/total*100,correct,total);
+	}
+	if(predict_probability)
+		free(prob_estimates);
+
+	return returned_accuracy;
 }
 
 double SVMInterface::predict(FILE *input, FILE *output)
@@ -55,7 +192,6 @@ double SVMInterface::predict(FILE *input, FILE *output)
 	double *prob_estimates=NULL;
 	int j;
 
-	// don't worry about it for now until we get this going.
 	if(predict_probability)
 	{
 		if (svm_type==NU_SVR || svm_type==EPSILON_SVR)

@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <time.h>
 
 #include <boost\filesystem.hpp>
 
@@ -16,17 +17,22 @@ using namespace boost::filesystem;
 
 
 string SVM_PATH = "C:/data/kth/svm/";
-string MOFREAK_PATH = "C:/Users/chris/Dropbox/newsift/";
+string MOFREAK_PATH = "C:/data/kth/all_in_one/videos/";
+string MOSIFT_DIR = "C:/data/TRECVID/mosift/20071107_full/";
+//string MOSIFT_FILE = "C:/data/LGW_20071101_E1_CAM1.mpeg.Pointing.txt.mosift.0";
+//string VIDEO_PATH = "C:/data/TRECVID/gatwick_dev08/dev/LGW_20071101_E1_CAM1.mpeg/LGW_20071101_E1_CAM1.mpeg";
+string VIDEO_PATH = "C:/data/TRECVID/dev/";
 
 MoFREAKUtilities mofreak;
 vector<MoFREAKFeature> mofreak_ftrs;
 SVMInterface svm_interface;
 
-enum states {CLUSTER, CLASSIFY};
+enum states {CLUSTER, CLASSIFY, CONVERT};
 
 void clusterMoFREAKPoints()
 {
 	// gather mofreak files...
+	cout << "Gathering MoFREAK Features..." << endl;
 	vector<std::string> mofreak_files;
 
 	path file_path(MOFREAK_PATH);
@@ -47,6 +53,7 @@ void clusterMoFREAKPoints()
 	}
 
 	mofreak_ftrs = mofreak.getMoFREAKFeatures();
+	cout << "MoFREAK features gathered." << endl;
 
 	// organize pts into a cv::Mat.
 	const int FEATURE_DIMENSIONALITY = 32;//32;//80;//192;//65;//192;
@@ -142,9 +149,40 @@ void evaluateSVMWithLeaveOneOut()
 	cout << "Averaged accuracy: " << average_accuracy << "%" << endl;
 }
 
+void convertMoSIFTToMoFREAK()
+{
+	// iterate mosift directory.
+
+	path file_path(MOSIFT_DIR);
+	directory_iterator end_iter;
+
+	for (directory_iterator dir_iter(MOSIFT_DIR); dir_iter != end_iter; ++dir_iter)
+	{
+		if (is_regular_file(dir_iter->status()))
+		{
+			// parse mosift files so first x characters gets us the video name.
+			path current_file = dir_iter->path();
+			string mosift_path = current_file.generic_string();
+			string mosift_filename = current_file.filename().generic_string();
+			string video_file = VIDEO_PATH;
+			video_file.append(mosift_filename.substr(0, 25));
+
+			
+			string mofreak_path = mosift_path;
+			mofreak_path.append(".mofreak");
+			// compute. write.
+			MoFREAKUtilities mofreak;
+			mofreak.buildMoFREAKFeaturesFromMoSIFT(mosift_path, video_file, mofreak_path);
+			mosift_path.append(".mofreak");
+			mofreak.writeMoFREAKFeaturesToFile(mosift_path);
+			cout << "Completed " << mosift_path << endl;
+		}
+	}
+}
 void main()
 {
-	int state = CLUSTER;
+	int state = CONVERT;
+	clock_t start, end;
 
 	if (state == CLUSTER)
 	{
@@ -154,7 +192,14 @@ void main()
 	{
 		evaluateSVMWithLeaveOneOut();
 	}
+	else if (state == CONVERT)
+	{
+		start = clock();
+		convertMoSIFTToMoFREAK();
+		end = clock();
+	}
 
+	cout << "Took this long: " << (end - start)/(double)CLOCKS_PER_SEC << " seconds! " << endl;
 	cout << "All done.  Press any key to continue..." << endl;
 	system("PAUSE");
 }

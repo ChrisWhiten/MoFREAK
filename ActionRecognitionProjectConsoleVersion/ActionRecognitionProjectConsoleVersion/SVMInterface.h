@@ -33,7 +33,7 @@ private:
 	void setParameters(svm_parameter *param);
 	void read_problem(const std::string filename);
 	double predict(FILE *input, FILE *output);
-	double predictAndReturnData(FILE *input, std::vector<double> &labels, std::vector<double> &probs, int &best_label_index);
+	double predictAndReturnData(FILE *input, std::vector<int> &example_labels, std::vector<std::vector<int> > class_labels, std::vector<std::vector<double> > &probs, std::vector<int> &best_labels);
 	static char* readline(FILE *input);
 	void exit_input_error(int line_num);
 

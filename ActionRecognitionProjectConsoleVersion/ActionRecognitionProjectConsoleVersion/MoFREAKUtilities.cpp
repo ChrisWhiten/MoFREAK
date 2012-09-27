@@ -35,9 +35,9 @@ unsigned int MoFREAKUtilities::extractMotionByImageDifference(cv::Mat &frame, cv
 unsigned int totalframediff(cv::Mat &frame, cv::Mat &prev)
 {
 	int frame_diff = 0;
-	for (unsigned row = 0; row < frame.rows; ++row)
+	for (int row = 0; row < frame.rows; ++row)
 	{
-		for (unsigned col = 0; col < frame.cols; ++col)
+		for (int col = 0; col < frame.cols; ++col)
 		{
 			int value_at_current_frame = frame.at<unsigned char>(row, col);
 			int value_at_prev_frame = prev.at<unsigned char>(row, col);
@@ -56,9 +56,9 @@ vector<unsigned int> MoFREAKUtilities::extractFREAK_ID(cv::Mat &frame, cv::Mat &
 	// to keep everything between 0-255 (as FREAK requires),
 	// each value is divided by 2 and 128 is added to it.
 	cv::Mat difference_image(frame.rows, frame.cols, CV_8U);
-	for (unsigned row = 0; row < frame.rows; ++row)
+	for (int row = 0; row < frame.rows; ++row)
 	{
-		for (unsigned col = 0; col < frame.cols; ++col)
+		for (int col = 0; col < frame.cols; ++col)
 		{
 			int f_val = frame.at<unsigned char>(row, col);
 			int p_val = prev_frame.at<unsigned char>(row, col);
@@ -77,9 +77,9 @@ vector<unsigned int> MoFREAKUtilities::extractFREAK_ID(cv::Mat &frame, cv::Mat &
 
 void MoFREAKUtilities::computeDifferenceImage(cv::Mat &current_frame, cv::Mat &prev_frame, cv::Mat &diff_img)
 {
-	for (unsigned row = 0; row < current_frame.rows; ++row)
+	for (int row = 0; row < current_frame.rows; ++row)
 	{
-		for (unsigned col = 0; col < current_frame.cols; ++col)
+		for (int col = 0; col < current_frame.cols; ++col)
 		{
 			int f_val = current_frame.at<unsigned char>(row, col);
 			int p_val = prev_frame.at<unsigned char>(row, col);
@@ -312,10 +312,73 @@ vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float
 	return ret_val;
 }
 
-void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, string video_path)
+
+void MoFREAKUtilities::addMoSIFTFeatures(int frame, vector<cv::KeyPoint> &pts, cv::VideoCapture &capture)
+{
+	cv::Mat prev_frame;
+	cv::Mat current_frame;
+
+	capture.set(CV_CAP_PROP_POS_FRAMES, frame - 5);
+	capture >> prev_frame;
+	prev_frame = prev_frame.clone();
+
+	capture.set(CV_CAP_PROP_POS_FRAMES, frame);
+	capture >> current_frame;
+
+	// compute the difference image for use in later computations.
+	cv::Mat diff_img(current_frame.rows, current_frame.cols, CV_8U);
+	cv::absdiff(current_frame, prev_frame, diff_img);
+
+	//extract
+	cv::Mat descriptors;
+	cv::FREAK extractor;
+	extractor.compute(diff_img, pts, descriptors);
+		
+
+	// for each detected keypoint
+	unsigned char *pointer_to_descriptor_row = 0;
+	unsigned int keypoint_row = 0;
+	for (auto keypt = pts.begin(); keypt != pts.end(); ++keypt)
+	{
+		pointer_to_descriptor_row = descriptors.ptr<unsigned char>(keypoint_row);
+
+		// only take points with sufficient motion.
+		MoFREAKFeature ftr;
+		ftr.frame_number = frame;
+		ftr.scale = keypt->size;
+		ftr.x = keypt->pt.x;
+		ftr.y = keypt->pt.y;
+
+		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
+		{
+			ftr.motion[i] = pointer_to_descriptor_row[i];
+		}
+
+		// gather metadata.
+		int action, person, video_number;
+		//readMetadata(filename, action, video_number, person);
+		action = 1;
+		person = 1;
+		video_number = 1; // these arne't useful for trecvid.
+
+		ftr.action = action;
+		ftr.video_number = video_number;
+		ftr.person = person;
+
+		// these parameters aren't useful right now.
+		ftr.motion_x = 0;
+		ftr.motion_y = 0;
+
+		features.push_back(ftr);
+		++keypoint_row;
+	}
+
+}
+void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, string video_path, string mofreak_path)
 {
 	// remove old mofreak points.
 	features.clear();
+	int mofreak_file_id = 0;
 
 	// gather mosift features.
 	MoSIFTUtilities mosift;
@@ -324,62 +387,50 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, s
 	cv::VideoCapture capture;
 
 	capture.open(video_path);
+	auto it = mosift_features.begin();
+	vector<cv::KeyPoint> features_per_frame;
+	int current_frame = it->frame_number;
 
-	for (auto it = mosift_features.begin(); it != mosift_features.end(); ++it)
+	while (true)
 	{
-		// navigate into the corresponding video sequence and extract the FREAK feature.
-		capture.set(CV_CAP_PROP_POS_FRAMES, it->frame_number);
-		cv::Mat frame;
-		capture >> frame;
-
-		vector<unsigned int> freak_ftr = extractFREAKFeature(frame, it->x, it->y, it->scale, false);
-
-		// compute motion as image difference.
-		/*
-		unsigned int image_difference = 0;
-		if (it->frame_number != 1)
+		if (it == mosift_features.end())
 		{
-			// set the capture to the previous frame.
-			capture.set(CV_CAP_PROP_POS_FRAMES, it->frame_number - 1);
-			cv::Mat prev_frame;
-			capture >> prev_frame;
-
-			image_difference = extractMotionByImageDifference(frame, prev_frame, it->x, it->y);
-		}*/
-
-		vector<unsigned int> interfreak;
-		if (it->frame_number > 4)
-		{
-			frame = frame.clone();
-			// set the capture to 5 frames back.
-			capture.set(CV_CAP_PROP_POS_FRAMES, it->frame_number - 5);
-			cv::Mat prev_frame;
-			capture >> prev_frame;
-
-			interfreak = extractFREAK_ID(frame, prev_frame, it->x, it->y, it->scale);
+			break;
 		}
 
-		if ((freak_ftr.size()) > 0 && (interfreak.size() > 0))
+		if (it->frame_number == current_frame)
 		{
-			// build MoFREAK feature and add it to our feature list.
-			MoFREAKFeature ftr;
-			ftr.x = it->x;
-			ftr.y = it->y;
-			ftr.scale = it->scale;
-			ftr.motion_x = it->motion_x;
-			ftr.motion_y = it->motion_y;
-			ftr.frame_number = it->frame_number;
+			cv::KeyPoint keypt;
+			keypt.pt = cv::Point2f(it->x, it->y);
+			keypt.size = it->scale;
+			features_per_frame.push_back(keypt);
 
-			for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
-				ftr.motion[i] = interfreak[i];
+			// move on to next mosift pt.
+			++it;
+		}
+		else
+		{
+			// that's all the sift points for htis frame.  Do the computation.
+			addMoSIFTFeatures(current_frame, features_per_frame, capture);
+			current_frame = it->frame_number;
 
-			/*for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)
-				ftr.FREAK[i] = freak_ftr[i];*/
+			// if running out of memory, write to file and continue.
+			// > 5 mill, write.
+			if (features.size() > 5000000)
+			{
+				string mofreak_out_file = mofreak_path;
+				stringstream ss;
+				ss << "." << mofreak_file_id;
+				mofreak_out_file.append(ss.str());
+				ss.str("");
+				ss.clear();
+				writeMoFREAKFeaturesToFile(mofreak_out_file);
 
-			features.push_back(ftr);
+				features.clear();
+				mofreak_file_id++;
+			}
 		}
 	}
-
 	capture.release();
 }
 
