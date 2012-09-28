@@ -677,3 +677,11 @@ vector<MoFREAKFeature> MoFREAKUtilities::getMoFREAKFeatures()
 {
 	return features;
 }
+
+void MoFREAKUtilities::setAllFeaturesToLabel(int label)
+{
+	for (unsigned i = 0; i < features.size(); ++i)
+	{
+		features[i].action = label;
+	}
+}

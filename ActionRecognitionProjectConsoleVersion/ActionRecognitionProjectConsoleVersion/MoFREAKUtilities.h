@@ -48,6 +48,7 @@ public:
 	void buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, string video_path, string mofreak_path);
 	void writeMoFREAKFeaturesToFile(string output_file);
 	void computeMoFREAKFromFile(std::string filename, bool clear_features_after_computation);
+	void setAllFeaturesToLabel(int label);
 
 private:
 	string toBinaryString(unsigned int x);

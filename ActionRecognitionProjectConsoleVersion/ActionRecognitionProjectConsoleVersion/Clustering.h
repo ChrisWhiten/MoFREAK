@@ -15,9 +15,9 @@ using namespace std;
 class Clustering
 {
 public:
-	Clustering(int dim, int num_clust, int num_pts, int num_classes);
+	Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes);
 	void buildDataFromMoSIFT(vector<MoSIFTFeature> &mosift_ftrs, bool sample_pts);
-	void buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff = false);
+	void buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff = false, bool fix_class = false, int fixed_class = 1);
 	void clusterWithKMeans();
 	void randomClusters();
 	void writeClusters();
@@ -35,6 +35,7 @@ private:
 	cv::Mat *centers;
 	cv::Mat *data_pts;
 	cv::Mat labels;
+	vector<int> possible_classes;
 
 	 // default values. MoSIFT.
 	int motion_descriptor_size; 

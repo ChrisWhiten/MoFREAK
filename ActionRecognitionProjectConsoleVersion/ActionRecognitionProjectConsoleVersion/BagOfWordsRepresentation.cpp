@@ -162,7 +162,7 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndFrameDifference(cv::Mat &fea
 	best_cluster_score = final_dist;
 
 	// now the remaining points.
-	for (unsigned cluster = 1; cluster < clusters.rows; ++cluster)
+	for (int cluster = 1; cluster < clusters.rows; ++cluster)
 	{
 		final_dist = 0.0;
 		euclidean_distance = 0.0;
@@ -422,7 +422,7 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 	ofstream distances("distances.txt");
 
 	std::list<cv::Mat> histograms_per_frame;
-	std::vector<cv::Mat> feature_list;
+	std::vector<cv::Mat> feature_list; // for just the current frame.
 
 	// get start frame and start loading mofreak features...
 	ifstream input_file(file);
@@ -487,39 +487,32 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 		// new frame.  need to compute the hist on that frame and possibly compute a new BOW feature.
 		else
 		{
-			// not yet full.  Just compute the histogram, 
-			// reset the feature list, 
-			// and add the current line to the new feature list
+			// 1: compute the histogram...
+			cv::Mat new_histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
+			for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+				new_histogram.at<float>(0, col) = 0;
 
-			if (histograms_per_frame.size() < alpha)
+			for (auto it = feature_list.begin(); it != feature_list.end(); ++it)
 			{
-				// 1: compute the histogram...
-				cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
-				for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
-					histogram.at<float>(0, col) = 0;
-
-				for (auto it = feature_list.begin(); it != feature_list.end(); ++it)
-				{
-					// match that vector against centroids to assign to correct codeword.
-					// brute force match each mosift point against all clusters to find best match.
-					int best_cluster_index;
-					float best_cluster_score;
+				// match that vector against centroids to assign to correct codeword.
+				// brute force match each mosift point against all clusters to find best match.
+				int best_cluster_index;
+				float best_cluster_score;
 		
-					findBestMatchFREAKAndOpticalFlow(*it, *clusters, best_cluster_index, best_cluster_score, distances);
+				findBestMatchFREAKAndOpticalFlow(*it, *clusters, best_cluster_index, best_cluster_score, distances);
 
-					// + 1 to that codeword
-					histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
-				}
-
-				// 2: add the histogram to our list.
-				histograms_per_frame.push_back(histogram);
+				// + 1 to that codeword
+				new_histogram.at<float>(0, best_cluster_index) = new_histogram.at<float>(0, best_cluster_index) + 1;
 			}
+
+			// 2: add the histogram to our list.
+			histograms_per_frame.push_back(new_histogram);
 
 			// histogram list is at capacity!
 			// compute summed histogram over all histograms as BOW feature.
 			// then pop.
-			// finally, write this new libsvm-worthy feature to file!
-			else
+			// finally, write this new libsvm-worthy feature to file
+			if (histograms_per_frame.size() == alpha)
 			{
 				cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
 				for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
@@ -537,12 +530,24 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 				// remove oldest histogram.
 				histograms_per_frame.pop_front();
 
+				// normalize the histogram.
+				double normalizer = 0.0;
+				for (int col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+				{
+					normalizer += histogram.at<float>(0, col);
+				}
+
+				for (int col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+				{
+					histogram.at<float>(0, col) = histogram.at<float>(0, col) / normalizer;
+				}
+
 				// write to libsvm...
 				stringstream ss;
 				string current_line;
 
 				ss << label << " ";
-				for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+				for (int col = 0; col < NUMBER_OF_CLUSTERS; ++col)
 				{
 					ss << (col + 1) << ":" << histogram.at<float>(0, col) << " ";
 				}
@@ -551,24 +556,21 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 				ss.clear();
 
 				out << current_line << endl;
-				current_frame = frame;
 			}
 
 			// reset the feature list for the new frame.
 			feature_list.clear();
 
 			// add current line to the _new_ feature list.
-			iss >> discard;
-			iss >> discard;
-			iss >> discard;
 			cv::Mat feature_vector(1, FEATURE_DIMENSIONALITY, CV_32FC1);
-			for (unsigned i = 0; i < FEATURE_DIMENSIONALITY; ++i)
+			for (i = 0; i < FEATURE_DIMENSIONALITY; ++i)
 			{
 				iss >> elem;
 				feature_vector.at<float>(0, i) = elem;
 			}
 			
 			feature_list.push_back(feature_vector);
+			current_frame = frame;
 		}
 	}
 
@@ -589,7 +591,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	vector<vector<string> > training_file_lines;
 	vector<vector<string> > testing_file_lines;
 
-	for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+	for (int i = 0; i < NUMBER_OF_PEOPLE; ++i)
 	{
 		stringstream training_string;
 		stringstream testing_string;
@@ -622,7 +624,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	// word_2[:] should match one of the strings...
 	// word_3[1:] is the video number
 #pragma omp parallel for
-	for (int i = 0; i < files.size(); ++i)// = qsl.begin(); it != qsl.end(); ++it)
+	for (unsigned int i = 0; i < files.size(); ++i)// = qsl.begin(); it != qsl.end(); ++it)
 	{
 		boost::filesystem::path file_path(files[i]);
 		boost::filesystem::path file_name = file_path.filename();
@@ -696,7 +698,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		ss.clear();
 
 		// print output to correct files. libsvm-ready
-		for (unsigned int p = 0; p < NUMBER_OF_PEOPLE; ++p)
+		for (int p = 0; p < NUMBER_OF_PEOPLE; ++p)
 		{
 			if ((p + 1) == person)
 			{
@@ -714,7 +716,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		// now write to old style files.
 		label_file << action + 1 << "," << person << "," << video_number << std::endl;
 
-		for (unsigned int col = 0; col < hist.cols; ++col)
+		for (int col = 0; col < hist.cols; ++col)
 		{
 			hist_file << hist.at<float>(0, col);
 			if (col < hist.cols - 1)
@@ -739,14 +741,15 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	}
 
 	// close the libsvm training and testing files.
-	for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+	for (int i = 0; i < NUMBER_OF_PEOPLE; ++i)
 	{
 		training_files[i]->close();
 		testing_files[i]->close();
 	}
 }
 
-BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim)
+BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim) : NUMBER_OF_CLUSTERS(num_clust),
+	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(0)
 {
 	loadClusters();
 	normalizeClusters();

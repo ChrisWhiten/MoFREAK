@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <time.h>
+#include <vector>
 
 #include <boost\filesystem.hpp>
 
@@ -17,16 +18,22 @@ using namespace boost::filesystem;
 
 
 string SVM_PATH = "C:/data/kth/svm/";
-string MOFREAK_PATH = "C:/data/kth/all_in_one/videos/";
+string MOFREAK_PATH = "C:/data/TRECVID/mofreak/";
 string MOSIFT_DIR = "C:/data/TRECVID/mosift/eval_personruns_mosift/";
 //string MOSIFT_FILE = "C:/data/LGW_20071101_E1_CAM1.mpeg.Pointing.txt.mosift.0";
 //string VIDEO_PATH = "C:/data/TRECVID/gatwick_dev08/dev/LGW_20071101_E1_CAM1.mpeg/LGW_20071101_E1_CAM1.mpeg";
 string VIDEO_PATH = "C:/data/TRECVID/eval/";
 
+// for clustering, separate mofreak into pos and neg examples.
+string MOFREAK_NEG_PATH = "";
+string MOFREAK_POS_PATH = "";
+
 const int FEATURE_DIMENSIONALITY = 8;
 const int NUM_CLUSTERS = 1000;
-const int NUM_CLASSES = 2;
+const int NUM_CLASSES = 2;//1;//2;
 const int ALPHA = 12; // for sliding window...
+
+vector<int> possible_classes;
 
 MoFREAKUtilities mofreak;
 vector<MoFREAKFeature> mofreak_ftrs;
@@ -68,7 +75,7 @@ void clusterMoFREAKPoints()
 	const int NUMBER_OF_PEOPLE = 25;
 	cv::Mat data_pts(mofreak_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
 
-	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES);
+	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, POINTS_TO_SAMPLE, NUM_CLASSES, possible_classes);
 	clustering.setAppearanceDescriptor(16, true);
 	clustering.setMotionDescriptor(16, true);
 
@@ -192,10 +199,11 @@ void pickClusters()
 	cout << "Gathering MoFREAK Features..." << endl;
 	vector<std::string> mofreak_files;
 
-	path file_path(MOFREAK_PATH);
+	// POSITIVE EXAMPLES
+	path file_path(MOFREAK_POS_PATH);
 	directory_iterator end_iter;
 
-	for (directory_iterator dir_iter(MOFREAK_PATH); dir_iter != end_iter; ++dir_iter)
+	for (directory_iterator dir_iter(MOFREAK_POS_PATH); dir_iter != end_iter; ++dir_iter)
 	{
 		if (is_regular_file(dir_iter->status()))
 		{
@@ -203,24 +211,54 @@ void pickClusters()
 			string filename = current_file.filename().generic_string();
 			if (filename.substr(filename.length() - 7, 7) == "mofreak")
 			{
-				mofreak_files.push_back(current_file.string());
-				mofreak.readMoFREAKFeatures(mofreak_files.back());
+				mofreak.readMoFREAKFeatures(current_file.string());
 			}
 		}
 	}
 
+	mofreak.setAllFeaturesToLabel(1);
 	mofreak_ftrs = mofreak.getMoFREAKFeatures();
+
+	// NEGATIVE EXAMPLES
+	MoFREAKUtilities negative_mofreak;
+	path file_path(MOFREAK_NEG_PATH);
+	directory_iterator end_iter;
+
+	for (directory_iterator dir_iter(MOFREAK_NEG_PATH); dir_iter != end_iter; ++dir_iter)
+	{
+		if (is_regular_file(dir_iter->status()))
+		{
+			path current_file = dir_iter->path();
+			string filename = current_file.filename().generic_string();
+			if (filename.substr(filename.length() - 7, 7) == "mofreak")
+			{
+				negative_mofreak.readMoFREAKFeatures(current_file.string());
+			}
+		}
+	}
+
+	negative_mofreak.setAllFeaturesToLabel(-1);
+	std::vector<MoFREAKFeature> negative_ftrs = negative_mofreak.getMoFREAKFeatures();
+
+	// append the negative features to the end of the positive ones.
+	mofreak_ftrs.insert(mofreak_ftrs.end(), negative_ftrs.begin(), negative_ftrs.end());
 	cout << "MoFREAK features gathered." << endl;
 
 	// Do random cluster selection.
 	cv::Mat data_pts(mofreak_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
 
-	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, 1, NUM_CLASSES);
+	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, 1, NUM_CLASSES, possible_classes);
 	clustering.setAppearanceDescriptor(0, true);
 	clustering.setMotionDescriptor(8, true);
 
 	cout << "Formatting features..." << endl;
-	clustering.buildDataFromMoFREAK(mofreak_ftrs, false, false);
+	// [TODO]
+	// MAKE FIXED_CLASS 1 WHEN WE ADD POSITIVE EXAMPLES.
+	// -1 WHEN WE ADD NEGATIVE EXAMPLES.
+	// MAKE THIS CLASS ADAPTABLE TO INCREMENTALLY ADD POINTS (on a per-file basis maybe... I'm not sure.)
+	//int fixed_class = 1;
+	//clustering.buildDataFromMoFREAK(mofreak_ftrs, false, false, true, fixed_class);
+	clustering.buildDataFromMoFREAK(mofreak_ftrs, false, false, false);
 
 	cout << "Clustering..." << endl;
 	clustering.randomClusters();
@@ -238,10 +276,33 @@ void pickClusters()
 
 // so, this function will give us sliding window BOW features.
 // We can also use this to get our SVM responses to mean-shift away.
-void computeBOWHistograms(bool positive_examples, int label)
+void computeBOWHistograms(bool positive_examples)
 {
 	// gather all files int vector<string> mofreak_files
-	std::string some_mofreak_file;
+	std::string some_mofreak_file = "C:/data/TRECVID/mofreak/LGW_20071123_E1_CAM1.mpeg.PersonRuns.txt.mosift.0.mofreak";
+
+	cout << "Gathering MoFREAK Features..." << endl;
+	vector<std::string> mofreak_files;
+
+	path file_path(MOFREAK_PATH);
+	directory_iterator end_iter;
+
+	for (directory_iterator dir_iter(MOFREAK_PATH); dir_iter != end_iter; ++dir_iter)
+	{
+		if (is_regular_file(dir_iter->status()))
+		{
+			path current_file = dir_iter->path();
+			string filename = current_file.filename().generic_string();
+			if (filename.substr(filename.length() - 7, 7) == "mofreak")
+			{
+				mofreak_files.push_back(current_file.string());
+				//mofreak.readMoFREAKFeatures(mofreak_files.back());
+			}
+		}
+	}
+
+	//mofreak_ftrs = mofreak.getMoFREAKFeatures();
+	//cout << "MoFREAK features gathered." << endl;
 
 	// load clusters.
 	BagOfWordsRepresentation bow_rep(NUM_CLUSTERS, FEATURE_DIMENSIONALITY);
@@ -251,6 +312,8 @@ void computeBOWHistograms(bool positive_examples, int label)
 	std::string bow_file = some_mofreak_file;
 	bow_file.append(".bow");
 	ofstream bow_out(bow_file);
+
+	int label = positive_examples ? 1 : -1;
 	bow_rep.computeSlidingBagOfWords(some_mofreak_file, ALPHA, label, bow_out);
 
 	// write each feature to libsvm file with 1 if pos, -1 if neg.
@@ -259,7 +322,11 @@ void computeBOWHistograms(bool positive_examples, int label)
 
 void main()
 {
-	int state = CONVERT;
+	int state = COMPUTE_BOW_HISTOGRAMS;
+	
+	possible_classes.push_back(-1);
+	possible_classes.push_back(1);
+
 	clock_t start, end;
 
 	if (state == CLUSTER)
@@ -282,12 +349,16 @@ void main()
 	}
 	else if (state == PICK_CLUSTERS)
 	{
+		start = clock();
 		pickClusters();
+		end = clock();
 	}
 	else if (state == COMPUTE_BOW_HISTOGRAMS)
 	{
+		start = clock();
 		const bool POSITIVE_EXAMPLES = true;
 		computeBOWHistograms(POSITIVE_EXAMPLES);
+		end = clock();
 	}
 
 	cout << "Took this long: " << (end - start)/(double)CLOCKS_PER_SEC << " seconds! " << endl;

@@ -21,9 +21,10 @@
 	 }
  }
 
- Clustering::Clustering(int dim, int num_clust, int num_pts, int num_classes) : DIMENSIONALITY(dim), NUMBER_OF_CLUSTERS(num_clust), 
+ Clustering::Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes) : DIMENSIONALITY(dim), NUMBER_OF_CLUSTERS(num_clust), 
 	 NUMBER_OF_POINTS_TO_SAMPLE(num_pts), NUMBER_OF_CLASSES(num_classes)
  {
+	 possible_classes = poss_classes;
 	 // default values. MoSIFT.
 	motion_descriptor_size = 128; 
 	appearance_descriptor_size = 128;
@@ -31,7 +32,7 @@
 	appearance_is_binary = false;
  }
 
- void Clustering::buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff)
+ void Clustering::buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff, bool fix_class, int fixed_class)
  {
 	 // allocate data matrix.
 	 // + 3 for metadata
@@ -44,7 +45,14 @@
 		MoFREAKFeature ftr = mofreak_ftrs[row];
 
 		// first, metadata.
-		data_pts->at<float>(row, 0) = ftr.action;
+		if (fix_class)
+		{
+			data_pts->at<float>(row, 0) = fixed_class;
+		}
+		else
+		{
+			data_pts->at<float>(row, 0) = ftr.action;
+		}
 		data_pts->at<float>(row, 1) = ftr.person;
 		data_pts->at<float>(row, 2) = ftr.video_number;
 
@@ -133,21 +141,23 @@
 	// sample an even number of points from each class to keep the classes balanced.
 	const int CLUSTERS_PER_CLASS = NUMBER_OF_CLUSTERS/NUMBER_OF_CLASSES;
 
-	for (unsigned int c = 0; c < NUMBER_OF_CLASSES; ++c)
+	int center_row = 0;
+	for (auto c = possible_classes.begin(); c != possible_classes.end(); ++c)
 	{
 		unsigned int sampled_from_this_class = 0;
 
 		for (unsigned row = 0; row < data_pts->rows; ++row)
 		{
-			if ((unsigned int)data_pts->at<float>(row, 0) == c)
+			if ((unsigned int)data_pts->at<float>(row, 0) == *c)
 			{
 				// sample this point.
 				// 3 metadata parameters at the start...?
 				for (unsigned col = 3; col < data_pts->cols; ++col)
 				{
-					centers->at<float>((c*CLUSTERS_PER_CLASS) + sampled_from_this_class, col - 3) = data_pts->at<float>(row, col);
+					centers->at<float>(center_row, col - 3) = data_pts->at<float>(row, col);
 				}
 
+				center_row++;
 				sampled_from_this_class++;
 				if (sampled_from_this_class == CLUSTERS_PER_CLASS)
 					break;
@@ -162,9 +172,9 @@
 	 // remove meta-data from data points for clustering.
 	 cv::Mat clusterable_data(data_pts->rows, data_pts->cols - 3, data_pts->type());
 
-	 for (unsigned row = 0; row < data_pts->rows; ++row)
+	 for (int row = 0; row < data_pts->rows; ++row)
 	 {
-		 for (unsigned col = 0; col < data_pts->cols - 3; ++col)
+		 for (int col = 0; col < data_pts->cols - 3; ++col)
 		 {
 			 clusterable_data.at<float>(row, col) = data_pts->at<float>(row, col + 3);
 		 }
@@ -179,7 +189,7 @@
  {
 	 ofstream output_file("clusters.txt");
 
-	for (unsigned i = 0; i < NUMBER_OF_CLUSTERS; ++i)
+	for (int i = 0; i < NUMBER_OF_CLUSTERS; ++i)
 	{
 		for (unsigned j = 0; j < centers->cols; ++j)
 		{
