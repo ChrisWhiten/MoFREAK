@@ -416,6 +416,165 @@ void BagOfWordsRepresentation::loadClusters()
 	}
 }
 
+// when doing this, make sure all mofreak points for the video are in ONE file, to avoid missing cuts.
+void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int alpha, int label, ofstream &out)
+{
+	ofstream distances("distances.txt");
+
+	std::list<cv::Mat> histograms_per_frame;
+	std::vector<cv::Mat> feature_list;
+
+	// get start frame and start loading mofreak features...
+	ifstream input_file(file);
+	string line;
+	int current_frame;
+
+	std::getline(input_file, line);
+	std::istringstream init(line);
+	double discard;
+	
+	// ignore the first two values. the 3rd is the frame.
+	init >> discard;
+	init >> discard;
+	init >> current_frame;
+
+	// 4 5 and 6 aren't relevant either.
+	init >> discard;
+	init >> discard;
+	init >> discard;
+
+	// load the first feature to the list.  Now we're rolling.
+	cv::Mat ftr_vector(1, FEATURE_DIMENSIONALITY, CV_32FC1);
+	float elem;
+
+	for (unsigned int i = 0; i < FEATURE_DIMENSIONALITY; ++i)
+	{
+		init >> elem;
+		ftr_vector.at<float>(0, i) = elem;
+	}
+	feature_list.push_back(ftr_vector);
+
+	// now the first line is out of the way.  Load them all
+	// ---------------------------------------------------
+
+	while (std::getline(input_file, line))
+	{
+		std::istringstream iss(line);
+		// first two still aren't relevant... x,y position.
+		iss >> discard;
+		iss >> discard;
+
+		int frame;
+		iss >> frame;
+		// next 3 aren't relevant.
+		iss >> discard;
+		iss >> discard;
+		iss >> discard;
+
+		// still on the same frame.  Just add to our feature list.
+		if (frame == current_frame)
+		{
+			cv::Mat feature_vector(1, FEATURE_DIMENSIONALITY, CV_32FC1);
+			for (unsigned i = 0; i < FEATURE_DIMENSIONALITY; ++i)
+			{
+				iss >> elem;
+				feature_vector.at<float>(0, i) = elem;
+			}
+			
+			feature_list.push_back(feature_vector);
+		}
+
+		// new frame.  need to compute the hist on that frame and possibly compute a new BOW feature.
+		else
+		{
+			// not yet full.  Just compute the histogram, 
+			// reset the feature list, 
+			// and add the current line to the new feature list
+
+			if (histograms_per_frame.size() < alpha)
+			{
+				// 1: compute the histogram...
+				cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
+				for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+					histogram.at<float>(0, col) = 0;
+
+				for (auto it = feature_list.begin(); it != feature_list.end(); ++it)
+				{
+					// match that vector against centroids to assign to correct codeword.
+					// brute force match each mosift point against all clusters to find best match.
+					int best_cluster_index;
+					float best_cluster_score;
+		
+					findBestMatchFREAKAndOpticalFlow(*it, *clusters, best_cluster_index, best_cluster_score, distances);
+
+					// + 1 to that codeword
+					histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
+				}
+
+				// 2: add the histogram to our list.
+				histograms_per_frame.push_back(histogram);
+			}
+
+			// histogram list is at capacity!
+			// compute summed histogram over all histograms as BOW feature.
+			// then pop.
+			// finally, write this new libsvm-worthy feature to file!
+			else
+			{
+				cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
+				for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+					histogram.at<float>(0, col) = 0;
+
+				// sum over the histograms we have.
+				for (auto it = histograms_per_frame.begin(); it != histograms_per_frame.end(); ++it)
+				{
+					for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+					{
+						histogram.at<float>(0, col) += it->at<float>(0, col);
+					}
+				}
+
+				// remove oldest histogram.
+				histograms_per_frame.pop_front();
+
+				// write to libsvm...
+				stringstream ss;
+				string current_line;
+
+				ss << label << " ";
+				for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+				{
+					ss << (col + 1) << ":" << histogram.at<float>(0, col) << " ";
+				}
+				current_line = ss.str();
+				ss.str("");
+				ss.clear();
+
+				out << current_line << endl;
+				current_frame = frame;
+			}
+
+			// reset the feature list for the new frame.
+			feature_list.clear();
+
+			// add current line to the _new_ feature list.
+			iss >> discard;
+			iss >> discard;
+			iss >> discard;
+			cv::Mat feature_vector(1, FEATURE_DIMENSIONALITY, CV_32FC1);
+			for (unsigned i = 0; i < FEATURE_DIMENSIONALITY; ++i)
+			{
+				iss >> elem;
+				feature_vector.at<float>(0, i) = elem;
+			}
+			
+			feature_list.push_back(feature_vector);
+		}
+	}
+
+	distances.close();
+}
+
 void BagOfWordsRepresentation::computeBagOfWords()
 {
 	ofstream test("test.txt");
@@ -585,6 +744,17 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		training_files[i]->close();
 		testing_files[i]->close();
 	}
+}
+
+BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim)
+{
+	loadClusters();
+	normalizeClusters();
+
+	motion_descriptor_size = 8;
+	appearance_descriptor_size = 0;
+	motion_is_binary = true;
+	appearance_is_binary = true;
 }
 
 BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &file_list, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin) : NUMBER_OF_CLUSTERS(num_clust), 

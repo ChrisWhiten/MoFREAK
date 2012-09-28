@@ -1,19 +1,10 @@
-﻿Build started 26/09/2012 5:51:19 PM.
+﻿Build started 27/09/2012 5:32:43 PM.
      1>Project "C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
-         Touching "Release\ActionRecognitionProjectConsoleVersion.unsuccessfulbuild".
+         Creating "Release\ActionRecognitionProjectConsoleVersion.unsuccessfulbuild" because "AlwaysCreate" was specified.
        ClCompile:
-         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt MoFREAKUtilities.cpp
-         MoFREAKUtilities.cpp
-     1>MoFREAKUtilities.cpp(29): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
-     1>MoFREAKUtilities.cpp(29): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
-     1>MoFREAKUtilities.cpp(30): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
-     1>MoFREAKUtilities.cpp(30): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
-     1>MoFREAKUtilities.cpp(96): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
-     1>MoFREAKUtilities.cpp(99): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
-     1>MoFREAKUtilities.cpp(100): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
-     1>MoFREAKUtilities.cpp(101): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
-     1>MoFREAKUtilities.cpp(102): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
+         main.cpp
        Link:
          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.exe" /NOLOGO "boost_filesystem-vc100-mt-1_51.lib" opencv_calib3d242.lib opencv_contrib242.lib opencv_core242.lib opencv_features2d242.lib opencv_haartraining_engine.lib opencv_highgui242.lib opencv_imgproc242.lib opencv_objdetect242.lib opencv_nonfree242.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\ActionRecognitionProjectConsoleVersion.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.pdb" /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.lib" /MACHINE:X86 Release\BagOfWordsRepresentation.obj
          Release\Clustering.obj
@@ -35,4 +26,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:07.23
+Time Elapsed 00:00:05.92

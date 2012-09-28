@@ -413,6 +413,7 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, s
 			// that's all the sift points for htis frame.  Do the computation.
 			addMoSIFTFeatures(current_frame, features_per_frame, capture);
 			current_frame = it->frame_number;
+			features_per_frame.clear();
 
 			// if running out of memory, write to file and continue.
 			// > 5 mill, write.

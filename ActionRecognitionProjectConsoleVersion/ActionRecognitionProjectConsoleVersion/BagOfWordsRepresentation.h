@@ -4,8 +4,7 @@
 #include <opencv2\core\core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <fstream>
-//#include <qstringlist.h>
-//#include <qstring.h>
+#include <list>
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
@@ -34,9 +33,11 @@ class BagOfWordsRepresentation
 {
 public:
 	BagOfWordsRepresentation(std::vector<std::string> &file_list, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin);
+	BagOfWordsRepresentation(int num_clust, int ftr_dim);
 	void computeBagOfWords();
 	void setMotionDescriptor(unsigned int size, bool binary = false);
 	void setAppearanceDescriptor(unsigned int size, bool binary = false);
+	void computeSlidingBagOfWords(std::string &input_file, int alpha, int label, ofstream &out);
 
 private:
 	void loadClusters();

@@ -1,10 +1,23 @@
-﻿Build started 26/09/2012 5:14:02 PM.
+﻿Build started 27/09/2012 5:26:13 PM.
      1>Project "C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "Debug\ActionRecognitionProjectConsoleVersion.unsuccessfulbuild" because "AlwaysCreate" was specified.
        ClCompile:
-         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt Clustering.cpp MoFREAKUtilities.cpp main.cpp
          main.cpp
+         MoFREAKUtilities.cpp
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(29): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(29): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(30): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(30): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(96): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(99): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(100): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(101): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(102): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+         Generating Code...
+         Skipping... (no relevant changes detected)
+         Clustering.cpp
        Link:
          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Debug\ActionRecognitionProjectConsoleVersion.exe" /NOLOGO "boost_filesystem-vc100-mt-gd-1_51.lib" opencv_calib3d242d.lib opencv_contrib242d.lib opencv_core242d.lib opencv_features2d242d.lib opencv_haartraining_engined.lib opencv_highgui242d.lib opencv_imgproc242d.lib opencv_objdetect242d.lib opencv_nonfree242d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\ActionRecognitionProjectConsoleVersion.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Debug\ActionRecognitionProjectConsoleVersion.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Debug\ActionRecognitionProjectConsoleVersion.lib" /MACHINE:X86 Debug\BagOfWordsRepresentation.obj
          Debug\Clustering.obj
@@ -25,4 +38,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:06.22
+Time Elapsed 00:00:09.79

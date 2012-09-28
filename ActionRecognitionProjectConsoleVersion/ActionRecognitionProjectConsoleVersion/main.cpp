@@ -18,16 +18,21 @@ using namespace boost::filesystem;
 
 string SVM_PATH = "C:/data/kth/svm/";
 string MOFREAK_PATH = "C:/data/kth/all_in_one/videos/";
-string MOSIFT_DIR = "C:/data/TRECVID/mosift/20071107_full/";
+string MOSIFT_DIR = "C:/data/TRECVID/mosift/eval_personruns_mosift/";
 //string MOSIFT_FILE = "C:/data/LGW_20071101_E1_CAM1.mpeg.Pointing.txt.mosift.0";
 //string VIDEO_PATH = "C:/data/TRECVID/gatwick_dev08/dev/LGW_20071101_E1_CAM1.mpeg/LGW_20071101_E1_CAM1.mpeg";
-string VIDEO_PATH = "C:/data/TRECVID/dev/";
+string VIDEO_PATH = "C:/data/TRECVID/eval/";
+
+const int FEATURE_DIMENSIONALITY = 8;
+const int NUM_CLUSTERS = 1000;
+const int NUM_CLASSES = 2;
+const int ALPHA = 12; // for sliding window...
 
 MoFREAKUtilities mofreak;
 vector<MoFREAKFeature> mofreak_ftrs;
 SVMInterface svm_interface;
 
-enum states {CLUSTER, CLASSIFY, CONVERT};
+enum states {CLUSTER, CLASSIFY, CONVERT, PICK_CLUSTERS, COMPUTE_BOW_HISTOGRAMS};
 
 void clusterMoFREAKPoints()
 {
@@ -179,6 +184,79 @@ void convertMoSIFTToMoFREAK()
 		}
 	}
 }
+
+void pickClusters()
+{
+	// load all MoFREAK files.
+	// So, we will have one folder with all MoFREAK files in it.  Simple...
+	cout << "Gathering MoFREAK Features..." << endl;
+	vector<std::string> mofreak_files;
+
+	path file_path(MOFREAK_PATH);
+	directory_iterator end_iter;
+
+	for (directory_iterator dir_iter(MOFREAK_PATH); dir_iter != end_iter; ++dir_iter)
+	{
+		if (is_regular_file(dir_iter->status()))
+		{
+			path current_file = dir_iter->path();
+			string filename = current_file.filename().generic_string();
+			if (filename.substr(filename.length() - 7, 7) == "mofreak")
+			{
+				mofreak_files.push_back(current_file.string());
+				mofreak.readMoFREAKFeatures(mofreak_files.back());
+			}
+		}
+	}
+
+	mofreak_ftrs = mofreak.getMoFREAKFeatures();
+	cout << "MoFREAK features gathered." << endl;
+
+	// Do random cluster selection.
+	cv::Mat data_pts(mofreak_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
+
+	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, 1, NUM_CLASSES);
+	clustering.setAppearanceDescriptor(0, true);
+	clustering.setMotionDescriptor(8, true);
+
+	cout << "Formatting features..." << endl;
+	clustering.buildDataFromMoFREAK(mofreak_ftrs, false, false);
+
+	cout << "Clustering..." << endl;
+	clustering.randomClusters();
+
+	// print clusters to file
+	cout << "Writing clusters to file..." << endl;
+	clustering.writeClusters();
+	cout << "Clusters written." << endl;
+}
+
+// for this, organize mofreak files into pos + neg folders and do them separately.
+// use openmp to parallelize each file's BOW stuff.
+// give each one it's own libsvm file to output ot, so we don't get any conflicts.
+// we will merge at the end with python.
+
+// so, this function will give us sliding window BOW features.
+// We can also use this to get our SVM responses to mean-shift away.
+void computeBOWHistograms(bool positive_examples, int label)
+{
+	// gather all files int vector<string> mofreak_files
+	std::string some_mofreak_file;
+
+	// load clusters.
+	BagOfWordsRepresentation bow_rep(NUM_CLUSTERS, FEATURE_DIMENSIONALITY);
+
+	// for each file....
+	// slide window of length alpha and use those pts to create a BOW feature.
+	std::string bow_file = some_mofreak_file;
+	bow_file.append(".bow");
+	ofstream bow_out(bow_file);
+	bow_rep.computeSlidingBagOfWords(some_mofreak_file, ALPHA, label, bow_out);
+
+	// write each feature to libsvm file with 1 if pos, -1 if neg.
+	// [that's done in computeSlidingBag...]
+}
+
 void main()
 {
 	int state = CONVERT;
@@ -186,17 +264,30 @@ void main()
 
 	if (state == CLUSTER)
 	{
+		start = clock();
 		clusterMoFREAKPoints();
+		end = clock();
 	}
 	else if (state == CLASSIFY)
 	{
+		start = clock();
 		evaluateSVMWithLeaveOneOut();
+		end = clock();
 	}
 	else if (state == CONVERT)
 	{
 		start = clock();
 		convertMoSIFTToMoFREAK();
 		end = clock();
+	}
+	else if (state == PICK_CLUSTERS)
+	{
+		pickClusters();
+	}
+	else if (state == COMPUTE_BOW_HISTOGRAMS)
+	{
+		const bool POSITIVE_EXAMPLES = true;
+		computeBOWHistograms(POSITIVE_EXAMPLES);
 	}
 
 	cout << "Took this long: " << (end - start)/(double)CLOCKS_PER_SEC << " seconds! " << endl;
