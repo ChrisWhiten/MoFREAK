@@ -419,7 +419,10 @@ void BagOfWordsRepresentation::loadClusters()
 // when doing this, make sure all mofreak points for the video are in ONE file, to avoid missing cuts.
 void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int alpha, int label, ofstream &out)
 {
-	ofstream distances("distances.txt");
+	bool over_alpha_frames = false;
+	string distance_file = file;
+	distance_file.append(".distances.txt");
+	ofstream distances(distance_file);
 
 	std::list<cv::Mat> histograms_per_frame;
 	std::vector<cv::Mat> feature_list; // for just the current frame.
@@ -514,6 +517,8 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 			// finally, write this new libsvm-worthy feature to file
 			if (histograms_per_frame.size() == alpha)
 			{
+				over_alpha_frames = true;
+
 				cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
 				for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
 					histogram.at<float>(0, col) = 0;
@@ -563,7 +568,7 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 
 			// add current line to the _new_ feature list.
 			cv::Mat feature_vector(1, FEATURE_DIMENSIONALITY, CV_32FC1);
-			for (i = 0; i < FEATURE_DIMENSIONALITY; ++i)
+			for (int i = 0; i < FEATURE_DIMENSIONALITY; ++i)
 			{
 				iss >> elem;
 				feature_vector.at<float>(0, i) = elem;
@@ -574,6 +579,49 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 		}
 	}
 
+	// if we didn't get to write for this file, write it here.
+	if (!over_alpha_frames)
+	{
+		cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
+		for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+			histogram.at<float>(0, col) = 0;
+
+		// sum over the histograms we have.
+		for (auto it = histograms_per_frame.begin(); it != histograms_per_frame.end(); ++it)
+		{
+			for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+			{
+				histogram.at<float>(0, col) += it->at<float>(0, col);
+			}
+		}
+
+		// normalize the histogram.
+		double normalizer = 0.0;
+		for (int col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+		{
+			normalizer += histogram.at<float>(0, col);
+		}
+
+		for (int col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+		{
+			histogram.at<float>(0, col) = histogram.at<float>(0, col) / normalizer;
+		}
+
+		// write to libsvm...
+		stringstream ss;
+		string current_line;
+
+		ss << label << " ";
+		for (int col = 0; col < NUMBER_OF_CLUSTERS; ++col)
+		{
+			ss << (col + 1) << ":" << histogram.at<float>(0, col) << " ";
+		}
+		current_line = ss.str();
+		ss.str("");
+		ss.clear();
+
+		out << current_line << endl;
+	}
 	distances.close();
 }
 
@@ -624,7 +672,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	// word_2[:] should match one of the strings...
 	// word_3[1:] is the video number
 #pragma omp parallel for
-	for (unsigned int i = 0; i < files.size(); ++i)// = qsl.begin(); it != qsl.end(); ++it)
+	for (int i = 0; i < files.size(); ++i)// = qsl.begin(); it != qsl.end(); ++it)
 	{
 		boost::filesystem::path file_path(files[i]);
 		boost::filesystem::path file_name = file_path.filename();

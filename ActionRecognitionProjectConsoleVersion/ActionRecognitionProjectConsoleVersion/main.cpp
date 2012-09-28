@@ -18,15 +18,16 @@ using namespace boost::filesystem;
 
 
 string SVM_PATH = "C:/data/kth/svm/";
-string MOFREAK_PATH = "C:/data/TRECVID/mofreak/";
+string MOFREAK_PATH = "C:/data/TRECVID/positive_mofreak_examples/";//"C:/data/TRECVID/mofreak/";
 string MOSIFT_DIR = "C:/data/TRECVID/mosift/eval_personruns_mosift/";
 //string MOSIFT_FILE = "C:/data/LGW_20071101_E1_CAM1.mpeg.Pointing.txt.mosift.0";
 //string VIDEO_PATH = "C:/data/TRECVID/gatwick_dev08/dev/LGW_20071101_E1_CAM1.mpeg/LGW_20071101_E1_CAM1.mpeg";
 string VIDEO_PATH = "C:/data/TRECVID/eval/";
 
 // for clustering, separate mofreak into pos and neg examples.
-string MOFREAK_NEG_PATH = "";
-string MOFREAK_POS_PATH = "";
+string MOFREAK_NEG_PATH = "C:/data/TRECVID/negative_mofreak_examples/";
+string MOFREAK_POS_PATH = "C:/data/TRECVID/positive_mofreak_examples/";
+
 
 const int FEATURE_DIMENSIONALITY = 8;
 const int NUM_CLUSTERS = 1000;
@@ -47,7 +48,6 @@ void clusterMoFREAKPoints()
 	cout << "Gathering MoFREAK Features..." << endl;
 	vector<std::string> mofreak_files;
 
-	path file_path(MOFREAK_PATH);
 	directory_iterator end_iter;
 
 	for (directory_iterator dir_iter(MOFREAK_PATH); dir_iter != end_iter; ++dir_iter)
@@ -109,7 +109,6 @@ void evaluateSVMWithLeaveOneOut()
 	vector<std::string> testing_files;
 	vector<std::string> training_files;
 
-	path file_path(SVM_PATH);
 	directory_iterator end_iter;
 
 	for (directory_iterator dir_iter(SVM_PATH); dir_iter != end_iter; ++dir_iter)
@@ -164,8 +163,6 @@ void evaluateSVMWithLeaveOneOut()
 void convertMoSIFTToMoFREAK()
 {
 	// iterate mosift directory.
-
-	path file_path(MOSIFT_DIR);
 	directory_iterator end_iter;
 
 	for (directory_iterator dir_iter(MOSIFT_DIR); dir_iter != end_iter; ++dir_iter)
@@ -200,7 +197,6 @@ void pickClusters()
 	vector<std::string> mofreak_files;
 
 	// POSITIVE EXAMPLES
-	path file_path(MOFREAK_POS_PATH);
 	directory_iterator end_iter;
 
 	for (directory_iterator dir_iter(MOFREAK_POS_PATH); dir_iter != end_iter; ++dir_iter)
@@ -221,8 +217,6 @@ void pickClusters()
 
 	// NEGATIVE EXAMPLES
 	MoFREAKUtilities negative_mofreak;
-	path file_path(MOFREAK_NEG_PATH);
-	directory_iterator end_iter;
 
 	for (directory_iterator dir_iter(MOFREAK_NEG_PATH); dir_iter != end_iter; ++dir_iter)
 	{
@@ -279,12 +273,9 @@ void pickClusters()
 void computeBOWHistograms(bool positive_examples)
 {
 	// gather all files int vector<string> mofreak_files
-	std::string some_mofreak_file = "C:/data/TRECVID/mofreak/LGW_20071123_E1_CAM1.mpeg.PersonRuns.txt.mosift.0.mofreak";
-
 	cout << "Gathering MoFREAK Features..." << endl;
 	vector<std::string> mofreak_files;
 
-	path file_path(MOFREAK_PATH);
 	directory_iterator end_iter;
 
 	for (directory_iterator dir_iter(MOFREAK_PATH); dir_iter != end_iter; ++dir_iter)
@@ -302,19 +293,26 @@ void computeBOWHistograms(bool positive_examples)
 	}
 
 	//mofreak_ftrs = mofreak.getMoFREAKFeatures();
-	//cout << "MoFREAK features gathered." << endl;
+	cout << "MoFREAK features gathered." << endl;
 
 	// load clusters.
 	BagOfWordsRepresentation bow_rep(NUM_CLUSTERS, FEATURE_DIMENSIONALITY);
 
 	// for each file....
 	// slide window of length alpha and use those pts to create a BOW feature.
-	std::string bow_file = some_mofreak_file;
-	bow_file.append(".bow");
-	ofstream bow_out(bow_file);
+#pragma omp parallel for
+	for (int i = 0; i < mofreak_files.size(); ++i)
+	{
+		cout << "Computing on " << mofreak_files[i] << endl;
+		std::string bow_file = mofreak_files[i];
+		bow_file.append(".bow");
+		ofstream bow_out(bow_file);
 
-	int label = positive_examples ? 1 : -1;
-	bow_rep.computeSlidingBagOfWords(some_mofreak_file, ALPHA, label, bow_out);
+		int label = positive_examples ? 1 : -1;
+		bow_rep.computeSlidingBagOfWords(mofreak_files[i], ALPHA, label, bow_out);
+		bow_out.close();
+		cout << "Done " << mofreak_files[i] << endl;
+	}
 
 	// write each feature to libsvm file with 1 if pos, -1 if neg.
 	// [that's done in computeSlidingBag...]
