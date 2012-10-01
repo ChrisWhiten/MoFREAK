@@ -26,6 +26,7 @@ public:
 	void trainModel(std::string training_file);
 	void trainModelProb(std::string training_file);
 	double testModel(std::string testing_file);
+	double testModelTRECVID(std::string testing_file, std::string model_file_name);
 	double testModelProb(std::string testing_file);
 	bool classifyInstance(std::string instance, int label, float label_probability);
 

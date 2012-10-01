@@ -16,23 +16,26 @@
 using namespace std;
 using namespace boost::filesystem;
 
+bool DISTRIBUTED = false;
 
-string SVM_PATH = "C:/data/kth/svm/";
-string MOFREAK_PATH = "C:/data/TRECVID/positive_mofreak_examples/";//"C:/data/TRECVID/mofreak/";
-string MOSIFT_DIR = "C:/data/TRECVID/mosift/eval_personruns_mosift/";
+string MOFREAK_PATH = "C:/data/TRECVID/mosift/"; // because converting mosift to mofreak just puts them in the same folder as the mosift points. That's fine.
+string MOSIFT_DIR = "C:/data/TRECVID/mosift/";
 //string MOSIFT_FILE = "C:/data/LGW_20071101_E1_CAM1.mpeg.Pointing.txt.mosift.0";
 //string VIDEO_PATH = "C:/data/TRECVID/gatwick_dev08/dev/LGW_20071101_E1_CAM1.mpeg/LGW_20071101_E1_CAM1.mpeg";
-string VIDEO_PATH = "C:/data/TRECVID/eval/";
+string VIDEO_PATH = "C:/data/TRECVID/videos/";
+string SVM_PATH = "C:/data/TRECVID/svm/";
 
 // for clustering, separate mofreak into pos and neg examples.
 string MOFREAK_NEG_PATH = "C:/data/TRECVID/negative_mofreak_examples/";
 string MOFREAK_POS_PATH = "C:/data/TRECVID/positive_mofreak_examples/";
 
+string DETECTION_TARGET_VIDEO_FILE = "C:/data/TRECVID/something.mpeg";
+
 
 const int FEATURE_DIMENSIONALITY = 8;
 const int NUM_CLUSTERS = 1000;
 const int NUM_CLASSES = 2;//1;//2;
-const int ALPHA = 12; // for sliding window...
+const int ALPHA = 20; // for sliding window...
 
 vector<int> possible_classes;
 
@@ -40,7 +43,21 @@ MoFREAKUtilities mofreak;
 vector<MoFREAKFeature> mofreak_ftrs;
 SVMInterface svm_interface;
 
-enum states {CLUSTER, CLASSIFY, CONVERT, PICK_CLUSTERS, COMPUTE_BOW_HISTOGRAMS};
+enum states {CLUSTER, CLASSIFY, CONVERT, PICK_CLUSTERS, COMPUTE_BOW_HISTOGRAMS, DETECT, TRAIN, GET_SVM_RESPONSES};
+
+struct Detection
+{
+	int start_frame;
+	int end_frame;
+	float score;
+	string video_name;
+
+	// override the < operator for sorting.
+	bool operator < (const Detection &det) const
+	{
+		return (score < det.score);
+	};
+};
 
 void clusterMoFREAKPoints()
 {
@@ -165,6 +182,12 @@ void convertMoSIFTToMoFREAK()
 	// iterate mosift directory.
 	directory_iterator end_iter;
 
+	if (DISTRIBUTED)
+	{
+		MOSIFT_DIR = "mosift/";
+		VIDEO_PATH = "videos/";
+	}
+	cout << "Step 1..." << endl;
 	for (directory_iterator dir_iter(MOSIFT_DIR); dir_iter != end_iter; ++dir_iter)
 	{
 		if (is_regular_file(dir_iter->status()))
@@ -173,16 +196,27 @@ void convertMoSIFTToMoFREAK()
 			path current_file = dir_iter->path();
 			string mosift_path = current_file.generic_string();
 			string mosift_filename = current_file.filename().generic_string();
+			cout << "filename: " << mosift_filename << endl;
+
+			if (mosift_filename.substr(mosift_filename.length() - 3, 3) == "svm")
+			{
+				continue;
+			}
+
 			string video_file = VIDEO_PATH;
 			video_file.append(mosift_filename.substr(0, 25));
+			cout << "vid: " << video_file << endl;
 
 			
 			string mofreak_path = mosift_path;
 			mofreak_path.append(".mofreak");
 			// compute. write.
 			MoFREAKUtilities mofreak;
+			
+			cout << "Buidling " << mofreak_path << " from " << mosift_path << " with video " << video_file << endl;
 			mofreak.buildMoFREAKFeaturesFromMoSIFT(mosift_path, video_file, mofreak_path);
 			mosift_path.append(".mofreak");
+			cout << "writing mofreak features to file..." << endl;
 			mofreak.writeMoFREAKFeaturesToFile(mosift_path);
 			cout << "Completed " << mosift_path << endl;
 		}
@@ -278,6 +312,11 @@ void computeBOWHistograms(bool positive_examples)
 
 	directory_iterator end_iter;
 
+	if (DISTRIBUTED)
+	{
+		MOFREAK_PATH = "mosift/";
+	}
+
 	for (directory_iterator dir_iter(MOFREAK_PATH); dir_iter != end_iter; ++dir_iter)
 	{
 		if (is_regular_file(dir_iter->status()))
@@ -287,7 +326,6 @@ void computeBOWHistograms(bool positive_examples)
 			if (filename.substr(filename.length() - 7, 7) == "mofreak")
 			{
 				mofreak_files.push_back(current_file.string());
-				//mofreak.readMoFREAKFeatures(mofreak_files.back());
 			}
 		}
 	}
@@ -305,7 +343,7 @@ void computeBOWHistograms(bool positive_examples)
 	{
 		cout << "Computing on " << mofreak_files[i] << endl;
 		std::string bow_file = mofreak_files[i];
-		bow_file.append(".bow");
+		bow_file.append(".test");
 		ofstream bow_out(bow_file);
 
 		int label = positive_examples ? 1 : -1;
@@ -318,9 +356,234 @@ void computeBOWHistograms(bool positive_examples)
 	// [that's done in computeSlidingBag...]
 }
 
+void detectEvents()
+{
+	vector<std::string> response_files;
+	directory_iterator end_iter;
+
+	for (directory_iterator dir_iter(SVM_PATH); dir_iter != end_iter; ++dir_iter)
+	{
+		if (is_regular_file(dir_iter->status()))
+		{
+			path current_file = dir_iter->path();
+			string filename = current_file.filename().generic_string();
+			if (filename.length() > 9)
+			{
+				if (filename.substr(filename.length() - 13, 13) == "responses.txt")
+				{
+					response_files.push_back(current_file.string());
+				}
+			}
+		}
+	}
+
+	for (auto it = response_files.begin(); it != response_files.end(); ++it)
+	{
+		cout << "filename: " << *it << endl;
+		// read in libsvm output.
+		ifstream svm_in(*it);
+
+		// store each value in a list that we can reference.
+		vector<double> svm_responses;
+		while (!svm_in.eof())
+		{
+			float response;
+			svm_in >> response;
+			svm_responses.push_back(response);
+		}
+
+		cout << svm_responses.size() << " total SVM responses." << endl;
+
+
+		// get peaks. [val(x) > val(x - 1) & val(x) > val(x + 1)]
+		vector<int> peak_indices;
+		for (unsigned int i = 1; i < svm_responses.size() - 1; ++i)
+		{
+			float response_x = svm_responses[i];
+			float response_x_minus_1 = svm_responses[i - 1];
+			float response_x_plus_1 = svm_responses[i + 1];
+
+			if ((response_x > response_x_minus_1) && (response_x > response_x_plus_1))
+			{
+				peak_indices.push_back(i);
+			}
+		}
+
+		cout << peak_indices.size() << " total detected peaks" << endl;
+
+		// For each of those peaks, run the meanshift-like process to determine if its a window-wise local maxima in the response space.
+		// that is, check the alpha/2 points before it and alpha/2 points after it.  If it is the largest value in that window,
+		// then this is a candidate detection.
+		vector<int> candidate_indices;
+		for (auto peak = peak_indices.begin(); peak != peak_indices.end(); ++peak)
+		{
+			double value = svm_responses[*peak];
+			int start_index = max((*peak) - ALPHA, 0);
+			int end_index = min((*peak) + ALPHA, (int)svm_responses.size() - 1);
+			bool is_local_max = true;
+
+			for (int i = start_index; i < end_index; ++i)
+			{
+				if (svm_responses[i] > value)
+				{
+					is_local_max = false;
+					break;
+				}
+			}
+
+			if (is_local_max)
+			{
+				candidate_indices.push_back(*peak);
+			}
+		}
+
+		cout << candidate_indices.size() << " detected candidates" << endl;
+
+
+		// finally, if the detection's response is above our defined threshold, it's a real detection.
+		float THRESHOLD = 0;
+		int MAX_DETECTIONS = 30;
+		int MIN_DETECTIONS = 1;
+		float STEP = 0.05;
+		bool PREVIOUSLY_LOWERED = true;
+		bool FIRST_TRY = true;
+		// trying an optimization metric for the THRESHOLD.  Say...we want 50 detections per video,
+		// we will optimize until that's right.
+		
+		vector<Detection> detections;
+		while (true)
+		{
+			for (auto candidate = candidate_indices.begin(); candidate != candidate_indices.end(); ++candidate)
+			{
+				if (svm_responses[*candidate] > THRESHOLD)
+				{
+					// the BOW feature stretches from the root point (*it) to alpha away.  So if alpha is 10 and it's the first response,
+					// it would be keyframes 0 to 10 (or frames 0 to 50).
+					int end_index = (*candidate) + ALPHA;
+				
+					Detection detection;
+					detection.start_frame = (*candidate) * 5;
+					detection.end_frame = end_index * 5;
+					detection.score = svm_responses[*candidate];
+					detection.video_name = DETECTION_TARGET_VIDEO_FILE;
+
+					detections.push_back(detection);
+				}
+			}
+
+			unsigned int num_detections = detections.size();
+			cout << num_detections << " detections" << endl;
+
+			if (num_detections < MIN_DETECTIONS)
+			{
+				// maybe there aren't enough candidates.
+				if (candidate_indices.size() < MIN_DETECTIONS)
+				{
+					break;
+					//MIN_DETECTIONS = 3 * candidate_indices.size()/4;
+				}
+				// too few detections, lower the threshold to allow for more.
+				if (FIRST_TRY || PREVIOUSLY_LOWERED)
+				{
+					THRESHOLD -= STEP;
+					PREVIOUSLY_LOWERED = true;
+					FIRST_TRY = false;
+				}
+				else
+				{
+					// we raised it last time to allow less, but not not enough.
+					// shrink the step size to get a finer grain.
+					STEP -= 0.005;
+					THRESHOLD -= STEP;
+					PREVIOUSLY_LOWERED = true;
+				}
+				cout << "STEP:" << STEP << ", THRESHOLD: " << THRESHOLD << endl;
+				detections.clear();
+			}
+			else if (num_detections > MAX_DETECTIONS)
+			{
+				// too many detections, raise threshold to allow less.
+				if (FIRST_TRY || !PREVIOUSLY_LOWERED)
+				{
+					THRESHOLD += STEP;
+					FIRST_TRY = false;
+					PREVIOUSLY_LOWERED = false;
+				}
+				else
+				{
+					// we lowered it last time to allow more, but now we have too many.
+					// shrink the step size grain for finer detail and raise the threshold by this new amount.
+					STEP += 0.005;
+					THRESHOLD += STEP;
+					PREVIOUSLY_LOWERED = false;
+				}
+				detections.clear();
+				cout << "STEP:" << STEP << ", THRESHOLD: " << THRESHOLD << endl;
+			}
+			else
+			{
+				// we are in the desired detection range.  happy days.
+				// now we can sort and print them.
+				cout << "Accepting a threshold of " << THRESHOLD << " that permits " << num_detections << " events." << endl;
+				break;
+			}
+		}
+		// sort by likelihood
+		std::sort(detections.begin(), detections.end());
+		std::reverse(detections.begin(), detections.end());
+
+		// print to file
+		ofstream detection_stream(*it + ".detections");
+		for (auto det = detections.begin(); det != detections.end(); ++det)
+		{
+			detection_stream << *it << ", " << det->start_frame << ", " << det->end_frame << ", " << det->score << endl;
+		}
+		detection_stream.close();
+		cout << "-----------------------------------" << endl << endl;
+	}
+}
+
+void trainTRECVID()
+{
+	SVMInterface svm;
+	svm.trainModel(SVM_PATH + "/training.train");
+}
+
+void computeSVMResponses()
+{
+	SVMInterface svm;
+	directory_iterator end_iter;
+	string model_file = SVM_PATH + "/model.svm";
+
+	if (DISTRIBUTED)
+	{
+		SVM_PATH = "mosift/";
+		model_file = "C:/data/model.svm";
+	}
+
+	cout << "SVM_PATH: " << SVM_PATH << endl;
+
+	for (directory_iterator dir_iter(SVM_PATH); dir_iter != end_iter; ++dir_iter)
+	{
+		if (is_regular_file(dir_iter->status()))
+		{
+			path current_file = dir_iter->path();
+			string filename = current_file.filename().generic_string();
+			if (filename.substr(filename.length() - 4, 4) == "test")
+			{
+				string test_file = SVM_PATH + "/" + filename;
+				cout << "Testing SVM with file " << test_file << " with model " << model_file << endl;
+				svm.testModelTRECVID(test_file,  model_file);
+			}
+		}
+	}
+}
+
 void main()
 {
-	int state = COMPUTE_BOW_HISTOGRAMS;
+	//int state = DETECT;
+	//int state = GET_SVM_RESPONSES;
+	int state = DETECT;
 	
 	possible_classes.push_back(-1);
 	possible_classes.push_back(1);
@@ -354,8 +617,28 @@ void main()
 	else if (state == COMPUTE_BOW_HISTOGRAMS)
 	{
 		start = clock();
-		const bool POSITIVE_EXAMPLES = true;
+		const bool POSITIVE_EXAMPLES = false;
 		computeBOWHistograms(POSITIVE_EXAMPLES);
+		end = clock();
+	}
+	else if (state == DETECT)
+	{
+		start = clock();
+		detectEvents();
+		end = clock();
+	}
+
+	else if (state == TRAIN)
+	{
+		start = clock();
+		trainTRECVID();
+		end = clock();
+	}
+
+	else if (state == GET_SVM_RESPONSES)
+	{
+		start = clock();
+		computeSVMResponses();
 		end = clock();
 	}
 

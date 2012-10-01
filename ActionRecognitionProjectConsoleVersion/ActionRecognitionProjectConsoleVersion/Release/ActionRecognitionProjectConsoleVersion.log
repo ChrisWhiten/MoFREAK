@@ -1,43 +1,21 @@
-﻿Build started 28/09/2012 4:00:57 PM.
+﻿Build started 30/09/2012 9:38:48 PM.
      1>Project "C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "Release\ActionRecognitionProjectConsoleVersion.unsuccessfulbuild" because "AlwaysCreate" was specified.
        ClCompile:
-         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt BagOfWordsRepresentation.cpp
-         BagOfWordsRepresentation.cpp
-     1>BagOfWordsRepresentation.cpp(32): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(51): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(57): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(75): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(81): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(92): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(107): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(152): warning C4244: '=' : conversion from 'unsigned int' to 'float', possible loss of data
-     1>BagOfWordsRepresentation.cpp(174): warning C4244: '=' : conversion from 'unsigned int' to 'float', possible loss of data
-     1>BagOfWordsRepresentation.cpp(219): warning C4244: '=' : conversion from 'unsigned int' to 'float', possible loss of data
-     1>BagOfWordsRepresentation.cpp(235): warning C4244: '=' : conversion from 'unsigned int' to 'float', possible loss of data
-     1>BagOfWordsRepresentation.cpp(250): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(263): warning C4244: '=' : conversion from 'unsigned int' to 'float', possible loss of data
-     1>BagOfWordsRepresentation.cpp(275): warning C4244: '=' : conversion from 'unsigned int' to 'float', possible loss of data
-     1>BagOfWordsRepresentation.cpp(310): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(313): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(335): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(358): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(386): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(391): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(410): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(453): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(481): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(495): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(523): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(529): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(547): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>BagOfWordsRepresentation.cpp(586): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(592): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(607): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>BagOfWordsRepresentation.cpp(675): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(734): warning C4018: '<' : signed/unsigned mismatch
-     1>BagOfWordsRepresentation.cpp(778): warning C4018: '<' : signed/unsigned mismatch
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
+         main.cpp
+     1>main.cpp(342): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(402): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>main.cpp(403): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>main.cpp(404): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>main.cpp(447): warning C4305: 'initializing' : truncation from 'double' to 'float'
+     1>main.cpp(467): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>main.cpp(477): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(480): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(496): warning C4305: '-=' : truncation from 'double' to 'float'
+     1>main.cpp(503): warning C4018: '>' : signed/unsigned mismatch
+     1>main.cpp(516): warning C4305: '+=' : truncation from 'double' to 'float'
        Link:
          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.exe" /NOLOGO "boost_filesystem-vc100-mt-1_51.lib" opencv_calib3d242.lib opencv_contrib242.lib opencv_core242.lib opencv_features2d242.lib opencv_haartraining_engine.lib opencv_highgui242.lib opencv_imgproc242.lib opencv_objdetect242.lib opencv_nonfree242.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\ActionRecognitionProjectConsoleVersion.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.pdb" /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.lib" /MACHINE:X86 Release\BagOfWordsRepresentation.obj
          Release\Clustering.obj
@@ -59,4 +37,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:05.84
+Time Elapsed 00:00:07.17

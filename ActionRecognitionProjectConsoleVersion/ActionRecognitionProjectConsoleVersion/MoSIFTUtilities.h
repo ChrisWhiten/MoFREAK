@@ -32,14 +32,15 @@ struct MoSIFTFeature
 class MoSIFTUtilities
 {
 public:
-	void readMoSIFTFeatures(std::string filename);
-	vector<MoSIFTFeature> getMoSIFTFeatures();
+	void readFirstMoSIFTFeatures(std::string filename);
+	bool readNextMoSIFTFeatures(MoSIFTFeature* ftr);
 
 private:
+	ifstream moSIFTFeaturesStream;
+
 	void readMetadata(std::string filename, int &action, int &video_number, int &person);
 	std::vector<std::string> split(const std::string &s, char delim);
 	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
-	vector<MoSIFTFeature> features;
 };
 #endif

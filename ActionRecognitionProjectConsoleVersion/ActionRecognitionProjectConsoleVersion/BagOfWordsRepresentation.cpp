@@ -188,7 +188,7 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndFrameDifference(cv::Mat &fea
 	}
 }
 
-void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score, ofstream &file)
+void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score)
 {
 	// constants
 	const unsigned int APPEARANCE_HAMMING_DIST_NORM = 99999999;//1024;//= appearance_descriptor_size * 8;
@@ -241,8 +241,6 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 	}
 
 	float final_dist = appearance_distance + motion_distance;
-	file << final_dist << endl;
-
 	best_cluster_score = final_dist;
 
 	// Previous computations were just so everything was initialized (for the base case)
@@ -281,7 +279,6 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 		}
 
 		final_dist = appearance_distance + motion_distance;
-		file << final_dist << endl;
 
 		// If we have a new shortest distance, store that.
 		if (final_dist < best_cluster_score)
@@ -339,7 +336,6 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 	ifstream input_file(file);
 	string line;
 
-	ofstream distances("distances.txt");
 	while (std::getline(input_file, line))
 	{
 		// discard first 6 values.
@@ -367,7 +363,7 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 		float best_cluster_score;
 		
 		//findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
-		findBestMatchFREAKAndOpticalFlow(feature_vector, *clusters, best_cluster_index, best_cluster_score, distances);
+		findBestMatchFREAKAndOpticalFlow(feature_vector, *clusters, best_cluster_index, best_cluster_score);
 		//findBestMatchFREAKAndFrameDifference(feature_vector, *clusters, best_cluster_index, best_cluster_score);
 
 
@@ -375,8 +371,6 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 		histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
 		success = true;
 	}
-
-	distances.close();
 
 	if (!success)
 		return histogram;
@@ -400,7 +394,14 @@ void BagOfWordsRepresentation::loadClusters()
 {
 	clusters = new cv::Mat(NUMBER_OF_CLUSTERS, FEATURE_DIMENSIONALITY, CV_32FC1);
 
-	ifstream cluster_file("clusters.txt");
+	string cluster_path = "clusters.txt";
+
+	bool DISTRIBUTED = true;
+	if (DISTRIBUTED)
+	{
+		cluster_path = "C:/TRECVID/clusters.txt";
+	}
+	ifstream cluster_file(cluster_path);
 	string line;
 
 	unsigned int row = 0;
@@ -421,8 +422,6 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 {
 	bool over_alpha_frames = false;
 	string distance_file = file;
-	distance_file.append(".distances.txt");
-	ofstream distances(distance_file);
 
 	std::list<cv::Mat> histograms_per_frame;
 	std::vector<cv::Mat> feature_list; // for just the current frame.
@@ -502,7 +501,7 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 				int best_cluster_index;
 				float best_cluster_score;
 		
-				findBestMatchFREAKAndOpticalFlow(*it, *clusters, best_cluster_index, best_cluster_score, distances);
+				findBestMatchFREAKAndOpticalFlow(*it, *clusters, best_cluster_index, best_cluster_score);
 
 				// + 1 to that codeword
 				new_histogram.at<float>(0, best_cluster_index) = new_histogram.at<float>(0, best_cluster_index) + 1;
@@ -622,7 +621,6 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 
 		out << current_line << endl;
 	}
-	distances.close();
 }
 
 void BagOfWordsRepresentation::computeBagOfWords()
@@ -731,7 +729,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		string current_line;
 
 		ss << (action + 1) << " ";
-		for (unsigned col = 0; col < hist.cols; ++col)
+		for (int col = 0; col < hist.cols; ++col)
 		{
 			ss << (col + 1) << ":" << hist.at<float>(0, col) << " ";
 
@@ -775,7 +773,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	hist_file.close();
 	label_file.close();
 
-	for (unsigned int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+	for (int i = 0; i < NUMBER_OF_PEOPLE; ++i)
 	{
 		for (unsigned line = 0; line < training_file_lines[i].size(); ++line)
 		{

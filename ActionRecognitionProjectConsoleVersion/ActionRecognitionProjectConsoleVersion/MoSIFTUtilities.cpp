@@ -1,5 +1,8 @@
 #include "MoSIFTUtilities.h"
 
+#include <fstream>
+#include <sstream>
+
 // vanilla string split operation.  Direct copy-paste from stack overflow
 // source: http://stackoverflow.com/questions/236129/splitting-a-string-in-c
 std::vector<std::string> &MoSIFTUtilities::split(const std::string &s, char delim, std::vector<std::string> &elems) {
@@ -66,51 +69,55 @@ void MoSIFTUtilities::readMetadata(std::string filename, int &action, int &video
 	std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
 }
 
-void MoSIFTUtilities::readMoSIFTFeatures(std::string filename)
+void MoSIFTUtilities::readFirstMoSIFTFeatures(std::string filename)
+{
+	//readMetadata(filename, action, video_number, person);
+
+	moSIFTFeaturesStream.open(filename);
+
+	if (!moSIFTFeaturesStream.is_open())
+	{
+		cout << "MoSIFT file didn't open" << endl;
+	}
+}
+
+bool MoSIFTUtilities::readNextMoSIFTFeatures(MoSIFTFeature* ftr)
 {
 	int action, video_number, person;
-	//readMetadata(filename, action, video_number, person);
 	action = 1;
 	video_number = 1;
 	person = 1; /// irrelevant for trecvid.
 
-	ifstream stream;
-	stream.open(filename);
+	string line;
+	getline(moSIFTFeaturesStream, line);
+	istringstream iss(line);
+	// single feature
+	iss >> ftr->x >> ftr->y >> ftr->frame_number >> ftr->scale >> ftr->motion_x >> ftr->motion_y;
 	
-	while (!stream.eof())
+	// sift
+	for (unsigned i = 0; i < 128; ++i)
 	{
-		// single feature
-		MoSIFTFeature ftr;
-		stream >> ftr.x >> ftr.y >> ftr.frame_number >> ftr.scale >> ftr.motion_x >> ftr.motion_y;
-	
-		// sift
-		for (unsigned i = 0; i < 128; ++i)
-		{
-			unsigned a;
-			stream >> a;
-			ftr.SIFT[i] = a;
-		}
-
-		// motion
-		for (unsigned i = 0; i < 128; ++i)
-		{
-			unsigned a;
-			stream >> a;
-			ftr.motion[i] = a;
-		}
-
-		// metadata
-		ftr.action = action;
-		ftr.video_number = video_number;
-		ftr.person = person;
-
-		// add new feature to collection.
-		features.push_back(ftr);
+		unsigned a;
+		iss >> a;
+		ftr->SIFT[i] = a;
 	}
-	stream.close();
-}
 
-vector<MoSIFTFeature> MoSIFTUtilities::getMoSIFTFeatures()
-{
-	return features;
+	// motion
+	for (unsigned i = 0; i < 128; ++i)
+	{
+		unsigned a;
+		iss >> a;
+		ftr->motion[i] = a;
+	}
+
+	// metadata
+	ftr->action = action;
+	ftr->video_number = video_number;
+	ftr->person = person;
+
+	if (moSIFTFeaturesStream.eof()){
+		moSIFTFeaturesStream.close();
+		return false;
+	}
+	return true;
 }

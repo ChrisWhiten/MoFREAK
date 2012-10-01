@@ -422,7 +422,7 @@ void SVMInterface::read_problem(const std::string filename)
 
 void SVMInterface::setParameters(svm_parameter *param)
 {
-	param->svm_type = C_SVC;
+	param->svm_type = EPSILON_SVR;  //C_SVC;
 	param->kernel_type = LINEAR;
 	//param->degree = 3;
 	param->gamma = 1/double(600);	// 1/num_features
@@ -458,7 +458,7 @@ void SVMInterface::trainModelProb(std::string training_data_file)
 void SVMInterface::trainModel(std::string training_data_file)
 {
 	const char *error_msg;
-	const std::string model_file_name = "C:/data/kth/chris/trained_svm.model";
+	const std::string model_file_name = "C:/data/TRECVID/svm/model.svm";
 
 	read_problem(training_data_file);
 	setParameters(&param);
@@ -473,8 +473,8 @@ void SVMInterface::trainModel(std::string training_data_file)
 
 double SVMInterface::testModelProb(std::string testing_data_file)
 {
-	const std::string model_file_name = "C:/data/kth/chris/trained_svm.model";
-	const std::string output_file = "C:/data/kth/chris/libsvm_output.txt";
+	const std::string model_file_name = "C:/data/TRECVID/svm/model.svm";
+	const std::string output_file = "C:/data/TRECVID/svm/responses.txt";
 	predict_probability = 1;
 
 	FILE *testing_data, *output;
@@ -495,10 +495,28 @@ bool SVMInterface::classifyInstance(std::string instance, int label, float label
 	return false;
 }
 
+double SVMInterface::testModelTRECVID(std::string testing_file, std::string model_file_name)
+{
+	std::string output_file = testing_file;
+	output_file.append(".responses");
+
+	FILE *testing_data, *output;
+	testing_data = fopen(testing_file.c_str(), "r");
+	output = fopen(output_file.c_str(), "w");
+
+	model = svm_load_model(model_file_name.c_str());
+	x = (struct svm_node *) malloc(max_nr_attr * sizeof(struct svm_node));
+	double accuracy = predict(testing_data, output);
+	
+	fclose(output);
+
+	return accuracy;
+}
+
 double SVMInterface::testModel(std::string testing_data_file)
 {
-	const std::string model_file_name = "C:/data/kth/chris/trained_svm.model";
-	const std::string output_file = "C:/data/kth/chris/libsvm_output.txt";
+	const std::string model_file_name = "C:/data/TRECVID/svm/model.svm";
+	const std::string output_file = "C:/data/TRECVID/svm/responses.txt";
 
 	FILE *testing_data, *output;
 	testing_data = fopen(testing_data_file.c_str(), "r");

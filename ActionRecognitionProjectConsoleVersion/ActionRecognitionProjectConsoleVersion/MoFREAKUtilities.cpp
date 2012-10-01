@@ -382,37 +382,45 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, s
 
 	// gather mosift features.
 	MoSIFTUtilities mosift;
-	mosift.readMoSIFTFeatures(mosift_file);
-	vector<MoSIFTFeature> mosift_features = mosift.getMoSIFTFeatures();
+	mosift.readFirstMoSIFTFeatures(mosift_file);
 	cv::VideoCapture capture;
 
+	cout << "Opening video path... " << endl;
 	capture.open(video_path);
-	auto it = mosift_features.begin();
+
+	if (!capture.isOpened())
+	{
+		cout << "ERROR: problem reading video file. " << endl;
+	}
+
+	MoSIFTFeature* feature = new MoSIFTFeature();
+	mosift.readNextMoSIFTFeatures(feature);
 	vector<cv::KeyPoint> features_per_frame;
-	int current_frame = it->frame_number;
+	int current_frame = feature->frame_number;
 
 	while (true)
 	{
-		if (it == mosift_features.end())
-		{
-			break;
-		}
-
-		if (it->frame_number == current_frame)
+		if (feature->frame_number == current_frame)
 		{
 			cv::KeyPoint keypt;
-			keypt.pt = cv::Point2f(it->x, it->y);
-			keypt.size = it->scale;
+			keypt.pt = cv::Point2f(feature->x, feature->y);
+			keypt.size = feature->scale;
 			features_per_frame.push_back(keypt);
+			//cout << "keypoint. " << endl;
 
 			// move on to next mosift pt.
-			++it;
+			if (!mosift.readNextMoSIFTFeatures(feature)){
+				break;
+			}
 		}
 		else
 		{
-			// that's all the sift points for htis frame.  Do the computation.
+			// that's all the sift points for this frame.  Do the computation.
+			cout << "Adding mosift features to the list for a frame" << endl;
+			cout << features_per_frame.size() << " features." << endl;
 			addMoSIFTFeatures(current_frame, features_per_frame, capture);
-			current_frame = it->frame_number;
+			current_frame = feature->frame_number;
+			cout << "Clearing features for this frame." << endl;
 			features_per_frame.clear();
 
 			// if running out of memory, write to file and continue.
@@ -425,6 +433,7 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, s
 				mofreak_out_file.append(ss.str());
 				ss.str("");
 				ss.clear();
+				cout << "Over 5 million features, writing to secondary file. " << endl;
 				writeMoFREAKFeaturesToFile(mofreak_out_file);
 
 				features.clear();
@@ -432,6 +441,7 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, s
 			}
 		}
 	}
+	delete feature;
 	capture.release();
 }
 
