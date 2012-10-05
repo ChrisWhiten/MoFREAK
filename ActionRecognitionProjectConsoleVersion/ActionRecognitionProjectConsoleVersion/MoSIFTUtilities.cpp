@@ -69,7 +69,7 @@ void MoSIFTUtilities::readMetadata(std::string filename, int &action, int &video
 	std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
 }
 
-void MoSIFTUtilities::readFirstMoSIFTFeatures(std::string filename)
+void MoSIFTUtilities::openMoSIFTStream(std::string filename)
 {
 	//readMetadata(filename, action, video_number, person);
 
@@ -77,7 +77,7 @@ void MoSIFTUtilities::readFirstMoSIFTFeatures(std::string filename)
 
 	if (!moSIFTFeaturesStream.is_open())
 	{
-		cout << "MoSIFT file didn't open" << endl;
+		cout << "MoSIFT file didn't open: " << filename << endl;
 	}
 }
 

@@ -32,7 +32,7 @@ struct MoSIFTFeature
 class MoSIFTUtilities
 {
 public:
-	void readFirstMoSIFTFeatures(std::string filename);
+	void openMoSIFTStream(std::string filename);
 	bool readNextMoSIFTFeatures(MoSIFTFeature* ftr);
 
 private:

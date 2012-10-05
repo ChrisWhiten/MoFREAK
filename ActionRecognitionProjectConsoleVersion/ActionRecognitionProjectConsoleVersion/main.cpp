@@ -41,7 +41,7 @@ vector<MoFREAKFeature> mofreak_ftrs;
 SVMInterface svm_interface;
 
 enum states {CLASSIFY, CONVERT, PICK_CLUSTERS, COMPUTE_BOW_HISTOGRAMS, DETECT, TRAIN, GET_SVM_RESPONSES,
-			MOSIFT_TO_DETECTION};
+			MOSIFT_TO_DETECTION, POINT_DETECTION};
 
 struct Detection
 {
@@ -648,7 +648,7 @@ void computeSVMResponses()
 
 void main()
 {
-	int state = MOSIFT_TO_DETECTION;
+	int state = POINT_DETECTION;
 	setParameters();
 
 	clock_t start, end;
@@ -696,6 +696,13 @@ void main()
 	{
 		start = clock();
 		computeSVMResponses();
+		end = clock();
+	}
+	
+	else if (state == POINT_DETECTION)
+	{
+		start = clock();
+		mofreak.computeMoFREAKFromFile("C:/data/kth/all_in_one/videos/person13_jogging_d3_uncomp.avi", true);
 		end = clock();
 	}
 
