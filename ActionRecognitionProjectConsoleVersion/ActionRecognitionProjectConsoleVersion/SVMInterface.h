@@ -23,15 +23,15 @@ class SVMInterface
 {
 public:
 	SVMInterface();
-	void trainModel(std::string training_file);
-	void trainModelProb(std::string training_file);
-	double testModel(std::string testing_file);
+	void trainModel(std::string training_file, std::string model_file_name);
+	//void trainModelProb(std::string training_file);
+	double testModel(std::string testing_file, std::string model_file_name, std::string output_file);
 	double testModelTRECVID(std::string testing_file, std::string model_file_name);
-	double testModelProb(std::string testing_file);
+	//double testModelProb(std::string testing_file);
 	bool classifyInstance(std::string instance, int label, float label_probability);
 
 private:
-	void setParameters(svm_parameter *param);
+	void setParameters(svm_parameter *param, bool regressor);
 	void read_problem(const std::string filename);
 	double predict(FILE *input, FILE *output);
 	double predictAndReturnData(FILE *input, std::vector<int> &example_labels, std::vector<std::vector<int> > class_labels, std::vector<std::vector<double> > &probs, std::vector<int> &best_labels);

@@ -18,15 +18,6 @@ std::vector<std::string> BagOfWordsRepresentation::split(const std::string &s, c
 }
 
 
-BagOfWordsFeature::BagOfWordsFeature() : bag_of_words(cv::Mat()), _ft(NULL), number_of_words(0), matcher_type(BF_L2)
-{
-	matcher = NULL;
-}
-
-BagOfWordsFeature::BagOfWordsFeature(const BagOfWordsFeature &b)
-{}
-
-
 void BagOfWordsRepresentation::normalizeClusters()
 {
 	for (unsigned int clust = 0; clust < clusters->rows; ++clust)
@@ -362,9 +353,7 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 		int best_cluster_index;
 		float best_cluster_score;
 		
-		//findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
 		findBestMatchFREAKAndOpticalFlow(feature_vector, *clusters, best_cluster_index, best_cluster_score);
-		//findBestMatchFREAKAndFrameDifference(feature_vector, *clusters, best_cluster_index, best_cluster_score);
 
 
 		// + 1 to that codeword
@@ -396,7 +385,7 @@ void BagOfWordsRepresentation::loadClusters()
 
 	string cluster_path = "clusters.txt";
 
-	bool DISTRIBUTED = true;
+	bool DISTRIBUTED = false;
 	if (DISTRIBUTED)
 	{
 		cluster_path = "C:/TRECVID/clusters.txt";
@@ -625,6 +614,7 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 
 void BagOfWordsRepresentation::computeBagOfWords()
 {
+
 	ofstream test("test.txt");
 	test << "computing" << endl;
 	test.close();
@@ -670,7 +660,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	// word_2[:] should match one of the strings...
 	// word_3[1:] is the video number
 #pragma omp parallel for
-	for (int i = 0; i < files.size(); ++i)// = qsl.begin(); it != qsl.end(); ++it)
+	for (int i = 0; i < files.size(); ++i)
 	{
 		boost::filesystem::path file_path(files[i]);
 		boost::filesystem::path file_name = file_path.filename();
@@ -806,7 +796,9 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim) :
 	appearance_is_binary = true;
 }
 
-BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &file_list, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin) : NUMBER_OF_CLUSTERS(num_clust), 
+BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &file_list, 
+	int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, 
+	bool motion_is_bin) : NUMBER_OF_CLUSTERS(num_clust), 
 	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people), motion_is_binary(motion_is_bin), appearance_is_binary(appearance_is_bin)
 {
 	files = file_list;
@@ -814,10 +806,10 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &fil
 	normalizeClusters();
 
 	// default values.
-	motion_descriptor_size = 128; 
-	appearance_descriptor_size = 128;
-	motion_is_binary = false;
-	appearance_is_binary = false;
+	motion_descriptor_size = 8; 
+	appearance_descriptor_size = 0;
+	motion_is_binary = true;
+	appearance_is_binary = true;
 }
 
 void BagOfWordsRepresentation::setMotionDescriptor(unsigned int size, bool binary)

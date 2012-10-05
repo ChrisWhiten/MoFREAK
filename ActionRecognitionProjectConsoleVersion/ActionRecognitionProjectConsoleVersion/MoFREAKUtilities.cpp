@@ -110,13 +110,12 @@ bool MoFREAKUtilities::sufficientMotion(cv::Mat &diff_integral_img, float &x, fl
 	return (motion > MOTION_THRESHOLD);
 }
 
-//void MoFREAKUtilities::computeMoFREAKFromFile(QString filename, bool clear_features_after_computation)
 void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_features_after_computation)
 {
 	std::string debug_filename = filename;
 	debug_filename.append(".dbg");
 	ofstream debug_stream(debug_filename);
-	// ignore the first frame because we can't compute the frame difference with it.
+	// ignore the first frames because we can't compute the frame difference with them.
 	// Beyond that, go over all frames, extract FAST/SURF points, compute frame difference,
 	// if frame difference is above some threshold, compute FREAK point and save.
 	const int MOTION_THRESHOLD = 4;
@@ -163,7 +162,8 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_f
 		cv::Mat descriptors;
 		
 		// detect all keypoints.
-		cv::StarFeatureDetector *detector = new cv::StarFeatureDetector(15, 45, 50, 40);
+		cv::SurfFeatureDetector *detector = new cv::SurfFeatureDetector();
+		//cv::StarFeatureDetector *detector = new cv::StarFeatureDetector(15, 45, 50, 40);
 		detector->detect(current_frame, keypoints);
 		debug_stream << "detected " << keypoints.size() << " keypoints." << endl;
 
@@ -174,6 +174,7 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_f
 		
 
 		// for each detected keypoint
+		vector<cv::KeyPoint> current_frame_keypts;
 		unsigned char *pointer_to_descriptor_row = 0;
 		unsigned int keypoint_row = 0;
 		for (auto keypt = keypoints.begin(); keypt != keypoints.end(); ++keypt)
@@ -213,49 +214,66 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_f
 				ftr.motion_y = 0;
 
 				features.push_back(ftr);
-
-				/*
-				if ((freak_descriptor.size()) > 0 && (motion_descriptor.size() > 0))
-				{
-					MoFREAKFeature ftr;
-					ftr.frame_number = frame_num;
-					ftr.scale = keypt->size;
-					ftr.x = keypt->pt.x;
-					ftr.y = keypt->pt.y;
-
-					for (unsigned i = 0; i < freak_descriptor.size(); ++i)
-					{
-						ftr.FREAK[i] = freak_descriptor[i];
-					}
-
-					for (unsigned i = 0; i < motion_descriptor.size(); ++i)
-					{
-						ftr.motion[i] = motion_descriptor[i];
-					}
-
-					// gather metadata.
-					int action, person, video_number;
-					readMetadata(filename, action, video_number, person);
-
-					ftr.action = action;
-					ftr.video_number = video_number;
-					ftr.person = person;
-
-					// these parameters aren't useful right now.
-					ftr.motion_x = 0;
-					ftr.motion_y = 0;
-
-					features.push_back(ftr);
-				}
-				*/
+				current_frame_keypts.push_back(*keypt);
 			}
-			/*else
-			{
-				debug_stream << "rejected motion of " << motion << " with scale " << keypt->size <<  endl;
-			}*/
 			keypoint_row++;
 		} // at this point, gathered all the mofreak pts from the frame.
 		debug_stream << "kept " << features.size() << " keypoints total." << endl;
+
+
+		// display for comparison purposes...
+		cv::namedWindow("Comparison");
+
+		// create new copy of frame.
+		cv::Mat comparison_frame = current_frame.clone();
+		for (auto keypt = current_frame_keypts.begin(); keypt != current_frame_keypts.end(); ++keypt)
+		{
+			cv::circle(comparison_frame, keypt->pt, keypt->size/2, CV_RGB(200, 0, 0));
+		}
+		// also load mosift pts here so i can visualize and compare
+		MoSIFTUtilities mosift;
+		string mosift_file = "";
+		cout << "filename is " << filename << endl;
+		mosift.readFirstMoSIFTFeatures(mosift_file);
+
+		MoSIFTFeature *feature = new MoSIFTFeature();
+		mosift.readNextMoSIFTFeatures(feature);
+		vector<cv::KeyPoint> features_per_frame;
+
+		while (true)
+		{
+			if (feature->frame_number == frame_num)
+			{
+				cv::KeyPoint keypt;
+				keypt.pt = cv::Point2f(feature->x, feature->y);
+				keypt.size = feature->scale;
+				features_per_frame.push_back(keypt);
+
+				// move on to next mosift pt.
+				if (!mosift.readNextMoSIFTFeatures(feature))
+				{
+					break;
+				}
+			}
+			else
+			{
+				break; // break when done reading features for this frame.
+			}
+		}
+
+		for (auto keypt = features_per_frame.begin(); keypt != features_per_frame.end(); ++keypt)
+		{
+			cv::Rect rect(keypt->pt.x, keypt->pt.y, keypt->size/2, keypt->size/2);
+			cv::rectangle(comparison_frame, rect, CV_RGB(0, 255, 255));
+		}
+
+		cv::imshow("Comparison", comparison_frame);
+		cv::waitKey();
+
+		current_frame_keypts.clear();
+		features_per_frame.clear();
+		delete feature;
+
 
 		frame_queue.push(current_frame.clone());
 		prev_frame = frame_queue.front();
@@ -393,7 +411,7 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, s
 		cout << "ERROR: problem reading video file. " << endl;
 	}
 
-	MoSIFTFeature* feature = new MoSIFTFeature();
+	MoSIFTFeature *feature = new MoSIFTFeature();
 	mosift.readNextMoSIFTFeatures(feature);
 	vector<cv::KeyPoint> features_per_frame;
 	int current_frame = feature->frame_number;
@@ -406,7 +424,6 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, s
 			keypt.pt = cv::Point2f(feature->x, feature->y);
 			keypt.size = feature->scale;
 			features_per_frame.push_back(keypt);
-			//cout << "keypoint. " << endl;
 
 			// move on to next mosift pt.
 			if (!mosift.readNextMoSIFTFeatures(feature)){
@@ -416,11 +433,8 @@ void MoFREAKUtilities::buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, s
 		else
 		{
 			// that's all the sift points for this frame.  Do the computation.
-			cout << "Adding mosift features to the list for a frame" << endl;
-			cout << features_per_frame.size() << " features." << endl;
 			addMoSIFTFeatures(current_frame, features_per_frame, capture);
 			current_frame = feature->frame_number;
-			cout << "Clearing features for this frame." << endl;
 			features_per_frame.clear();
 
 			// if running out of memory, write to file and continue.

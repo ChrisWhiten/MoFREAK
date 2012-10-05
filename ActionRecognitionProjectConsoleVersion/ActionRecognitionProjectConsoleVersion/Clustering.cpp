@@ -24,12 +24,11 @@
  Clustering::Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes) : DIMENSIONALITY(dim), NUMBER_OF_CLUSTERS(num_clust), 
 	 NUMBER_OF_POINTS_TO_SAMPLE(num_pts), NUMBER_OF_CLASSES(num_classes)
  {
-	 possible_classes = poss_classes;
-	 // default values. MoSIFT.
-	motion_descriptor_size = 128; 
-	appearance_descriptor_size = 128;
-	motion_is_binary = false;
-	appearance_is_binary = false;
+	possible_classes = poss_classes;
+	motion_descriptor_size = 8; 
+	appearance_descriptor_size = 0;
+	motion_is_binary = true;
+	appearance_is_binary = true;
  }
 
  void Clustering::buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff, bool fix_class, int fixed_class)

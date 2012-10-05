@@ -11,28 +11,12 @@
 
 using namespace std;
 
-enum matchType {BF_L2, BF_L1, KNN, USER};
-
-class BagOfWordsFeature
-{
-public:
-	BagOfWordsFeature();
-	BagOfWordsFeature(const BagOfWordsFeature &b);
-	BagOfWordsFeature &operator= (const BagOfWordsFeature &b) {return *this;};
-
-	cv::Mat bag_of_words;
-	int *_ft;
-	unsigned int number_of_words; // in the bag of words.
-
-	cv::DescriptorMatcher *matcher; // for matching vectors to BoWs
-	matchType matcher_type;
-
-};
-
 class BagOfWordsRepresentation
 {
 public:
-	BagOfWordsRepresentation(std::vector<std::string> &file_list, int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, bool motion_is_bin);
+	BagOfWordsRepresentation(std::vector<std::string> &file_list, int num_clust, int ftr_dim, int num_people,
+		bool appearance_is_bin, bool motion_is_bin);
+
 	BagOfWordsRepresentation(int num_clust, int ftr_dim);
 	void computeBagOfWords();
 	void setMotionDescriptor(unsigned int size, bool binary = false);

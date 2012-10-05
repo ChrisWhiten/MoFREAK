@@ -1,21 +1,22 @@
-﻿Build started 30/09/2012 9:38:48 PM.
+﻿Build started 05/10/2012 12:35:48 PM.
      1>Project "C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "Release\ActionRecognitionProjectConsoleVersion.unsuccessfulbuild" because "AlwaysCreate" was specified.
        ClCompile:
          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
          main.cpp
-     1>main.cpp(342): warning C4018: '<' : signed/unsigned mismatch
-     1>main.cpp(402): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
-     1>main.cpp(403): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
-     1>main.cpp(404): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
-     1>main.cpp(447): warning C4305: 'initializing' : truncation from 'double' to 'float'
-     1>main.cpp(467): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>main.cpp(477): warning C4018: '<' : signed/unsigned mismatch
-     1>main.cpp(480): warning C4018: '<' : signed/unsigned mismatch
-     1>main.cpp(496): warning C4305: '-=' : truncation from 'double' to 'float'
-     1>main.cpp(503): warning C4018: '>' : signed/unsigned mismatch
-     1>main.cpp(516): warning C4305: '+=' : truncation from 'double' to 'float'
+     1>main.cpp(87): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(408): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(468): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>main.cpp(469): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>main.cpp(470): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>main.cpp(513): warning C4305: 'initializing' : truncation from 'double' to 'float'
+     1>main.cpp(533): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>main.cpp(543): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(546): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(562): warning C4305: '-=' : truncation from 'double' to 'float'
+     1>main.cpp(569): warning C4018: '>' : signed/unsigned mismatch
+     1>main.cpp(582): warning C4305: '+=' : truncation from 'double' to 'float'
        Link:
          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.exe" /NOLOGO "boost_filesystem-vc100-mt-1_51.lib" opencv_calib3d242.lib opencv_contrib242.lib opencv_core242.lib opencv_features2d242.lib opencv_haartraining_engine.lib opencv_highgui242.lib opencv_imgproc242.lib opencv_objdetect242.lib opencv_nonfree242.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\ActionRecognitionProjectConsoleVersion.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.pdb" /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.lib" /MACHINE:X86 Release\BagOfWordsRepresentation.obj
          Release\Clustering.obj
@@ -27,9 +28,10 @@
          Release\svm_interface.obj
          Generating code
          Finished generating code
+     1>MoSIFTUtilities.obj : warning LNK4099: PDB 'vc100.pdb' was not found with 'MoSIFTUtilities.obj' or at 'C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\vc100.pdb'; linking object as if no debug info
          ActionRecognitionProjectConsoleVersion.vcxproj -> C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.exe
        Manifest:
-         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.exe;#1" /manifest Release\ActionRecognitionProjectConsoleVersion.exe.intermediate.manifest
+         c:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Release\ActionRecognitionProjectConsoleVersion.exe;#1" /manifest Release\ActionRecognitionProjectConsoleVersion.exe.intermediate.manifest
        FinalizeBuildStatus:
          Deleting file "Release\ActionRecognitionProjectConsoleVersion.unsuccessfulbuild".
          Touching "Release\ActionRecognitionProjectConsoleVersion.lastbuildstate".
@@ -37,4 +39,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:07.17
+Time Elapsed 00:00:06.45

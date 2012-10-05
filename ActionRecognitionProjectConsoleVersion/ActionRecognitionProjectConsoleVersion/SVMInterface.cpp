@@ -420,12 +420,21 @@ void SVMInterface::read_problem(const std::string filename)
 	fclose(fp);
 }
 
-void SVMInterface::setParameters(svm_parameter *param)
+void SVMInterface::setParameters(svm_parameter *param, bool regressor)
 {
-	param->svm_type = EPSILON_SVR;  //C_SVC;
+	if (regressor)
+	{
+		param->svm_type = EPSILON_SVR;
+		param->probability = 1;
+	}
+	else
+	{
+		param->svm_type = C_SVC;
+		param->probability = 0;
+	}
 	param->kernel_type = LINEAR;
 	//param->degree = 3;
-	param->gamma = 1/double(600);	// 1/num_features
+	param->gamma = 1/double(600);	// or 1/num_features
 	param->coef0 = 0;
 	param->nu = 0.5;
 	param->cache_size = 100;
@@ -433,19 +442,19 @@ void SVMInterface::setParameters(svm_parameter *param)
 	param->eps = 1e-3;
 	param->p = 0.1;
 	param->shrinking = 1;
-	param->probability = 0;
 	param->nr_weight = 0;
 	param->weight_label = NULL;
 	param->weight = NULL;
 }
 
+/*
 void SVMInterface::trainModelProb(std::string training_data_file)
 {
 	const char *error_msg;
 	const std::string model_file_name = "C:/data/kth/chris/trained_svm.model";
 
 	read_problem(training_data_file);
-	setParameters(&param);
+	setParameters(&param, false);
 	param.probability = 1;
 	error_msg = svm_check_parameter(&prob, &param);
 
@@ -454,14 +463,14 @@ void SVMInterface::trainModelProb(std::string training_data_file)
 	svm_save_model(model_file_name.c_str(), model);
 	std::cout << "Model trained." << std::endl;
 }
+*/
 
-void SVMInterface::trainModel(std::string training_data_file)
+void SVMInterface::trainModel(std::string training_data_file, std::string model_file_name)
 {
 	const char *error_msg;
-	const std::string model_file_name = "C:/data/TRECVID/svm/model.svm";
 
 	read_problem(training_data_file);
-	setParameters(&param);
+	setParameters(&param, false);
 	error_msg = svm_check_parameter(&prob, &param);
 
 	std::cout << "training model" << std::endl;
@@ -470,7 +479,7 @@ void SVMInterface::trainModel(std::string training_data_file)
 	std::cout << "Model trained." << std::endl;
 }
 
-
+/*
 double SVMInterface::testModelProb(std::string testing_data_file)
 {
 	const std::string model_file_name = "C:/data/TRECVID/svm/model.svm";
@@ -489,6 +498,7 @@ double SVMInterface::testModelProb(std::string testing_data_file)
 
 	return accuracy;
 }
+*/
 
 bool SVMInterface::classifyInstance(std::string instance, int label, float label_probability)
 {
@@ -513,11 +523,8 @@ double SVMInterface::testModelTRECVID(std::string testing_file, std::string mode
 	return accuracy;
 }
 
-double SVMInterface::testModel(std::string testing_data_file)
+double SVMInterface::testModel(std::string testing_data_file, std::string model_file_name, std::string output_file)
 {
-	const std::string model_file_name = "C:/data/TRECVID/svm/model.svm";
-	const std::string output_file = "C:/data/TRECVID/svm/responses.txt";
-
 	FILE *testing_data, *output;
 	testing_data = fopen(testing_data_file.c_str(), "r");
 	output = fopen(output_file.c_str(), "w");
