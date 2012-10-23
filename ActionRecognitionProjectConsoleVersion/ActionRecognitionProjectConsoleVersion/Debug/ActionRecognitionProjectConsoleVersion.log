@@ -1,9 +1,29 @@
-﻿Build started 05/10/2012 1:51:59 PM.
+﻿Build started 18/10/2012 2:56:41 PM.
      1>Project "C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
-         Touching "Debug\ActionRecognitionProjectConsoleVersion.unsuccessfulbuild".
+         Creating "Debug\ActionRecognitionProjectConsoleVersion.unsuccessfulbuild" because "AlwaysCreate" was specified.
        ClCompile:
-         All outputs are up-to-date.
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt MoFREAKUtilities.cpp
+         MoFREAKUtilities.cpp
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(42): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(42): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(43): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(43): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(172): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(172): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(199): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(199): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(209): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(210): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(211): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(211): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(232): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(236): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(237): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(238): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(239): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(298): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>c:\projects\actionrecognitionproject\actionrecognitionprojectconsoleversion\actionrecognitionprojectconsoleversion\mofreakutilities.cpp(298): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
        Link:
          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Debug\ActionRecognitionProjectConsoleVersion.exe" /NOLOGO "boost_filesystem-vc100-mt-gd-1_51.lib" opencv_calib3d242d.lib opencv_contrib242d.lib opencv_core242d.lib opencv_features2d242d.lib opencv_haartraining_engined.lib opencv_highgui242d.lib opencv_imgproc242d.lib opencv_objdetect242d.lib opencv_nonfree242d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\ActionRecognitionProjectConsoleVersion.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Debug\ActionRecognitionProjectConsoleVersion.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Debug\ActionRecognitionProjectConsoleVersion.lib" /MACHINE:X86 Debug\BagOfWordsRepresentation.obj
          Debug\Clustering.obj
@@ -13,6 +33,7 @@
          Debug\svm.obj
          Debug\SVMInterface.obj
          Debug\svm_interface.obj
+         LINK : C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Debug\ActionRecognitionProjectConsoleVersion.exe not found or not built by the last incremental link; performing full link
          ActionRecognitionProjectConsoleVersion.vcxproj -> C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Debug\ActionRecognitionProjectConsoleVersion.exe
        Manifest:
          c:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"C:\Projects\ActionRecognitionProject\ActionRecognitionProjectConsoleVersion\Debug\ActionRecognitionProjectConsoleVersion.exe;#1" /manifest Debug\ActionRecognitionProjectConsoleVersion.exe.intermediate.manifest
@@ -23,4 +44,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:00.45
+Time Elapsed 00:00:04.55

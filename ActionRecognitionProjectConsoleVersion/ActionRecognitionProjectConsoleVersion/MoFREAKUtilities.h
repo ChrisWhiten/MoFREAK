@@ -17,7 +17,7 @@
 using namespace std;
 
 #define MOTION_BYTES 8
-#define APPEARANCE_BYTES 0
+#define APPEARANCE_BYTES 8
 
 struct MoFREAKFeature
 {
@@ -31,8 +31,8 @@ struct MoFREAKFeature
 	float motion_y;
 
 	int frame_number;
-	unsigned int FREAK[1];
-	//unsigned int FREAK[APPEARANCE_BYTES];
+	//unsigned int appearance[1];
+	unsigned int appearance[APPEARANCE_BYTES];
 	unsigned int motion[MOTION_BYTES];
 
 	int action;
@@ -47,18 +47,27 @@ public:
 	vector<MoFREAKFeature> getMoFREAKFeatures();
 	void buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, string video_path, string mofreak_path);
 	void writeMoFREAKFeaturesToFile(string output_file);
-	void computeMoFREAKFromFile(std::string filename, bool clear_features_after_computation);
+	void computeMoFREAKFromFile(std::string video_filename, std::string mofreak_filename, bool clear_features_after_computation);
 	void setAllFeaturesToLabel(int label);
 
 private:
-	string toBinaryString(unsigned int x);
+	
 	vector<unsigned int> extractFREAKFeature(cv::Mat &frame, float x, float y, float scale, bool extract_full_descriptor = false);
 	vector<unsigned int> extractFREAK_ID(cv::Mat &frame, cv::Mat &prev_frame, float x, float y, float scale);
 	unsigned int extractMotionByImageDifference(cv::Mat &frame, cv::Mat &prev_frame, float x, float y);
 	void computeDifferenceImage(cv::Mat &current_frame, cv::Mat &prev_frame, cv::Mat &diff_img);
 	bool sufficientMotion(cv::Mat &diff_img, float &x, float &y, float &scale, int &motion);
+	bool sufficientMotion(cv::Mat &current_frame, cv::Mat prev_frame, float x, float y, float scale);
+	void extractMotionByMotionInterchangePatterns(cv::Mat &current_frame, cv::Mat &prev_frame, 
+		vector<unsigned int> &motion_descriptor, 
+		float scale, int x, int y);
+
+	string toBinaryString(unsigned int x);
 	unsigned int hammingDistance(unsigned int a, unsigned int b);
 	double motionNormalizedEuclideanDistance(vector<unsigned int> a, vector<unsigned int> b);
+	unsigned int motionInterchangePattern(cv::Mat &current_frame, cv::Mat &prev_frame, int x, int y);
+	unsigned int countOnes(unsigned int byte);
+
 	void readMetadata(std::string filename, int &action, int &video_number, int &person);
 	void addMoSIFTFeatures(int frame, vector<cv::KeyPoint> &pts, cv::VideoCapture &capture);
 

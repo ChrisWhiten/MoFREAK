@@ -17,6 +17,19 @@ std::vector<std::string> MoFREAKUtilities::split(const std::string &s, char deli
     return split(s, delim, elems);
 }
 
+unsigned int MoFREAKUtilities::countOnes(unsigned int byte)
+{
+	unsigned int num_ones = 0;
+
+	for (unsigned int i = 0; i < 8; ++i)
+	{
+		if ((byte & (1 << i)) != 0)
+		{
+			++num_ones;
+		}
+	}
+	return num_ones;
+}
 
 // this is only implemented here, but not being used right now.
 // the general idea is that we are going to replace optical flow by simple image difference.
@@ -89,11 +102,134 @@ void MoFREAKUtilities::computeDifferenceImage(cv::Mat &current_frame, cv::Mat &p
 	}
 }
 
+// Computes the motion interchange pattern between the current and previous frame.
+// Assumes both matrices are 17 x 17, and we will check the 8 motion patch locations in the previous frame
+// returns a binary descriptor representing the MIP responses for the patch at the SURF descriptor.
+// x, y correspond to the location in the 18x18 roi that we are centering a patch around.
+unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, cv::Mat &prev_frame, int x, int y)
+{
+	const int THETA = 2592;//1296; // recommended by MIP paper
+	// extract patch on current frame.
+	cv::Rect roi(x - 1, y - 1, 3, 3);
+	cv::Mat patch_t(current_frame, roi);
+
+	// extract patches from previous frame.
+	vector<cv::Mat> previous_patches;
+	// (-4, 0)
+	previous_patches.push_back(prev_frame(cv::Rect((x - 4) - 1, y - 1, 3, 3)));
+	// (-3, 3)
+	previous_patches.push_back(prev_frame(cv::Rect((x - 3) - 1, (y + 3) - 1, 3, 3)));
+	// (0, 4)
+	previous_patches.push_back(prev_frame(cv::Rect(x - 1, (y + 4) - 1, 3, 3)));
+	// (3, 3)
+	previous_patches.push_back(prev_frame(cv::Rect((x + 3) - 1, (y + 3) - 1, 3, 3)));
+	// (4, 0)
+	previous_patches.push_back(prev_frame(cv::Rect((x + 4) - 1, y - 1, 3, 3)));
+	// (3, -3)
+	previous_patches.push_back(prev_frame(cv::Rect((x + 3) - 1, (y - 3) - 1, 3, 3)));
+	// (0, -4)
+	previous_patches.push_back(prev_frame(cv::Rect(x - 1, (y - 4) - 1, 3, 3)));
+	// (-3, -3)
+	previous_patches.push_back(prev_frame(cv::Rect((x - 3) - 1, (y - 3) - 1, 3, 3)));
+
+	// now do SSD between current patch and all of those patches.
+	// opencv might have an optimized ssd, i can't find it though.
+	unsigned int bit = 1;
+	unsigned int descriptor = 0;
+	for (auto it = previous_patches.begin(); it != previous_patches.end(); ++it)
+	{
+		int ssd = 0;
+		for (int row = 0; row < 3; ++row)
+		{
+			uchar *p = patch_t.data;
+			uchar *p2 = it->data;
+			for (int col = 0; col < 3; ++col)
+			{
+				ssd += (int)pow((float)((*p) - (*p2)), 2);
+				p++;
+				p2++;
+			}
+		}
+
+		if (ssd > THETA)
+		{
+			descriptor |= bit;
+		}
+		bit <<= 1;
+	}
+
+	return descriptor;
+}
+
+void MoFREAKUtilities::extractMotionByMotionInterchangePatterns(cv::Mat &current_frame, cv::Mat &prev_frame,
+	vector<unsigned int> &motion_descriptor, 
+	float scale, int x, int y)
+{
+	// get region of interest from frames at keypt + scale
+	int tl_x = x - (int)scale/2;
+	int tl_y = y - (int)scale/2;
+	cv::Rect roi(tl_x, tl_y, ceil(scale), ceil(scale));
+	cv::Mat current_roi = current_frame(roi);
+	cv::Mat prev_roi = prev_frame(roi);
+
+	// resize to 19x19
+	cv::Mat frame_t(19, 19, CV_32F);
+	cv::Mat frame_t_minus_1(19, 19, CV_32F);
+
+	cv::resize(current_roi, frame_t, frame_t.size());
+	cv::resize(prev_roi, frame_t_minus_1, frame_t_minus_1.size());
+
+	// we will compute the descriptor around these 9 points...
+	vector<cv::Point2d> patch_centers;
+	patch_centers.push_back(cv::Point2d(5, 5));
+	patch_centers.push_back(cv::Point2d(5, 9));
+	patch_centers.push_back(cv::Point2d(5, 13));
+	patch_centers.push_back(cv::Point2d(9, 5));
+	//patch_centers.push_back(cv::Point2d(9, 9));
+	patch_centers.push_back(cv::Point2d(9, 13));
+	patch_centers.push_back(cv::Point2d(13, 5));
+	patch_centers.push_back(cv::Point2d(13, 9));
+	patch_centers.push_back(cv::Point2d(13, 13));
+
+	// over each of these patch centers, we compute a 1-byte motion descriptor.
+	for (auto it = patch_centers.begin(); it != patch_centers.end(); ++it)
+	{
+		//cout << "patch centered at " << it->x << ", " << it->y << endl;
+		unsigned int descriptor = motionInterchangePattern(frame_t, frame_t_minus_1, it->x, it->y);
+		motion_descriptor.push_back(descriptor);
+	}
+}
+
+// to decide if there is sufficient motion, we compute the MIP on the center location (9, 9)
+// If there are a sufficient number of ones, then we have sufficient motion.
+bool MoFREAKUtilities::sufficientMotion(cv::Mat &current_frame, cv::Mat prev_frame, float x, float y, float scale)
+{
+	// get region of interest from frames at keypt + scale
+	int tl_x = x - (int)scale/2;
+	int tl_y = y - (int)scale/2;
+	cv::Rect roi(tl_x, tl_y, ceil(scale), ceil(scale));
+	cv::Mat current_roi = current_frame(roi);
+	cv::Mat prev_roi = prev_frame(roi);
+
+	// resize to 19x19
+	cv::Mat frame_t(19, 19, CV_32F);
+	cv::Mat frame_t_minus_1(19, 19, CV_32F);
+
+	cv::resize(current_roi, frame_t, frame_t.size());
+	cv::resize(prev_roi, frame_t_minus_1, frame_t_minus_1.size());
+
+	unsigned int descriptor = motionInterchangePattern(frame_t, frame_t_minus_1, 9, 9);
+
+	unsigned int num_ones = countOnes(descriptor);
+	
+	return (num_ones > 3);
+}
+
 bool MoFREAKUtilities::sufficientMotion(cv::Mat &diff_integral_img, float &x, float &y, float &scale, int &motion)
 {
 	// compute the sum of the values within this patch in the difference image.  It's that simple.
-	int radius = ceil((scale)/2);
-	const int MOTION_THRESHOLD = 4 * radius * 5;//0;//4096;
+	int radius = ceil((scale));///2);
+	const int MOTION_THRESHOLD = 4 * radius * 5;//5;//0;//4096;
 
 	// always + 1, since the integral image adds a row and col of 0s to the top-left.
 	int tl_x = MAX(0, x - radius + 1);
@@ -110,9 +246,9 @@ bool MoFREAKUtilities::sufficientMotion(cv::Mat &diff_integral_img, float &x, fl
 	return (motion > MOTION_THRESHOLD);
 }
 
-void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_features_after_computation)
+void MoFREAKUtilities::computeMoFREAKFromFile(std::string video_filename, std::string mofreak_filename, bool clear_features_after_computation)
 {
-	std::string debug_filename = filename;
+	std::string debug_filename = video_filename;
 	debug_filename.append(".dbg");
 	ofstream debug_stream(debug_filename);
 	// ignore the first frames because we can't compute the frame difference with them.
@@ -121,31 +257,27 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_f
 	const int GAP_FOR_FRAME_DIFFERENCE = 2;
 
 	cv::VideoCapture capture;
-	capture.open(filename);
+	capture.open(video_filename);
 
 	if (!capture.isOpened())
 	{
-		debug_stream << "file wasn't opened! " << filename << endl;
+		debug_stream << "Could not open file: " << video_filename << endl;
 	}
 
 	cv::Mat current_frame;
 	cv::Mat prev_frame;
+
 	std::queue<cv::Mat> frame_queue;
 	for (unsigned int i = 0; i < GAP_FOR_FRAME_DIFFERENCE; ++i)
 	{
 		capture >> prev_frame; // ignore first 'GAP_FOR_FRAME_DIFFERENCE' frames.  Read them in and carry on.
+		cv::cvtColor(prev_frame, prev_frame, CV_BGR2GRAY);
 		frame_queue.push(prev_frame.clone());
 	}
 	prev_frame = frame_queue.front();
 	frame_queue.pop();
 
 	unsigned int frame_num = GAP_FOR_FRAME_DIFFERENCE - 1;
-	
-	MoSIFTUtilities mosift;
-	string mosift_file = "C:/data/kth/mosift/person13_jogging_d3_uncomp.txt"; // [TODO]
-	mosift.openMoSIFTStream(mosift_file);
-	MoSIFTFeature *feature = new MoSIFTFeature();
-	mosift.readNextMoSIFTFeatures(feature);
 
 	while (true)
 	{
@@ -154,14 +286,11 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_f
 		{
 			break;
 		}
+		cv::cvtColor(current_frame ,current_frame, CV_BGR2GRAY);
 
 		// compute the difference image for use in later computations.
 		cv::Mat diff_img(current_frame.rows, current_frame.cols, CV_8U);
 		cv::absdiff(current_frame, prev_frame, diff_img);
-		//computeDifferenceImage(current_frame, prev_frame, diff_img);
-
-		cv::Mat diff_integral_image(diff_img.rows + 1, diff_img.cols + 1, CV_32S);
-		cv::integral(diff_img, diff_integral_image);
 
 		vector<cv::KeyPoint> keypoints, diff_keypoints;
 		cv::Mat descriptors;
@@ -169,29 +298,29 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_f
 		// detect all keypoints.
 		cv::SurfFeatureDetector *detector = new cv::SurfFeatureDetector();
 		cv::SurfFeatureDetector *diff_detector = new cv::SurfFeatureDetector();
-		//cv::StarFeatureDetector *detector = new cv::StarFeatureDetector(15, 45, 50, 40);
-		detector->detect(current_frame, keypoints);
-		diff_detector->detect(diff_img, diff_keypoints);
+		//detector->detect(current_frame, keypoints);
+		diff_detector->detect(diff_img, keypoints);
 		debug_stream << "detected " << keypoints.size() << " keypoints." << endl;
 
 		// extract the FREAK descriptors efficiently over the whole frame
 		// For now, we are just computing the motion FREAK!  It seems to be giving better results.
 		cv::FREAK extractor;
 		extractor.compute(diff_img, keypoints, descriptors);
+		//cout << "--------------------------------" << keypoints.size() << " detected features" << endl;
 		
 
 		// for each detected keypoint
 		vector<cv::KeyPoint> current_frame_keypts;
 		unsigned char *pointer_to_descriptor_row = 0;
 		unsigned int keypoint_row = 0;
-		//for (auto keypt = diff_keypoints.begin(); keypt != diff_keypoints.end(); ++keypt)
 		for (auto keypt = keypoints.begin(); keypt != keypoints.end(); ++keypt)
 		{
 			pointer_to_descriptor_row = descriptors.ptr<unsigned char>(keypoint_row);
 
 			// only take points with sufficient motion.
 			int motion = 0;
-			if (sufficientMotion(diff_integral_image, keypt->pt.x, keypt->pt.y, keypt->size, motion))
+			
+			if (sufficientMotion(current_frame, prev_frame, keypt->pt.x, keypt->pt.y, keypt->size))
 			{
 				debug_stream << "accepted motion of " << motion << " with scale " << keypt->size <<  endl;
 
@@ -206,9 +335,31 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_f
 					ftr.motion[i] = pointer_to_descriptor_row[i];
 				}
 
+				// MIP
+				vector<unsigned int> motion_desc;
+				extractMotionByMotionInterchangePatterns(current_frame, prev_frame, motion_desc, keypt->size, keypt->pt.x, keypt->pt.y);
+
+				for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)
+				{
+					ftr.appearance[i] = motion_desc[i];
+				}
+
+				// alternative descriptor here...
+				// the idea is such:
+				//
+				// take what we're currently using as a motion descriptor,
+				// and let's call it the appearance descriptor (this makes more sense).
+				// then, take the keypoint and build an 8-byte motion descriptor like this:
+				// take the SURF keypoint, resize patch to 64x64.  
+				// get that patch for frames i and i - 5.
+				// smooth each with a Gaussian and take every 8th pixel.
+				// then, do a binary comparison on these to get 64 bit values.
+				// 1 if the difference between them is above some threshold, 0 else.
+				// this gives us a nice even motion descriptor to use.
+
 				// gather metadata.
 				int action, person, video_number;
-				readMetadata(filename, action, video_number, person);
+				readMetadata(video_filename, action, video_number, person);
 
 				ftr.action = action;
 				ftr.video_number = video_number;
@@ -225,75 +376,18 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_f
 		} // at this point, gathered all the mofreak pts from the frame.
 		debug_stream << "kept " << features.size() << " keypoints total." << endl;
 
-
-		// display for comparison purposes...
-		cv::namedWindow("Comparison");
-		cv::namedWindow("Diff img");
-
-		// create new copy of frame.
-		cv::Mat comparison_frame = current_frame.clone();
-		cout << "SURF points: " << current_frame_keypts.size() << endl;
-
-		for (auto keypt = current_frame_keypts.begin(); keypt != current_frame_keypts.end(); ++keypt)
-		{
-			cv::circle(comparison_frame, keypt->pt, keypt->size/2, CV_RGB(200, 0, 0));
-			cv::circle(diff_img, keypt->pt, keypt->size/2, CV_RGB(200, 0, 0));
-		}
-		cout << "filename is " << filename << endl;
-		cout << "frame number is " << frame_num << endl;
-		
-		// also load mosift pts here so i can visualize and compare
-		vector<cv::KeyPoint> features_per_frame;
-
-		while (true)
-		{
-			if (feature->frame_number == frame_num)
-			{
-				cv::KeyPoint keypt;
-				keypt.pt = cv::Point2f(feature->x, feature->y);
-				keypt.size = feature->scale;
-				features_per_frame.push_back(keypt);
-
-				// move on to next mosift pt.
-				if (!mosift.readNextMoSIFTFeatures(feature))
-				{
-					break;
-				}
-			}
-			else
-			{
-				break; // break when done reading features for this frame.
-			}
-		}
-
-		cout << "MoSIFT pts: " << features_per_frame.size() << endl;
-		for (auto keypt = features_per_frame.begin(); keypt != features_per_frame.end(); ++keypt)
-		{
-			cv::circle(comparison_frame, keypt->pt, keypt->size * 6, CV_RGB(0, 0, 255));
-			cv::circle(diff_img, keypt->pt, keypt->size * 6, CV_RGB(0, 0, 255));
-		}
-
-		cv::imshow("Comparison", comparison_frame);
-		cv::imshow("Diff img", diff_img);
-		cv::waitKey();
-
-		current_frame_keypts.clear();
-		features_per_frame.clear();
-
-
 		frame_queue.push(current_frame.clone());
 		prev_frame = frame_queue.front();
 		frame_queue.pop();
 		frame_num++;
 	}
-	delete feature;
 
 	// in the end, print the mofreak file and reset the features for a new file.
-	std::string mofreak_file = filename;
-	mofreak_file.append(".mofreak");
 	debug_stream << "writing this many features: " << features.size() << endl;
 	debug_stream.close();
-	writeMoFREAKFeaturesToFile(mofreak_file);
+
+	cout << "Writing this mofreak file: " << mofreak_filename << endl;
+	writeMoFREAKFeaturesToFile(mofreak_filename);
 
 	if (clear_features_after_computation)
 		features.clear();
@@ -502,12 +596,12 @@ void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file)
 			<< " " << it->scale << " " << it->motion_x << " " << it->motion_y << " ";
 
 		// FREAK
-		/*for (int i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i) // 64
+		for (int i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)
 		{
-			int z = it->FREAK[i];
-			f << it->FREAK[i] << " ";
+			//int z = it->appearance[i];
+			f << it->appearance[i] << " ";
 			//f << toBinaryString(z) << " ";
-		}*/
+		}
 
 		// motion
 		for (int i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)//64; ++i)//128; ++i)
@@ -582,7 +676,6 @@ double MoFREAKUtilities::motionNormalizedEuclideanDistance(vector<unsigned int> 
 	return distance;
 }
 
-//void MoFREAKUtilities::readMetadata(QString filename, int &action, int &video_number, int &person)
 void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &video_number, int &person)
 {
 	//boost::filesystem::path file_path(filename.toStdString());
@@ -590,36 +683,27 @@ void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &vide
 	boost::filesystem::path file_name = file_path.filename();
 	std::string file_name_str = file_name.generic_string();
 	
-		//QStringList words = filename.split("\\");
-		//QString file_name = words[words.length() - 1];
-
 		// get the action.
-		//if (file_name.contains("boxing"))
 		if (boost::contains(file_name_str, "boxing"))
 		{
 			action = BOXING;
 		}
-		//else if (file_name.contains("walking"))
 		else if (boost::contains(file_name_str, "walking"))
 		{
 			action = WALKING;
 		}
-		//else if (file_name.contains("jogging"))
 		else if (boost::contains(file_name_str, "jogging"))
 		{
 			action = JOGGING;
 		}
-		//else if (file_name.contains("running"))
 		else if (boost::contains(file_name_str, "running"))
 		{
 			action = RUNNING;
 		}
-		//else if (file_name.contains("handclapping"))
 		else if (boost::contains(file_name_str, "handclapping"))
 		{
 			action = HANDCLAPPING;
 		}
-		//else if (file_name.contains("handwaving"))
 		else if (boost::contains(file_name_str, "handwaving"))
 		{
 			action = HANDWAVING;
@@ -635,57 +719,35 @@ void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &vide
 
 		// the person is the last 2 characters of the first section of the filename.
 		std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> person;
-		//person = atoi((filename_parts[0].substr(filename_parts[0].length() - 2, 2)).c_str());
 
 		// the video number is the last character of the 3rd section of the filename.
 		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
-		//video_number = atoi((filename_parts[2].substr(filename_parts[2].length() - 1, 1)).c_str());
-
-		/*
-		int first_underscore = file_name.indexOf("_");
-		QString person_string = file_name.mid(first_underscore - 2, 2);
-		person = person_string.toInt();
-
-		// get the video number.
-		int last_underscore = file_name.lastIndexOf("_");
-		QString video_string = file_name.mid(last_underscore - 1, 1);
-		video_number = video_string.toInt();
-		*/
 }
 
-//void MoFREAKUtilities::readMoFREAKFeatures(QString filename)
 void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 {
 	int action, video_number, person;
 	readMetadata(filename, action, video_number, person);
 
 	ifstream stream;
-	//stream.open(filename.toStdString());
 	stream.open(filename);
 	
 	while (!stream.eof())
 	{
-		if (features.size() == 1049869)
-		{
-			int xy = 0;
-			xy++;
-		}
 		// single feature
 		MoFREAKFeature ftr;
 		stream >> ftr.x >> ftr.y >> ftr.frame_number >> ftr.scale >> ftr.motion_x >> ftr.motion_y;
 	
-		// FREAK
-		
-		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)//64; ++i)
+		// appearanace
+		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)
 		{
 			unsigned int a;
 			stream >> a;
-			ftr.FREAK[i] = a;
+			ftr.appearance[i] = a;
 		}
 		
-
 		// motion
-		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)//64; ++i)//128; ++i)
+		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
 		{
 			unsigned int a;
 			stream >> a;
