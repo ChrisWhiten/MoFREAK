@@ -278,6 +278,11 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 			best_cluster_index = cluster;
 		}
 	}
+
+	query_appearance_descriptor.release();
+	cluster_appearance_descriptor.release();
+	query_motion_descriptor.release();
+	cluster_motion_descriptor.release();
 }
 void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score)
 {
@@ -313,6 +318,9 @@ void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &c
 			best_cluster_index = cluster;
 		}
 	}
+
+	query_SIFT_descriptor.release();
+	cluster_SIFT_descriptor.release();
 }
 
 cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &success)
@@ -359,7 +367,10 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 		// + 1 to that codeword
 		histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
 		success = true;
+		feature_vector.release();
 	}
+
+	input_file.close();
 
 	if (!success)
 		return histogram;
@@ -404,6 +415,8 @@ void BagOfWordsRepresentation::loadClusters()
 		}
 		++row;
 	}
+
+	cluster_file.close();
 }
 
 // when doing this, make sure all mofreak points for the video are in ONE file, to avoid missing cuts.
@@ -614,10 +627,6 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 
 void BagOfWordsRepresentation::computeBagOfWords()
 {
-
-	ofstream test("test.txt");
-	test << "computing" << endl;
-	test.close();
 	// open file streams to write data for SVM
 	ofstream hist_file("hist.txt");
 	ofstream label_file("label.txt");
@@ -659,6 +668,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	// word_1[-2:] is the person.
 	// word_2[:] should match one of the strings...
 	// word_3[1:] is the video number
+	cout << "parallel time" << endl;
 #pragma omp parallel for
 	for (int i = 0; i < files.size(); ++i)
 	{
@@ -706,6 +716,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 
 		// the video number is the last character of the 3rd section of the filename.
 		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
+		filename_parts.clear();
 
 		// now extract each mosift point and assign it to the correct codeword.
 		bool success;
@@ -721,13 +732,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		ss << (action + 1) << " ";
 		for (int col = 0; col < hist.cols; ++col)
 		{
-			ss << (col + 1) << ":" << hist.at<float>(0, col) << " ";
-
-			if (!(hist.at<float>(0, col) >= 0))
-			{
-				int zz = 0;
-				zz++;
-			}
+			ss << (int)(col + 1) << ":" << (float)hist.at<float>(0, col) << " ";
 		}
 		current_line = ss.str();
 		ss.str("");
@@ -759,6 +764,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 				hist_file << ",";
 		}
 		hist_file << std::endl;
+		hist.release();
 	}
 	hist_file.close();
 	label_file.close();
@@ -781,7 +787,14 @@ void BagOfWordsRepresentation::computeBagOfWords()
 	{
 		training_files[i]->close();
 		testing_files[i]->close();
+
+		delete training_files[i];
+		delete testing_files[i];
 	}
+
+	training_files.clear();
+	testing_files.clear();
+
 }
 
 BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim) : NUMBER_OF_CLUSTERS(num_clust),
@@ -803,7 +816,7 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &fil
 {
 	files = file_list;
 	loadClusters();
-	normalizeClusters();
+	//normalizeClusters(); [maybe put this back] [TODO]
 
 	// default values.
 	motion_descriptor_size = 8; 
@@ -822,4 +835,12 @@ void BagOfWordsRepresentation::setAppearanceDescriptor(unsigned int size, bool b
 {
 	appearance_is_binary = binary;
 	appearance_descriptor_size = size;
+}
+
+BagOfWordsRepresentation::~BagOfWordsRepresentation()
+{
+	clusters->release();
+	delete clusters;
+
+
 }

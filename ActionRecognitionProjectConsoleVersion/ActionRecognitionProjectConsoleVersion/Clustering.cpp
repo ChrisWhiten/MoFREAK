@@ -18,6 +18,9 @@
 		mx.row(row0).copyTo(m1);
 		mt.copyTo(mx.row(row0));
 		row0--;
+
+		m1.release();
+		mt.release();
 	 }
  }
 
@@ -31,12 +34,25 @@
 	appearance_is_binary = true;
  }
 
+ Clustering::~Clustering()
+ {
+	 data_pts->release();
+	 delete data_pts;
+
+	 centers->release();
+	 delete centers;
+
+	 labels.release();
+ }
+
  void Clustering::buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff, bool fix_class, int fixed_class)
  {
 	 // allocate data matrix.
 	 // + 3 for metadata
 	 int num_ftrs = mofreak_ftrs.size();
+	 cout << "allocating data_pts in builddatafrommofreaK" << endl;
 	 data_pts = new cv::Mat(num_ftrs, DIMENSIONALITY + 3, CV_32FC1);
+	 cout << "allocated" << endl;
 
 	 // convert mofreak pts into rows in the matrix
 	 for (unsigned int row = 0; row < num_ftrs; ++row)
@@ -64,10 +80,13 @@
 		// motion.
 		for (unsigned col = 0; col < motion_descriptor_size; ++col)
 		{
+			//cout << "feature motion size: " << ftr.motion.size() << endl;
 			data_pts->at<float>(row, col + appearance_descriptor_size + 3) = (float)ftr.motion[col];//67) = (float)ftr.motion[col]; // 67 = 3 + 64.
 		}
 		
 	 }
+
+	 cout << "converted into matrix of pts" << endl;
 
 	// sample points for computational efficiency.
 	if (sample_pts)

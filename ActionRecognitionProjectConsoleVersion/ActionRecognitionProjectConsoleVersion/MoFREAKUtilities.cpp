@@ -195,7 +195,7 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string filename, bool clear_f
 			{
 				debug_stream << "accepted motion of " << motion << " with scale " << keypt->size <<  endl;
 
-				MoFREAKFeature ftr;
+				MoFREAKFeature ftr(NUMBER_OF_BYTES_FOR_MOTION);
 				ftr.frame_number = frame_num;
 				ftr.scale = keypt->size;
 				ftr.x = keypt->pt.x;
@@ -337,7 +337,6 @@ vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float
 	return ret_val;
 }
 
-
 void MoFREAKUtilities::addMoSIFTFeatures(int frame, vector<cv::KeyPoint> &pts, cv::VideoCapture &capture)
 {
 	cv::Mat prev_frame;
@@ -368,7 +367,7 @@ void MoFREAKUtilities::addMoSIFTFeatures(int frame, vector<cv::KeyPoint> &pts, c
 		pointer_to_descriptor_row = descriptors.ptr<unsigned char>(keypoint_row);
 
 		// only take points with sufficient motion.
-		MoFREAKFeature ftr;
+		MoFREAKFeature ftr(NUMBER_OF_BYTES_FOR_MOTION);
 		ftr.frame_number = frame;
 		ftr.scale = keypt->size;
 		ftr.x = keypt->pt.x;
@@ -486,6 +485,7 @@ string MoFREAKUtilities::toBinaryString(unsigned int x)
 		ret_val.push_back((*it) ? '1' : '0');
 		ret_val.push_back(' ');
 	}
+	ret_vec.clear();
 
 	ret_val = ret_val.substr(0, ret_val.size() - 1);
 	return ret_val;
@@ -510,7 +510,7 @@ void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file)
 		}*/
 
 		// motion
-		for (int i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)//64; ++i)//128; ++i)
+		for (int i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
 		{
 			int z = it->motion[i];
 			f << z << " ";
@@ -582,44 +582,34 @@ double MoFREAKUtilities::motionNormalizedEuclideanDistance(vector<unsigned int> 
 	return distance;
 }
 
-//void MoFREAKUtilities::readMetadata(QString filename, int &action, int &video_number, int &person)
 void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &video_number, int &person)
 {
 	//boost::filesystem::path file_path(filename.toStdString());
 	boost::filesystem::path file_path(filename);
 	boost::filesystem::path file_name = file_path.filename();
 	std::string file_name_str = file_name.generic_string();
-	
-		//QStringList words = filename.split("\\");
-		//QString file_name = words[words.length() - 1];
 
 		// get the action.
-		//if (file_name.contains("boxing"))
 		if (boost::contains(file_name_str, "boxing"))
 		{
 			action = BOXING;
 		}
-		//else if (file_name.contains("walking"))
 		else if (boost::contains(file_name_str, "walking"))
 		{
 			action = WALKING;
 		}
-		//else if (file_name.contains("jogging"))
 		else if (boost::contains(file_name_str, "jogging"))
 		{
 			action = JOGGING;
 		}
-		//else if (file_name.contains("running"))
 		else if (boost::contains(file_name_str, "running"))
 		{
 			action = RUNNING;
 		}
-		//else if (file_name.contains("handclapping"))
 		else if (boost::contains(file_name_str, "handclapping"))
 		{
 			action = HANDCLAPPING;
 		}
-		//else if (file_name.contains("handwaving"))
 		else if (boost::contains(file_name_str, "handwaving"))
 		{
 			action = HANDWAVING;
@@ -635,43 +625,25 @@ void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &vide
 
 		// the person is the last 2 characters of the first section of the filename.
 		std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> person;
-		//person = atoi((filename_parts[0].substr(filename_parts[0].length() - 2, 2)).c_str());
 
 		// the video number is the last character of the 3rd section of the filename.
 		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
-		//video_number = atoi((filename_parts[2].substr(filename_parts[2].length() - 1, 1)).c_str());
 
-		/*
-		int first_underscore = file_name.indexOf("_");
-		QString person_string = file_name.mid(first_underscore - 2, 2);
-		person = person_string.toInt();
+		filename_parts.clear();
 
-		// get the video number.
-		int last_underscore = file_name.lastIndexOf("_");
-		QString video_string = file_name.mid(last_underscore - 1, 1);
-		video_number = video_string.toInt();
-		*/
 }
 
-//void MoFREAKUtilities::readMoFREAKFeatures(QString filename)
 void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 {
 	int action, video_number, person;
 	readMetadata(filename, action, video_number, person);
 
 	ifstream stream;
-	//stream.open(filename.toStdString());
 	stream.open(filename);
-	
 	while (!stream.eof())
 	{
-		if (features.size() == 1049869)
-		{
-			int xy = 0;
-			xy++;
-		}
 		// single feature
-		MoFREAKFeature ftr;
+		MoFREAKFeature ftr(NUMBER_OF_BYTES_FOR_MOTION);
 		stream >> ftr.x >> ftr.y >> ftr.frame_number >> ftr.scale >> ftr.motion_x >> ftr.motion_y;
 	
 		// FREAK
@@ -685,12 +657,20 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 		
 
 		// motion
-		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)//64; ++i)//128; ++i)
+		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
 		{
 			unsigned int a;
 			stream >> a;
 			ftr.motion[i] = a;
 		}
+
+		// TEMP.  THIS IS FOR AN EXPERIMENT.  DELETE LATER. [TODO]
+		for (unsigned i = 0; i < 64 - NUMBER_OF_BYTES_FOR_MOTION; ++i)
+		{
+			unsigned int a;
+			stream >> a;
+		}
+
 
 		// metadata
 		ftr.action = action;
@@ -703,7 +683,6 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 	stream.close();
 }
 
-
 vector<MoFREAKFeature> MoFREAKUtilities::getMoFREAKFeatures()
 {
 	return features;
@@ -715,4 +694,15 @@ void MoFREAKUtilities::setAllFeaturesToLabel(int label)
 	{
 		features[i].action = label;
 	}
+}
+
+MoFREAKUtilities::MoFREAKUtilities(int motion_bytes)
+{
+	NUMBER_OF_BYTES_FOR_MOTION = motion_bytes;
+}
+
+MoFREAKUtilities::~MoFREAKUtilities()
+{
+	recent_frame.release();
+	features.clear();
 }

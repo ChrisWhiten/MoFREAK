@@ -405,7 +405,7 @@ void SVMInterface::read_problem(const std::string filename)
 	if(param.kernel_type == PRECOMPUTED)
 		for(i=0;i<prob.l;i++)
 		{
-			if (prob.x[i][0].index != 0)
+			if (prob.x[i][0].index != 0) 
 			{
 				fprintf(stderr,"Wrong input format: first column must be 0:sample_serial_number\n");
 				exit(1);
@@ -418,6 +418,16 @@ void SVMInterface::read_problem(const std::string filename)
 		}
 
 	fclose(fp);
+	//std::cout << " deleting lots" << std::endl;
+	//delete fp;
+	//std::cout << "deleted fp and now endptr" << std::endl;
+	//delete endptr;
+	//std::cout << "deleted endptr and now idx" << std::endl;
+	//delete idx;
+	//std::cout << " deleted up to idx but not val" << std::endl;
+	delete val;
+	delete label;
+	//std::cout << " deleted all" << std::endl;
 }
 
 void SVMInterface::setParameters(svm_parameter *param, bool regressor)
@@ -477,6 +487,10 @@ void SVMInterface::trainModel(std::string training_data_file, std::string model_
 	model = svm_train(&prob, &param);
 	svm_save_model(model_file_name.c_str(), model);
 	std::cout << "Model trained." << std::endl;
+
+	std::cout << "deleting..";
+	//delete error_msg;
+	std::cout << " error msg" << std::endl;
 }
 
 /*
@@ -534,8 +548,26 @@ double SVMInterface::testModel(std::string testing_data_file, std::string model_
 	double accuracy = predict(testing_data, output);
 	
 	fclose(output);
+	fclose(testing_data);
+	//delete output;
+	//delete testing_data;
+	
+	svm_free_and_destroy_model(&model);
+	svm_destroy_param(&param);
 
 	return accuracy;
+}
+
+SVMInterface::~SVMInterface()
+{
+	//delete model;
+	//delete model2;
+	std::cout << "deleting xspace " << std::endl;
+	delete x_space;
+	std::cout << "deleting x " << std::endl;
+	delete x;
+	std::cout << "deleting line" << std::endl;
+	delete line;
 }
 
 int SVMInterface::max_line_len = 1024;

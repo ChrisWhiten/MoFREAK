@@ -21,7 +21,19 @@ using namespace std;
 
 struct MoFREAKFeature
 {
-	MoFREAKFeature() { using_image_difference = false; } // just to set the default value, for compatibility.
+	MoFREAKFeature(int motion_bytes) 
+	{ 
+		for (int i = 0; i < motion_bytes; ++i)
+		{
+			motion.push_back(0);
+		}
+		using_image_difference = false; 
+	}
+
+	~MoFREAKFeature()
+	{
+		motion.clear();
+	}
 
 	bool using_image_difference;
 	float x;
@@ -33,7 +45,8 @@ struct MoFREAKFeature
 	int frame_number;
 	unsigned int FREAK[1];
 	//unsigned int FREAK[APPEARANCE_BYTES];
-	unsigned int motion[MOTION_BYTES];
+	//unsigned int motion[MOTION_BYTES];
+	std::vector<unsigned int> motion;
 
 	int action;
 	int video_number;
@@ -43,12 +56,16 @@ struct MoFREAKFeature
 class MoFREAKUtilities
 {
 public:
+	MoFREAKUtilities(int motion_bytes);
+	~MoFREAKUtilities();
 	void readMoFREAKFeatures(std::string filename);
 	vector<MoFREAKFeature> getMoFREAKFeatures();
 	void buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, string video_path, string mofreak_path);
 	void writeMoFREAKFeaturesToFile(string output_file);
 	void computeMoFREAKFromFile(std::string filename, bool clear_features_after_computation);
 	void setAllFeaturesToLabel(int label);
+
+	int NUMBER_OF_BYTES_FOR_MOTION;
 
 private:
 	string toBinaryString(unsigned int x);
@@ -66,7 +83,7 @@ private:
 	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
 	vector<MoFREAKFeature> features;
-	static const int NUMBER_OF_BYTES_FOR_MOTION = MOTION_BYTES;
+	//static const int NUMBER_OF_BYTES_FOR_MOTION = MOTION_BYTES;
 	static const int NUMBER_OF_BYTES_FOR_APPEARANCE = APPEARANCE_BYTES;
 	cv::Mat recent_frame;
 };
