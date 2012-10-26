@@ -72,9 +72,9 @@
 		data_pts->at<float>(row, 2) = ftr.video_number;
 
 		// appearance.
-		for (unsigned col = 0; col < appearance_descriptor_size; ++col)//64; ++col)
+		for (unsigned col = 0; col < appearance_descriptor_size; ++col)
 		{
-			data_pts->at<float>(row, col + 3) = (float)ftr.FREAK[col];
+			data_pts->at<float>(row, col + 3) = (float)ftr.appearance[col];
 		}
 
 		// motion.

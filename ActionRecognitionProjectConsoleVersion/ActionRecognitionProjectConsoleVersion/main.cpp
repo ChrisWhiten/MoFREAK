@@ -28,7 +28,7 @@ string MOSIFT_DIR, MOFREAK_PATH, VIDEO_PATH, SVM_PATH, MOFREAK_NEG_PATH, MOFREAK
 //string MOFREAK_NEG_PATH = "C:/data/TRECVID/negative_mofreak_examples/";
 //string MOFREAK_POS_PATH = "C:/data/TRECVID/positive_mofreak_examples/";
 
-int FEATURE_DIMENSIONALITY = 8;
+int FEATURE_DIMENSIONALITY = 16;//8;
 int NUM_CLUSTERS = 1000;
 int NUMBER_OF_PEOPLE = 25;
 int NUM_CLASSES = 2;//1;//2;
@@ -134,13 +134,13 @@ void clusterKTH()
 
 	Clustering *clustering = new Clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, 0, NUM_CLASSES, possible_classes);
 	clustering->setMotionDescriptor(NUM_MOTION_BYTES, true);
+	clustering.setAppearanceDescriptor(8, true);
+	clustering.setMotionDescriptor(8, true);
 
 	cout << "Formatting features..." << endl;
-
 	clustering->buildDataFromMoFREAK(mofreak_ftrs, false, false);
 
 	cout << "Clustering..." << endl;
-
 	//clustering.clusterWithKMeans();
 	clustering->randomClusters();
 
@@ -654,6 +654,36 @@ void computeSVMResponses()
 	}
 }
 
+void computeMoFREAKFiles()
+{
+	directory_iterator end_iter;
+
+	cout << "Here are the videos: " << VIDEO_PATH << endl;
+	cout << "MoFREAK files will go here: " << MOFREAK_PATH << endl;
+	for (directory_iterator dir_iter(VIDEO_PATH); dir_iter != end_iter; ++dir_iter)
+	{
+		if (is_regular_file(dir_iter->status()))
+		{
+			// parse mosift files so first x characters gets us the video name.
+			path current_file = dir_iter->path();
+			string video_path = current_file.generic_string();
+			string video_filename = current_file.filename().generic_string();
+
+			if ((video_filename.substr(video_filename.length() - 3, 3) == "avi"))
+			{
+
+				cout << "filename: " << video_filename << endl;
+				cout << "AVI: " << VIDEO_PATH << "/" << video_filename << endl;
+
+				string video = VIDEO_PATH + "/" + video_filename;
+				string mofreak_path = MOFREAK_PATH + "/" + video_filename + ".mofreak";
+
+				mofreak.computeMoFREAKFromFile(video, mofreak_path, true);
+			}
+		}
+	}
+}
+
 void main()
 {
 	mofreak = new MoFREAKUtilities(NUM_MOTION_BYTES);
@@ -712,7 +742,8 @@ void main()
 	else if (state == POINT_DETECTION)
 	{
 		start = clock();
-		mofreak->computeMoFREAKFromFile("C:/data/kth/all_in_one/videos/person13_jogging_d3_uncomp.avi", true);
+		computeMoFREAKFiles();
+		//mofreak.computeMoFREAKFromFile("C:/data/kth/all_in_one/videos/person13_jogging_d3_uncomp.avi", true);
 		end = clock();
 	}
 
@@ -767,7 +798,8 @@ void main()
 			mofreak_ftrs.clear();
 
 			start = clock();
-			convertMoSIFTToMoFREAK();
+		computeMoFREAKFiles();
+		//convertMoSIFTToMoFREAK();
 			if (TRECVID)
 			{
 				pickClusters();
