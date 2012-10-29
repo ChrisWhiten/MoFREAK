@@ -21,16 +21,11 @@ using namespace std;
 
 struct MoFREAKFeature
 {
-	MoFREAKFeature(int motion_bytes, int appearance_bytes) 
+	MoFREAKFeature(int motion_bytes) 
 	{ 
 		for (int i = 0; i < motion_bytes; ++i)
 		{
 			motion.push_back(0);
-		}
-
-		for (int i = 0; i < appearance_bytes; ++i)
-		{
-			appearance.push_back(0);
 		}
 		using_image_difference = false; 
 	}
@@ -48,14 +43,16 @@ struct MoFREAKFeature
 	float motion_y;
 
 	int frame_number;
-	//unsigned int FREAK[1];
+<<<<<<< HEAD
+	unsigned int FREAK[1];
 	//unsigned int FREAK[APPEARANCE_BYTES];
 	//unsigned int motion[MOTION_BYTES];
 	std::vector<unsigned int> motion;
-	std::vector<unsigned int> appearance;
+=======
 	//unsigned int appearance[1];
-	//unsigned int appearance[APPEARANCE_BYTES];
-	//unsigned int motion[MOTION_BYTES];
+	unsigned int appearance[APPEARANCE_BYTES];
+	unsigned int motion[MOTION_BYTES];
+>>>>>>> 345a38bf049fd1ba6bf4792eda281146679bdc8a
 
 	int action;
 	int video_number;
@@ -65,7 +62,7 @@ struct MoFREAKFeature
 class MoFREAKUtilities
 {
 public:
-	MoFREAKUtilities(int motion_bytes, int appearance_bytes);
+	MoFREAKUtilities(int motion_bytes);
 	~MoFREAKUtilities();
 	void readMoFREAKFeatures(std::string filename);
 	vector<MoFREAKFeature> getMoFREAKFeatures();
@@ -75,7 +72,6 @@ public:
 	void setAllFeaturesToLabel(int label);
 
 	int NUMBER_OF_BYTES_FOR_MOTION;
-	int NUMBER_OF_BYTES_FOR_APPEARANCE;
 
 private:
 	
@@ -103,7 +99,7 @@ private:
 
 	vector<MoFREAKFeature> features;
 	//static const int NUMBER_OF_BYTES_FOR_MOTION = MOTION_BYTES;
-	//static const int NUMBER_OF_BYTES_FOR_APPEARANCE = APPEARANCE_BYTES;
+	static const int NUMBER_OF_BYTES_FOR_APPEARANCE = APPEARANCE_BYTES;
 	cv::Mat recent_frame;
 };
 #endif

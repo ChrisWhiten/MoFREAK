@@ -81,7 +81,7 @@
 		for (unsigned col = 0; col < motion_descriptor_size; ++col)
 		{
 			//cout << "feature motion size: " << ftr.motion.size() << endl;
-			data_pts->at<float>(row, col + appearance_descriptor_size + 3) = (float)ftr.motion[col];//67) = (float)ftr.motion[col]; // 67 = 3 + 64.
+			data_pts->at<float>(row, col + appearance_descriptor_size + 3) = (float)ftr.motion[col];
 		}
 		
 	 }

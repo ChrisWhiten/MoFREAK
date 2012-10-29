@@ -1,4 +1,5 @@
 #include "BagOfWordsRepresentation.h"
+#include <exception>
 
 // vanilla string split operation.  Direct copy-paste from stack overflow
 // source: http://stackoverflow.com/questions/236129/splitting-a-string-in-c
@@ -119,67 +120,8 @@ unsigned int BagOfWordsRepresentation::hammingDistance(cv::Mat &a, cv::Mat &b)
 	return hamming_distance;
 }
 
-void BagOfWordsRepresentation::findBestMatchFREAKAndFrameDifference(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score)
-{
-	// constants
-	const float MOTION_EUCLID_DIST_NORM = 255; //?
-	const int FREAK_HAMMING_DIST_NORM = 512;
 
-	const int FREAK_START_INDEX = 0;
-	const int FREAK_END_INDEX = 64;
-
-	const int MOTION_START_INDEX = 64;
-	const int MOTION_END_INDEX = 65;//?
-
-	// base case: initialize with the score/index of the 0th cluster.
-	best_cluster_index = 0;
-
-	// start with the hamming distance over FREAK points.
-	float FREAK_distance = 0.0;
-
-	cv::Mat query_FREAK_descriptor = feature_vector(cv::Range(0, 1), cv::Range(FREAK_START_INDEX, FREAK_END_INDEX));
-	cv::Mat cluster_FREAK_descriptor = clusters(cv::Range(0, 1), cv::Range(FREAK_START_INDEX, FREAK_END_INDEX));
-
-	FREAK_distance = hammingDistance(query_FREAK_descriptor, cluster_FREAK_descriptor);
-	FREAK_distance /= FREAK_HAMMING_DIST_NORM;
-
-	cv::Mat query_motion_descriptor = feature_vector(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
-	cv::Mat cluster_motion_descriptor = clusters(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
-
-	float euclidean_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
-	euclidean_distance /= MOTION_EUCLID_DIST_NORM;
-
-	float final_dist = euclidean_distance + FREAK_distance;
-	best_cluster_score = final_dist;
-
-	// now the remaining points.
-	for (int cluster = 1; cluster < clusters.rows; ++cluster)
-	{
-		final_dist = 0.0;
-		euclidean_distance = 0.0;
-		FREAK_distance = 0.0;
-
-		cluster_FREAK_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(FREAK_START_INDEX, FREAK_END_INDEX));
-		cluster_motion_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
-
-		FREAK_distance = hammingDistance(query_FREAK_descriptor, cluster_FREAK_descriptor);
-		FREAK_distance /= FREAK_HAMMING_DIST_NORM;
-
-		euclidean_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
-		euclidean_distance /= MOTION_EUCLID_DIST_NORM;
-
-		final_dist = euclidean_distance + FREAK_distance;
-
-		// compare to best.
-		if (final_dist < best_cluster_score)
-		{
-			best_cluster_score = final_dist;
-			best_cluster_index = cluster;
-		}
-	}
-}
-
-void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score)
+void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score)
 {
 	// constants
 	const unsigned int APPEARANCE_HAMMING_DIST_NORM = 99999999;//1024;//= appearance_descriptor_size * 8;
@@ -188,7 +130,6 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 	const unsigned int MOTION_HAMMING_DIST_NORM = motion_descriptor_size * 8;
 	const unsigned int MOTION_START_INDEX = appearance_descriptor_size;
 	const unsigned int MOTION_END_INDEX = appearance_descriptor_size + motion_descriptor_size;
-
 
 	// clusters a pre-normalized.  normalize feature vector.
 	normalizeMotionOfFeature(feature_vector);
@@ -200,7 +141,6 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 	float motion_distance = 0.0;
 
 	// Compute the distance between the appearance components
-	
 	cv::Mat query_appearance_descriptor, cluster_appearance_descriptor;
 	query_appearance_descriptor = feature_vector(cv::Range(0, 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
 	cluster_appearance_descriptor = clusters(cv::Range(0, 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
@@ -221,7 +161,7 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 	query_motion_descriptor = feature_vector(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
 	cluster_motion_descriptor = clusters(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
 
-	if (motion_is_binary)
+	if (motion_is_binary && (motion_descriptor_size > 0))
 	{
 		motion_distance = hammingDistance(query_motion_descriptor, cluster_motion_descriptor);
 		motion_distance /= MOTION_HAMMING_DIST_NORM;
@@ -231,6 +171,7 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 		motion_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
 	}
 
+	appearance_distance = 0;
 	float final_dist = appearance_distance + motion_distance;
 	best_cluster_score = final_dist;
 
@@ -246,7 +187,6 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 		cluster_motion_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
 
 		// Appearance distance.
-		
 		if (appearance_is_binary && (appearance_descriptor_size > 0))
 		{
 			appearance_distance = hammingDistance(query_appearance_descriptor, cluster_appearance_descriptor);
@@ -256,10 +196,9 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 		{
 			appearance_distance = standardEuclideanDistance(query_appearance_descriptor, cluster_appearance_descriptor);
 		}
-		
 
 		// Motion distance.
-		if (motion_is_binary)
+		if (motion_is_binary && (motion_descriptor_size > 0))
 		{
 			motion_distance = hammingDistance(query_motion_descriptor, cluster_motion_descriptor);
 			motion_distance /= MOTION_HAMMING_DIST_NORM;
@@ -269,6 +208,7 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 			motion_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
 		}
 
+		appearance_distance = 0;
 		final_dist = appearance_distance + motion_distance;
 
 		// If we have a new shortest distance, store that.
@@ -284,45 +224,6 @@ void BagOfWordsRepresentation::findBestMatchFREAKAndOpticalFlow(cv::Mat &feature
 	query_motion_descriptor.release();
 	cluster_motion_descriptor.release();
 }
-void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score)
-{
-	// base case: initialize with the score/index of the 0th cluster.
-	best_cluster_index = 0;
-
-	// euclidean distance.
-	float euc_distance = 0.0;
-
-	cv::Mat query_SIFT_descriptor = feature_vector(cv::Range(0, 1), cv::Range(0, 128));
-	cv::Mat cluster_SIFT_descriptor = clusters(cv::Range(0, 1), cv::Range(0, 128));
-
-	euc_distance = standardEuclideanDistance(query_SIFT_descriptor, cluster_SIFT_descriptor);
-
-	best_cluster_score = euc_distance;
-
-	// now the remaining points.
-	for (unsigned cluster = 1; cluster < clusters.rows; ++cluster)
-	{
-		euc_distance = 0.0;
-		for (unsigned int i = 0; i < feature_vector.cols; ++i)
-		{
-			float a_i = feature_vector.at<float>(0, i);
-			float b_i = clusters.at<float>(cluster, i);
-			euc_distance += ((a_i - b_i) * (a_i - b_i));
-		}
-		euc_distance = sqrt(euc_distance);
-
-		// compare to best.
-		if (euc_distance < best_cluster_score)
-		{
-			best_cluster_score = euc_distance;
-			best_cluster_index = cluster;
-		}
-	}
-
-	query_SIFT_descriptor.release();
-	cluster_SIFT_descriptor.release();
-}
-
 cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &success)
 {
 	success = false;
@@ -361,7 +262,7 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 		int best_cluster_index;
 		float best_cluster_score;
 		
-		findBestMatchFREAKAndOpticalFlow(feature_vector, *clusters, best_cluster_index, best_cluster_score);
+		findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
 
 
 		// + 1 to that codeword
@@ -503,7 +404,7 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 				int best_cluster_index;
 				float best_cluster_score;
 		
-				findBestMatchFREAKAndOpticalFlow(*it, *clusters, best_cluster_index, best_cluster_score);
+				findBestMatch(*it, *clusters, best_cluster_index, best_cluster_score);
 
 				// + 1 to that codeword
 				new_histogram.at<float>(0, best_cluster_index) = new_histogram.at<float>(0, best_cluster_index) + 1;
@@ -627,9 +528,10 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 
 void BagOfWordsRepresentation::computeBagOfWords()
 {
-	// open file streams to write data for SVM
-	ofstream hist_file("hist.txt");
-	ofstream label_file("label.txt");
+	/*
+	Open file streams for all leave-one-out
+	possibilities for SVM evaluation.
+	*/
 
 	vector<ofstream *> training_files;
 	vector<ofstream *> testing_files;
@@ -662,12 +564,15 @@ void BagOfWordsRepresentation::computeBagOfWords()
 
 	}
 
-	// for each file, find the action + person number + video number
-	// person01_boxing_d2_uncomp.txt....
-	// So, split it on the underscore.
-	// word_1[-2:] is the person.
-	// word_2[:] should match one of the strings...
-	// word_3[1:] is the video number
+	/*
+	For each file, find the action + person number + video number
+	person01_boxing_d2_uncomp.txt....
+	So, split it on the underscore.
+	word_1[-2:] is the person.
+	word_2[:] should match one of the strings...
+	word_3[1:] is the video number
+	*/
+	
 	cout << "parallel time" << endl;
 #pragma omp parallel for
 	for (int i = 0; i < files.size(); ++i)
@@ -708,24 +613,39 @@ void BagOfWordsRepresentation::computeBagOfWords()
 			action = HANDWAVING; // hopefully we never miss this?  Just giving a default value. 
 		}
 
-		// parse the filename...
 		std::vector<std::string> filename_parts = split(file_name_str, '_');
-
-		// the person is the last 2 characters of the first section of the filename.
 		std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> person;
-
-		// the video number is the last character of the 3rd section of the filename.
 		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
 		filename_parts.clear();
 
-		// now extract each mosift point and assign it to the correct codeword.
+		/*
+		Iterate over each feature and assign it to the closest codeword.
+		These assignments will build a histogram to be used
+		as an SVM feature.
+		*/
+
+		//cout << "Building histogram..." << endl;
 		bool success;
-		cv::Mat hist = buildHistogram(files[i], success);
+		cv::Mat hist;
+		try
+		{
+			hist = buildHistogram(files[i], success);
+		}
+		catch (cv::Exception &e)
+		{
+			cout << "Error: " << e.what() << endl;
+			exit(1);
+		}
 
 		if (!success)
 			continue;
 
-		// prepare line to be written to file.
+		/*
+		Prepare each histogram to be written as a line to multiple files.
+		It gets assigned to each training file, except for the training
+		file where the person id matches that leave-one-out iteration
+		*/
+
 		stringstream ss;
 		string current_line;
 
@@ -738,49 +658,65 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		ss.str("");
 		ss.clear();
 
-		// print output to correct files. libsvm-ready
 		for (int p = 0; p < NUMBER_OF_PEOPLE; ++p)
 		{
 			if ((p + 1) == person)
 			{
-				// to print histogram to testing file.  leave this one out!
 				testing_file_lines[p].push_back(current_line);
 			}
-
-			// this shouldn't be left out. print to training file.
 			else
 			{
 				training_file_lines[p].push_back(current_line);
 			}
 		}
-
-		// now write to old style files.
-		label_file << action + 1 << "," << person << "," << video_number << std::endl;
-
-		for (int col = 0; col < hist.cols; ++col)
-		{
-			hist_file << hist.at<float>(0, col);
-			if (col < hist.cols - 1)
-				hist_file << ",";
-		}
-		hist_file << std::endl;
-		hist.release();
 	}
-	hist_file.close();
-	label_file.close();
 
+	cout << "done being parallel" << endl;
+
+	/*
+	Finally, after all of the BOW features have been computed,
+	we write them to the corresponding files.
+	This is outside of the parallelized loop,
+	since writing to a file isn't thread-safe.
+	*/
+
+	if (training_file_lines.size() != NUMBER_OF_PEOPLE || testing_file_lines.size() != NUMBER_OF_PEOPLE)
+	{
+		cout << "Why on earth?" << endl;
+		exit(1);
+	}
 	for (int i = 0; i < NUMBER_OF_PEOPLE; ++i)
 	{
+		cout << "num lines: " << training_file_lines[i].size() << endl;
 		for (unsigned line = 0; line < training_file_lines[i].size(); ++line)
 		{
-			*training_files[i] << training_file_lines[i][line] << endl;
+			try
+			{
+				*training_files[i] << training_file_lines[i][line] << endl;
+			}
+			catch (exception &e)
+			{
+				cout << "Error: " << e.what() << endl;
+				exit(1);
+			}
 		}
 		
+		cout << "num lines: " << testing_file_lines[i].size() << endl;
 		for (unsigned line = 0; line < testing_file_lines[i].size(); ++line)
 		{
-			*testing_files[i] << testing_file_lines[i][line] << endl;
+			try
+			{
+				*testing_files[i] << testing_file_lines[i][line] << endl;
+			}
+			catch (exception &e)
+			{
+				cout << "Error: " << e.what() << endl;
+				exit(1);
+			}
 		}
 	}
+
+	cout << "Wrote to files." << endl;
 
 	// close the libsvm training and testing files.
 	for (int i = 0; i < NUMBER_OF_PEOPLE; ++i)
@@ -792,9 +728,12 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		delete testing_files[i];
 	}
 
+	cout << "Closed the files. " << endl;
+
 	training_files.clear();
 	testing_files.clear();
 
+	cout << "Cleared..." << endl;
 }
 
 BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim) : NUMBER_OF_CLUSTERS(num_clust),

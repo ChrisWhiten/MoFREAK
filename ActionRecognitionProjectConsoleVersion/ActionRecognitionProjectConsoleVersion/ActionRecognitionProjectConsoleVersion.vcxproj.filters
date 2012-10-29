@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="agaststuff">
+      <UniqueIdentifier>{7781cc4c-e2b1-4576-a11b-6f5d98f60459}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="briskstuff">
+      <UniqueIdentifier>{4abdf9dd-b54c-46d2-a7d7-e409c61fceb3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -39,6 +45,39 @@
     <ClCompile Include="MoSIFTUtilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AstDetector.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="agast7_12s_nms.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="agast7_12s.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="agast7_12d_nms.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="agast7_12d.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="agast5_8_nms.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="agast5_8.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="nonMaximumSuppression.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="oast9_16.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="oast9_16_nms.cc">
+      <Filter>agaststuff</Filter>
+    </ClCompile>
+    <ClCompile Include="brisk.cpp">
+      <Filter>briskstuff</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BagOfWordsRepresentation.h">
@@ -61,6 +100,30 @@
     </ClInclude>
     <ClInclude Include="SVMInterface.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="agast7_12s.h">
+      <Filter>agaststuff</Filter>
+    </ClInclude>
+    <ClInclude Include="agast7_12d.h">
+      <Filter>agaststuff</Filter>
+    </ClInclude>
+    <ClInclude Include="agast5_8.h">
+      <Filter>agaststuff</Filter>
+    </ClInclude>
+    <ClInclude Include="AstDetector.h">
+      <Filter>agaststuff</Filter>
+    </ClInclude>
+    <ClInclude Include="cvWrapper.h">
+      <Filter>agaststuff</Filter>
+    </ClInclude>
+    <ClInclude Include="oast9_16.h">
+      <Filter>agaststuff</Filter>
+    </ClInclude>
+    <ClInclude Include="brisk.h">
+      <Filter>briskstuff</Filter>
+    </ClInclude>
+    <ClInclude Include="hammingsse.hpp">
+      <Filter>briskstuff</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

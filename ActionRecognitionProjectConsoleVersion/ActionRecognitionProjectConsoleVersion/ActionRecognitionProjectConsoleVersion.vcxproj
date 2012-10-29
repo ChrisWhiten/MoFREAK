@@ -39,7 +39,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\Projects\Libraries\boost\boost_1_51;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Projects\Libraries\boost\boost_1_51;C:\Projects\brisk\include;C:\Projects\brisk\thirdparty\agast\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LibraryPath>C:\Projects\Libraries\boost\boost_1_51\lib;$(LibraryPath)</LibraryPath>
@@ -76,20 +76,39 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="agast5_8.cc" />
+    <ClCompile Include="agast5_8_nms.cc" />
+    <ClCompile Include="agast7_12d.cc" />
+    <ClCompile Include="agast7_12d_nms.cc" />
+    <ClCompile Include="agast7_12s.cc" />
+    <ClCompile Include="agast7_12s_nms.cc" />
+    <ClCompile Include="AstDetector.cc" />
     <ClCompile Include="BagOfWordsRepresentation.cpp" />
+    <ClCompile Include="brisk.cpp" />
     <ClCompile Include="Clustering.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MoFREAKUtilities.cpp" />
     <ClCompile Include="MoSIFTUtilities.cpp" />
+    <ClCompile Include="nonMaximumSuppression.cc" />
+    <ClCompile Include="oast9_16.cc" />
+    <ClCompile Include="oast9_16_nms.cc" />
     <ClCompile Include="svm.cpp" />
     <ClCompile Include="SVMInterface.cpp" />
     <ClCompile Include="svm_interface.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="agast5_8.h" />
+    <ClInclude Include="agast7_12d.h" />
+    <ClInclude Include="agast7_12s.h" />
+    <ClInclude Include="AstDetector.h" />
     <ClInclude Include="BagOfWordsRepresentation.h" />
+    <ClInclude Include="brisk.h" />
     <ClInclude Include="Clustering.h" />
+    <ClInclude Include="cvWrapper.h" />
+    <ClInclude Include="hammingsse.hpp" />
     <ClInclude Include="MoFREAKUtilities.h" />
     <ClInclude Include="MoSIFTUtilities.h" />
+    <ClInclude Include="oast9_16.h" />
     <ClInclude Include="OpenCVToQtInterfacing.h" />
     <ClInclude Include="svm.h" />
     <ClInclude Include="SVMInterface.h" />
