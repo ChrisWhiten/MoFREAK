@@ -24,6 +24,17 @@
 	 }
  }
 
+ Clustering::~Clustering()
+ {
+	 data_pts->release();
+	 delete data_pts;
+
+	 centers->release();
+	 delete centers;
+
+	 labels.release();
+ }
+
  Clustering::Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes) : DIMENSIONALITY(dim), NUMBER_OF_CLUSTERS(num_clust), 
 	 NUMBER_OF_POINTS_TO_SAMPLE(num_pts), NUMBER_OF_CLASSES(num_classes)
  {
@@ -42,9 +53,7 @@
  {
 	 if (data_pts)
 	 {
-		 cout << "deletin.." << endl;
 		 delete data_pts;
-		 cout << " deleted." << endl;
 	 }
 
 	 // allocate data matrix.
@@ -155,9 +164,9 @@
 	shuffleCVMat(*data_pts);
 	shuffleCVMat(*data_pts);
 	shuffleCVMat(*data_pts);
-	cout << "shuffled" << endl;
+	/*cout << "shuffled" << endl;
 	cout << data_pts->rows << endl;
-	cout << data_pts->cols << endl;
+	cout << data_pts->cols << endl;*/
 
 	// sample an even number of points from each class to keep the classes balanced.
 	const int CLUSTERS_PER_CLASS = NUMBER_OF_CLUSTERS/NUMBER_OF_CLASSES;
@@ -170,7 +179,7 @@
 		{
 			if (((unsigned int)data_pts->at<float>(row, 0) == *c) || only_one_class)
 			{
-				cout << "sampling" << sampled_from_this_class << "/" << CLUSTERS_PER_CLASS << endl;
+				//cout << "sampling" << sampled_from_this_class << "/" << CLUSTERS_PER_CLASS << endl;
 				// sample this point.
 				// 3 metadata parameters at the start...?
 				for (unsigned col = 3; col < data_pts->cols; ++col)

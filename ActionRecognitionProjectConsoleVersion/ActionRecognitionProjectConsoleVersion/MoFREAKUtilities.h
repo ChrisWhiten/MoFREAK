@@ -45,11 +45,6 @@ struct MoFREAKFeature
 	int frame_number;
 	std::vector<unsigned int> motion;
 	std::vector<unsigned int> appearance;
-	//unsigned int appearance[1];
-	//unsigned int appearance[APPEARANCE_BYTES];
-	//unsigned int motion[MOTION_BYTES];
-	//unsigned int motion[1];
->>>>>>> 345a38bf049fd1ba6bf4792eda281146679bdc8a
 
 	int action;
 	int video_number;
@@ -97,7 +92,7 @@ private:
 	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
 	std::deque<MoFREAKFeature> features; // using deque because I'm running into memory issues..
-	//static const int NUMBER_OF_BYTES_FOR_MOTION = MOTION_BYTES;
+	static const int NUMBER_OF_BYTES_FOR_MOTION = MOTION_BYTES;
 	static const int NUMBER_OF_BYTES_FOR_APPEARANCE = APPEARANCE_BYTES;
 	cv::Mat recent_frame;
 

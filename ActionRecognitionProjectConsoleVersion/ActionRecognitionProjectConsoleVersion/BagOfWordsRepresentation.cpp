@@ -1204,7 +1204,6 @@ void BagOfWordsRepresentation::computeBagOfWords(string SVM_PATH, string MOFREAK
 			// video number.. not sure if useful for this dataset.
 			std::stringstream(filename_parts[0]) >> video_number;
 		}
-		filename_parts.clear();
 
 		// now extract each mosift point and assign it to the correct codeword.
 		bool success;

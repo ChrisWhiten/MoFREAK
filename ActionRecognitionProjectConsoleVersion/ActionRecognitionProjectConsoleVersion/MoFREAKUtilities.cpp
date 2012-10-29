@@ -1031,11 +1031,13 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 		}
 
 		// TEMP.  THIS IS FOR AN EXPERIMENT.  DELETE LATER. [TODO]
+		/*
 		for (unsigned i = 0; i < 64 - NUMBER_OF_BYTES_FOR_MOTION; ++i)
 		{
 			unsigned int a;
 			stream >> a;
 		}
+		*/
 
 
 		// metadata
@@ -1067,13 +1069,17 @@ void MoFREAKUtilities::clearFeatures()
 	features.clear();
 }
 
+/*
 MoFREAKUtilities::MoFREAKUtilities(int motion_bytes)
 {
 	NUMBER_OF_BYTES_FOR_MOTION = motion_bytes;
 }
+*/
 
+/*
 MoFREAKUtilities::~MoFREAKUtilities()
 {
 	recent_frame.release();
 	features.clear();
 }
+*/
