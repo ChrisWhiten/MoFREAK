@@ -1001,7 +1001,6 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 			unsigned int a;
 			stream >> a;
 		}*/
-		*/
 
 
 		// metadata

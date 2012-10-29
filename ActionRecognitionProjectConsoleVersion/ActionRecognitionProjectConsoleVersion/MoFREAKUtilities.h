@@ -35,13 +35,6 @@ struct MoFREAKFeature
 		using_image_difference = false; 
 	}
 
-		for (int i = 0; i < appearance_bytes; ++i)
-	{
-			appearance.push_back(0);
-	}
-		using_image_difference = false; 
-	} 
-
 	bool using_image_difference;
 	float x;
 	float y;
@@ -73,7 +66,8 @@ public:
 
 	void setCurrentAction(string folder_name);
 	int current_action; // for hmdb51..
-	int NUMBER_OF_BYTES_FOR_APPEARANCE;
+	static const int NUMBER_OF_BYTES_FOR_APPEARANCE = APPEARANCE_BYTES;
+	static const int NUMBER_OF_BYTES_FOR_MOTION = MOTION_BYTES;
 
 private:
 	
@@ -100,8 +94,6 @@ private:
 	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
 	std::deque<MoFREAKFeature> features; // using deque because I'm running into memory issues..
-	static const int NUMBER_OF_BYTES_FOR_MOTION = MOTION_BYTES;
-	//static const int NUMBER_OF_BYTES_FOR_APPEARANCE = APPEARANCE_BYTES;
 	cv::Mat recent_frame;
 
 	int dataset;

@@ -567,7 +567,8 @@ SVMInterface::~SVMInterface()
 	std::cout << "deleting x " << std::endl;
 	delete x;
 	std::cout << "deleting line" << std::endl;
-	delete line;
+	//delete line;
+	std::cout << "deleted" << std::endl;
 }
 
 int SVMInterface::max_line_len = 1024;

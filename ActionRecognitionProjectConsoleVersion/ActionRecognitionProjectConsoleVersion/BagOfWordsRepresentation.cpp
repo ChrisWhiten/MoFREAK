@@ -228,9 +228,6 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 {
 	success = false;
 
-	cout << "clusters: " << NUMBER_OF_CLUSTERS << endl;
-	cout << "file: " << file << endl;
-
 	cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
 	for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
 		histogram.at<float>(0, col) = 0;

@@ -98,7 +98,7 @@ void setParameters()
 
 		// structural folder info.
 		MOSIFT_DIR = "C:/data/kth/mosift/";
-		MOFREAK_PATH = "C:/data/kth/mofreak/"; 
+		MOFREAK_PATH = "C:/data/kth/brisk_mofreak/"; 
 		VIDEO_PATH = "C:/data/kth/all_in_one/videos/";
 		SVM_PATH = "C:/data/kth/svm/";
 		METADATA_PATH = "";
@@ -267,7 +267,7 @@ void clusterKTH()
 					{
 						mofreak_files.push_back(video_iter->path().string());
 						mofreak->readMoFREAKFeatures(mofreak_files.back());
-	}
+					}
 					catch (exception &e)
 					{
 						cout << e.what() << endl;
@@ -1037,17 +1037,17 @@ void main()
 
 		if (dataset == TRECVID)
 		{
-				pickClusters();
-				computeBOWHistograms(false);
-				computeSVMResponses();
-				detectEvents();
-			}
+			pickClusters();
+			computeBOWHistograms(false);
+			computeSVMResponses();
+			detectEvents();
+		}
 		
 		else if (dataset == KTH)
-			{
-				clusterKTH();
+		{
+			//clusterKTH();
 			//computeBOWKTH();
-			//double avg_acc = evaluateSVMWithLeaveOneOut();
+			double avg_acc = evaluateSVMWithLeaveOneOut();
 		}
 
 		else if (dataset == UTI2)
@@ -1055,7 +1055,7 @@ void main()
 			//clusterUTI2();
 			clusterKTH(); // same number of classes here... why not?
 			//computeBOWUTI2();
-				computeBOWKTH();
+			computeBOWKTH();
 			evaluateSVMWithLeaveOneOut();// same as above.  Why not?
 		}
 
@@ -1063,14 +1063,14 @@ void main()
 		{
 			//clusterHMDB51();
 			computeBOWKTH();
-			}
+		}
 		cout << "deleting mofreak..." << endl;
 		delete mofreak;
 		cout << "deleted" << endl;
-			end = clock();
-		}
+		end = clock();
+	}
 
 	cout << "Took this long: " << (end - start)/(double)CLOCKS_PER_SEC << " seconds! " << endl;
-	//cout << "All done.  Press any key to continue..." << endl;
-	//system("PAUSE");
+	cout << "All done.  Press any key to continue..." << endl;
+	system("PAUSE");
 }
