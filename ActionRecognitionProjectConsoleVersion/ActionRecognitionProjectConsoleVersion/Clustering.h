@@ -16,6 +16,7 @@ class Clustering
 {
 public:
 	Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes);
+	~Clustering();
 	void buildDataFromMoSIFT(vector<MoSIFTFeature> &mosift_ftrs, bool sample_pts);
 	void buildDataFromMoFREAK(std::deque<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff = false, bool fix_class = false, int fixed_class = 1);
 	void clusterWithKMeans();

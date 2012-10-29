@@ -18,6 +18,7 @@ public:
 	BagOfWordsRepresentation(std::vector<std::string> &file_list, int num_clust, int ftr_dim, int num_people,
 		bool appearance_is_bin, bool motion_is_bin, int dset);
 
+	~BagOfWordsRepresentation();
 	BagOfWordsRepresentation(int num_clust, int ftr_dim);
 	void computeBagOfWords(string SVM_PATH, string MOFREAK_PATH, string METADATA_PATH);
 	void setMotionDescriptor(unsigned int size, bool binary = false);
@@ -42,7 +43,6 @@ private:
 	std::vector<std::string> split(const std::string &s, char delim);
 	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
-	//QStringList files;
 	std::vector<std::string> files;
 	const int NUMBER_OF_CLUSTERS;
 	const int FEATURE_DIMENSIONALITY;

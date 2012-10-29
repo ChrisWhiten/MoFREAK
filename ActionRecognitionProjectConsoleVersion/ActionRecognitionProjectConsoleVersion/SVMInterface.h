@@ -23,6 +23,7 @@ class SVMInterface
 {
 public:
 	SVMInterface();
+	~SVMInterface();
 	void trainModel(std::string training_file, std::string model_file_name);
 	//void trainModelProb(std::string training_file);
 	double testModel(std::string testing_file, std::string model_file_name, std::string output_file);

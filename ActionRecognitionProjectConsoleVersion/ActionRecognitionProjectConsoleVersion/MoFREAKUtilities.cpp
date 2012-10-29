@@ -283,7 +283,7 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string video_filename, std::s
 	frame_queue.pop();
 
 	unsigned int frame_num = GAP_FOR_FRAME_DIFFERENCE - 1;
-
+	
 	while (true)
 	{
 		capture >> current_frame;
@@ -415,7 +415,6 @@ vector<unsigned int> MoFREAKUtilities::extractFREAKFeature(cv::Mat &frame, float
 
 	return ret_val;
 }
-
 
 void MoFREAKUtilities::addMoSIFTFeatures(int frame, vector<cv::KeyPoint> &pts, cv::VideoCapture &capture)
 {
@@ -565,6 +564,7 @@ string MoFREAKUtilities::toBinaryString(unsigned int x)
 		ret_val.push_back((*it) ? '1' : '0');
 		ret_val.push_back(' ');
 	}
+	ret_vec.clear();
 
 	ret_val = ret_val.substr(0, ret_val.size() - 1);
 	return ret_val;
@@ -589,7 +589,7 @@ void MoFREAKUtilities::writeMoFREAKFeaturesToFile(string output_file)
 		}
 
 		// motion
-		for (int i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)//64; ++i)//128; ++i)
+		for (int i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
 		{
 			int z = it->motion[i];
 			f << z << " ";
@@ -932,7 +932,7 @@ void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &vide
 	boost::filesystem::path file_path(filename);
 	boost::filesystem::path file_name = file_path.filename();
 	std::string file_name_str = file_name.generic_string();
-	
+
 	if (dataset == KTH)
 	{
 		// get the action.
@@ -1008,7 +1008,6 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 
 	ifstream stream;
 	stream.open(filename);
-	
 	while (!stream.eof())
 	{
 		// single feature
@@ -1031,6 +1030,14 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 			ftr.motion[i] = a;
 		}
 
+		// TEMP.  THIS IS FOR AN EXPERIMENT.  DELETE LATER. [TODO]
+		for (unsigned i = 0; i < 64 - NUMBER_OF_BYTES_FOR_MOTION; ++i)
+		{
+			unsigned int a;
+			stream >> a;
+		}
+
+
 		// metadata
 		ftr.action = action;
 		ftr.video_number = video_number;
@@ -1041,7 +1048,6 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 	}
 	stream.close();
 }
-
 
 std::deque<MoFREAKFeature> MoFREAKUtilities::getMoFREAKFeatures()
 {
@@ -1058,5 +1064,16 @@ void MoFREAKUtilities::setAllFeaturesToLabel(int label)
 
 void MoFREAKUtilities::clearFeatures()
 {
+	features.clear();
+}
+
+MoFREAKUtilities::MoFREAKUtilities(int motion_bytes)
+{
+	NUMBER_OF_BYTES_FOR_MOTION = motion_bytes;
+}
+
+MoFREAKUtilities::~MoFREAKUtilities()
+{
+	recent_frame.release();
 	features.clear();
 }

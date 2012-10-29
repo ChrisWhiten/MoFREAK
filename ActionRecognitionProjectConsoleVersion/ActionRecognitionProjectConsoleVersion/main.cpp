@@ -19,26 +19,28 @@ using namespace boost::filesystem;
 
 bool DISTRIBUTED = false;
 
-string MOSIFT_DIR = "C:/data/TRECVID/mosift/testing/";
-string MOFREAK_PATH = MOSIFT_DIR; // because converting mosift to mofreak just puts them in the same folder as the mosift points. That's fine.
-string VIDEO_PATH = "C:/data/TRECVID/mosift/testing/videos/";//"C:/data/TRECVID/videos/";
-string SVM_PATH = "C:/data/TRECVID/svm/";
+string MOSIFT_DIR, MOFREAK_PATH, VIDEO_PATH, SVM_PATH, MOFREAK_NEG_PATH, MOFREAK_POS_PATH;// = "C:/data/TRECVID/mosift/testing/";
+//string MOFREAK_PATH = MOSIFT_DIR; // because converting mosift to mofreak just puts them in the same folder as the mosift points. That's fine.
+//string VIDEO_PATH = "C:/data/TRECVID/mosift/testing/videos/";//"C:/data/TRECVID/videos/";
+//string SVM_PATH = "C:/data/TRECVID/svm/";
 string METADATA_PATH;
 
 // for clustering, separate mofreak into pos and neg examples.
-string MOFREAK_NEG_PATH = "C:/data/TRECVID/negative_mofreak_examples/";
-string MOFREAK_POS_PATH = "C:/data/TRECVID/positive_mofreak_examples/";
+//string MOFREAK_NEG_PATH = "C:/data/TRECVID/negative_mofreak_examples/";
+//string MOFREAK_POS_PATH = "C:/data/TRECVID/positive_mofreak_examples/";
 
 int NUM_MOTION_BYTES = 8;
 int NUM_APPEARANCE_BYTES = 8;
 int FEATURE_DIMENSIONALITY = NUM_MOTION_BYTES + NUM_APPEARANCE_BYTES;
 int NUM_CLUSTERS, NUMBER_OF_PEOPLE, NUM_CLASSES, ALPHA;
 
+int NUM_MOTION_BYTES = 0; // for testing...
+
 vector<int> possible_classes;
 std::deque<MoFREAKFeature> mofreak_ftrs;
 
 enum states {CLASSIFY, CONVERT, PICK_CLUSTERS, COMPUTE_BOW_HISTOGRAMS, DETECT, TRAIN, GET_SVM_RESPONSES,
-			MOSIFT_TO_DETECTION, POINT_DETECTION};
+			MOSIFT_TO_DETECTION, POINT_DETECTION, TESTING};
 
 enum datasets {KTH, TRECVID, HOLLYWOOD, UTI1, UTI2, HMDB51};
 
@@ -76,7 +78,7 @@ void setParameters()
 		// structural folder information.
 		MOSIFT_DIR = "C:/data/TRECVID/mosift/testing/";
 		MOFREAK_PATH = MOSIFT_DIR; // because converting mosift to mofreak just puts them in the same folder as the mosift points. That's fine.
-		VIDEO_PATH = "C:/data/TRECVID/mosift/testing/videos/";//"C:/data/TRECVID/videos/";
+		VIDEO_PATH = "C:/data/TRECVID/mosift/testing/videos/";
 		SVM_PATH = "C:/data/TRECVID/svm/";
 
 		// for clustering, separate mofreak into pos and neg examples.
@@ -239,7 +241,7 @@ void clusterKTH()
 			if (filename.substr(filename.length() - 7, 7) == "mofreak")
 			{
 				mofreak_files.push_back(current_file.string());
-				mofreak.readMoFREAKFeatures(mofreak_files.back());
+				mofreak->readMoFREAKFeatures(mofreak_files.back());
 			}
 		}
 		else if (is_directory(dir_iter->status()))
@@ -278,28 +280,37 @@ void clusterKTH()
 		}
 	}
 
-	mofreak_ftrs = mofreak.getMoFREAKFeatures();
+	mofreak_ftrs = mofreak->getMoFREAKFeatures();
+	cout << "top guy motion size: " << mofreak_ftrs[0].motion.size() << endl;
+	cout << "number of mofreak features: " << mofreak_ftrs.size() << endl;
 	cout << "MoFREAK features gathered." << endl;
 
 	// organize pts into a cv::Mat.
+	cout << "About to allocate this many rows: " << mofreak_ftrs.size() << " and this many columns: " << FEATURE_DIMENSIONALITY << endl;
 	cv::Mat data_pts(mofreak_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
+	cout << "allocated data_pts" << endl;
 
-	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, 0, NUM_CLASSES, possible_classes);
+	Clustering *clustering = new Clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, 0, NUM_CLASSES, possible_classes);
+	clustering->setMotionDescriptor(NUM_MOTION_BYTES, true);
 	clustering.setAppearanceDescriptor(8, true);
 	//clustering.setMotionDescriptor(8, true);
 	clustering.setMotionDescriptor(8, true);
 
 	cout << "Formatting features..." << endl;
-	clustering.buildDataFromMoFREAK(mofreak_ftrs, false, false);
+	clustering->buildDataFromMoFREAK(mofreak_ftrs, false, false);
 
 	cout << "Clustering..." << endl;
 	//clustering.clusterWithKMeans();
-	clustering.randomClusters();
+	clustering->randomClusters();
 
 	// print clusters to file
 	cout << "Writing clusters to file..." << endl;
-	clustering.writeClusters();
+	clustering->writeClusters();
 	cout << "Finished writing." << endl;
+
+	data_pts.release();
+	mofreak_files.clear();
+	delete clustering;
 }
 
 void computeBOWKTH()
@@ -350,10 +361,11 @@ void computeBOWKTH()
 
 	bow_rep.computeBagOfWords(SVM_PATH, MOFREAK_PATH, METADATA_PATH);
 	cout << "BOW Representation computed." << endl;
+	mofreak_files.clear();
 }
 
 
-void evaluateSVMWithLeaveOneOut()
+double evaluateSVMWithLeaveOneOut()
 {
 	// gather testing and training files...
 	vector<std::string> testing_files;
@@ -400,7 +412,8 @@ void evaluateSVMWithLeaveOneOut()
 		cout << "Leaving out person " << i + 1 << endl;
 
 		// build model.
-		svm_guy.trainModel(training_files[i], model_file_name);
+		string training_file = training_files[i];
+		svm_guy.trainModel(training_file, model_file_name);
 
 		// get accuracy.
 		string test_filename = testing_files[i];
@@ -451,6 +464,7 @@ void evaluateSVMWithLeaveOneOut()
 
 		// debugging...print to testing file.
 		output_file << training_files[i] <<", " << testing_files[i] << ", " << accuracy << std::endl;
+		cout << "printed." << endl;
 	}	
 
 	// normalize each row.
@@ -486,6 +500,7 @@ void evaluateSVMWithLeaveOneOut()
 	double average_accuracy = summed_accuracy/denominator;
 
 	cout << "Averaged accuracy: " << average_accuracy << "%" << endl;
+	return average_accuracy;
 }
 
 void convertMoSIFTToMoFREAK()
@@ -526,9 +541,7 @@ void convertMoSIFTToMoFREAK()
 			}
 			cout << "vid: " << video_file << endl;
 
-			
-			string mofreak_path = MOFREAK_PATH + mosift_filename + ".mofreak";//mosift_path;
-			//mofreak_path.append(".mofreak");
+			string mofreak_path = MOFREAK_PATH + mosift_filename + ".mofreak";
 			// compute. write.
 			MoFREAKUtilities mofreak(dataset);
 			
@@ -560,13 +573,13 @@ void pickClusters()
 			string filename = current_file.filename().generic_string();
 			if (filename.substr(filename.length() - 7, 7) == "mofreak")
 			{
-				mofreak.readMoFREAKFeatures(current_file.string());
+				mofreak->readMoFREAKFeatures(current_file.string());
 			}
 		}
 	}
 
-	mofreak.setAllFeaturesToLabel(1);
-	mofreak_ftrs = mofreak.getMoFREAKFeatures();
+	mofreak->setAllFeaturesToLabel(1);
+	mofreak_ftrs = mofreak->getMoFREAKFeatures();
 
 	// NEGATIVE EXAMPLES
 	MoFREAKUtilities negative_mofreak(dataset);
@@ -608,6 +621,8 @@ void pickClusters()
 	cout << "Writing clusters to file..." << endl;
 	clustering.writeClusters();
 	cout << "Clusters written." << endl;
+
+	data_pts.release();
 }
 
 // for this, organize mofreak files into pos + neg folders and do them separately.
@@ -804,7 +819,7 @@ void detectEvents()
 					THRESHOLD -= STEP;
 					PREVIOUSLY_LOWERED = true;
 				}
-				cout << "STEP:" << STEP << ", THRESHOLD: " << THRESHOLD << endl;
+				cout << "STEP: " << STEP << ", THRESHOLD: " << THRESHOLD << endl;
 				detections.clear();
 			}
 			else if (num_detections > MAX_DETECTIONS)
@@ -829,7 +844,7 @@ void detectEvents()
 			}
 			else
 			{
-				// we are in the desired detection range.  happy days.
+				// we are in the desired detection range.
 				// now we can sort and print them.
 				cout << "Accepting a threshold of " << THRESHOLD << " that permits " << num_detections << " events." << endl;
 				break;
@@ -1002,6 +1017,7 @@ void main()
 		end = clock();
 	}
 	
+	// this state is for testing.  delete later. [TODO]
 	else if (state == POINT_DETECTION)
 	{
 		start = clock();
@@ -1010,7 +1026,7 @@ void main()
 		end = clock();
 	}
 
-	else if (state == MOSIFT_TO_DETECTION)
+	else if (state == TESTING)
 	{
 		start = clock();
 		//computeMoFREAKFiles();
@@ -1027,7 +1043,10 @@ void main()
 		{
 			clusterKTH();
 			computeBOWKTH();
-			evaluateSVMWithLeaveOneOut();
+			double avg_acc = evaluateSVMWithLeaveOneOut();
+
+			results_file << i << ", " << avg_acc << endl;
+			delete mofreak;
 		}
 
 		else if (dataset == UTI2)
@@ -1046,6 +1065,45 @@ void main()
 		}
 
 		end = clock();
+	}
+
+	else if (state == MOSIFT_TO_DETECTION)
+	{
+		ofstream results_file(SVM_PATH + "/evaluate_freak_bytes.txt");
+
+		for (int i = 43; i > 0; --i)
+		{
+			NUM_MOTION_BYTES = i;
+			delete mofreak;
+			mofreak = new MoFREAKUtilities(NUM_MOTION_BYTES);
+
+			
+			mofreak->NUMBER_OF_BYTES_FOR_MOTION = NUM_MOTION_BYTES;
+			mofreak_ftrs.clear();
+
+			start = clock();
+		computeMoFREAKFiles();
+		//convertMoSIFTToMoFREAK();
+			if (TRECVID)
+			{
+				pickClusters();
+				computeBOWHistograms(false);
+				computeSVMResponses();
+				detectEvents();
+			}
+		
+			else
+			{
+				clusterKTH();
+				computeBOWKTH();
+				double avg_acc = evaluateSVMWithLeaveOneOut();
+
+				results_file << i << ", " << avg_acc << endl;
+			}
+			end = clock();
+		}
+
+		results_file.close();
 	}
 
 	cout << "Took this long: " << (end - start)/(double)CLOCKS_PER_SEC << " seconds! " << endl;

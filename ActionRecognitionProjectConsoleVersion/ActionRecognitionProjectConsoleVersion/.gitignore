@@ -1,0 +1,30 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+ipch/**/*
+*.sdf
+*.pdb
+*.ilk
+*.exe
+*/Debug/*
+*/Debug/**/*
+*/Release/*
+*/Release/**/*
+*.suo
+
+clusters.txt
+hist.txt
+label.txt
+distances.txt
+detections.txt
+test.txt
