@@ -132,8 +132,8 @@ void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &c
 	const unsigned int MOTION_END_INDEX = appearance_descriptor_size + motion_descriptor_size;
 
 	// clusters a pre-normalized.  normalize feature vector.
-	normalizeMotionOfFeature(feature_vector);
-	normalizeAppearanceOfFeature(feature_vector);
+	//normalizeMotionOfFeature(feature_vector);
+	//normalizeAppearanceOfFeature(feature_vector);
 
 	// base case: initialize with the score/index of the 0th cluster.
 	best_cluster_index = 0;
@@ -228,6 +228,9 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 {
 	success = false;
 
+	cout << "clusters: " << NUMBER_OF_CLUSTERS << endl;
+	cout << "file: " << file << endl;
+
 	cv::Mat histogram(1, NUMBER_OF_CLUSTERS, CV_32FC1);
 	for (unsigned col = 0; col < NUMBER_OF_CLUSTERS; ++col)
 		histogram.at<float>(0, col) = 0;
@@ -263,7 +266,6 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 		float best_cluster_score;
 		
 		findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
-
 
 		// + 1 to that codeword
 		histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
@@ -526,18 +528,485 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 	}
 }
 
-void BagOfWordsRepresentation::computeBagOfWords()
+int BagOfWordsRepresentation::actionStringToActionInt(string act)
+{
+	if (act == "brush_hair")
+	{
+		return BRUSH_HAIR;
+	}
+
+	else if (act == "cartwheel")
+	{
+		return CARTWHEEL;	
+	}
+
+	else if (act == "catch")
+	{
+		return CATCH;
+	}
+
+	else if (act == "chew")
+	{
+		return CHEW;
+	}
+
+	else if (act == "clap")
+	{
+		return CLAP;
+	}
+
+	else if (act == "climb")
+	{
+		return CLIMB;
+	}
+
+	else if (act == "climb_stairs")
+	{
+		return CLIMB_STAIRS;
+	}
+
+	else if (act == "draw_sword")
+	{
+		return DRAW_SWORD;
+	}
+
+	else if (act == "dribble")
+	{
+		return DRIBBLE;
+	}
+
+	else if (act == "drink")
+	{
+		return DRINK;
+	}
+
+	else if (act == "dive")
+	{
+		return DIVE;
+	}
+
+	else if (act == "eat")
+	{
+		return EAT;
+	}
+
+	else if (act == "fall_floor")
+	{
+		return FALL_FLOOR;
+	}
+
+	else if (act == "fencing")
+	{
+		return FENCING;
+	}
+
+	else if (act == "flic_flac")
+	{
+		return FLIC_FLAC;
+	}
+
+	else if (act == "golf")
+	{
+		return GOLF;
+	}
+
+	else if (act == "handstand")
+	{
+		return HANDSTAND;
+	}
+
+	else if (act == "hit")
+	{
+		return HIT;
+	}
+
+	else if (act == "hug")
+	{
+		return HUG;
+	}
+
+	else if (act == "jump")
+	{
+		return JUMP;
+	}
+
+	else if (act == "kick")
+	{
+		return KICK;
+	}
+
+	else if (act == "kick_ball")
+	{
+		return KICK_BALL;
+	}
+
+	else if (act == "kiss")
+	{
+		return KISS;
+	}
+
+	else if (act == "laugh")
+	{
+		return LAUGH;
+	}
+
+	else if (act == "pick")
+	{
+		return PICK;
+	}
+
+	else if (act == "pour")
+	{
+		return POUR;
+	}
+
+	else if (act == "pullup")
+	{
+		return PULLUP;
+	}
+
+	else if (act == "punch")
+	{
+		return PUNCH;
+	}
+
+	else if (act == "push")
+	{
+		return PUSH;
+	}
+
+	else if (act == "pushup")
+	{
+		return PUSHUP;
+	}
+
+	else if (act == "ride_bike")
+	{
+		return RIDE_BIKE;
+	}
+
+	else if (act == "ride_horse")
+	{
+		return RIDE_HORSE;
+	}
+
+	else if (act == "run")
+	{
+		return RUN;
+	}
+
+	else if (act == "shake_hands")
+	{
+		return SHAKE_HANDS;
+	}
+
+	else if (act == "shoot_ball")
+	{
+		return SHOOT_BALL;
+	}
+
+	else if (act == "shoot_bow")
+	{
+		return SHOOT_BOW;
+	}
+
+	else if (act == "shoot_gun")
+	{
+		return SHOOT_GUN;
+	}
+
+	else if (act == "sit")
+	{
+		return SIT;
+	}
+
+	else if (act == "situp")
+	{
+		return SITUP;
+	}
+
+	else if (act == "smile")
+	{
+		return SMILE;
+	}
+
+	else if (act == "smoke")
+	{
+		return SMOKE;
+	}
+
+	else if (act == "somersault")
+	{
+		return SOMERSAULT;
+	}
+
+	else if (act == "stand")
+	{
+		return STAND;
+	}
+
+	else if (act == "swing_baseball")
+	{
+		return SWING_BASEBALL;
+	}
+
+	else if (act == "sword")
+	{
+		return SWORD;
+	}
+
+	else if (act == "sword_exercise")
+	{
+		return SWORD_EXERCISE;
+	}
+
+	else if (act == "talk")
+	{
+		return TALK;
+	}
+
+	else if (act == "throw")
+	{
+		return THROW;
+	}
+
+	else if (act == "turn")
+	{
+		return TURN;
+	}
+
+	else if (act == "walk")
+	{
+		return WALK;
+	}
+
+	else if (act == "wave")
+	{
+		return WAVE;
+	}
+
+	else
+	{
+		cout << "****Didn't find action: " << act << endl;
+		system("PAUSE");
+		exit(1);
+		return BRUSH_HAIR;
+	}
+}
+
+void BagOfWordsRepresentation::computeHMDB51BagOfWords(string SVM_PATH, string MOFREAK_PATH, string METADATA_PATH)
 {
 	/*
-	Open file streams for all leave-one-out
-	possibilities for SVM evaluation.
+	There are 3 splits to build.
+	There are 3 files for every action,
+	1 for each split, each ending with split(x).txt.
+	Build a .test and .train file for each...
 	*/
+
+	ofstream train1(SVM_PATH + "/split1.train");
+	ofstream train2(SVM_PATH + "/split2.train");
+	ofstream train3(SVM_PATH + "/split3.train");
+	ofstream test1(SVM_PATH + "/split1.test");
+	ofstream test2(SVM_PATH + "/split2.test");
+	ofstream test3(SVM_PATH + "/split3.test");
+
+	vector<string> train1_lines;
+	vector<string> train2_lines;
+	vector<string> train3_lines;
+	vector<string> test1_lines;
+	vector<string> test2_lines;
+	vector<string> test3_lines;
+
+	/*
+	go through each file in the metadata folder one by one...
+	parse the filename to get the split number.
+	read each line and parse lines by the last available space.
+	parsed[0] + .mofreak is the features.
+	parsed[1] is whether it goes in test, train, or nothing.
+	*/
+
+	directory_iterator end_iter;
+
+	for (directory_iterator dir_iter(METADATA_PATH); dir_iter != end_iter; ++dir_iter)
+	{
+		if (is_regular_file(dir_iter->status()))
+		{
+			vector<string> training_files;
+			vector<string> testing_files;
+
+			path current_file = dir_iter->path();
+			string action_filename = current_file.filename().string();
+			int pos = action_filename.find("_test_");
+			string str_action = action_filename.substr(0, pos);
+			cout << "Action: " << str_action << endl;
+			int action = actionStringToActionInt(str_action);
+
+			int split;
+			pos = action_filename.find(".txt");
+			istringstream(action_filename.substr(pos - 1, 1)) >> split;
+			
+			/*
+			Parse the file to get the mofreak file and 
+			whether it should go in test, train, or neither.
+			*/
+				
+			cout << "current file: " << current_file.string() << "..." << endl;
+			ifstream metadata_file(current_file.string());
+			string line;
+
+			while (std::getline(metadata_file, line))
+			{
+				int last_space_index = line.find_last_of(' ');
+				string mofreak_file = line.substr(0, last_space_index - 2) + ".mofreak";
+				string label = line.substr(line.length() - 2, 1);
+
+				if (label == "1")
+				{
+					training_files.push_back(MOFREAK_PATH + "/" + str_action + "/" + mofreak_file);
+				}
+				else if (label == "2")
+				{
+					testing_files.push_back(MOFREAK_PATH + "/" + str_action + "/" + mofreak_file);
+				}
+			}
+			metadata_file.close();
+
+			/*
+			Now we know which videos go where for this action.
+			Go ahead and compute the BOW features.
+			*/
+#pragma omp parallel for
+			for (int j = 0; j < training_files.size(); ++j)
+			{
+				bool success;
+				cv::Mat hist = buildHistogram(training_files[j], success);
+				
+				if (!success)
+					continue;
+
+				// prepare line to be written to file.
+				stringstream ss;
+				string current_line;
+
+				ss << (action + 1) << " ";
+				for (int col = 0; col < hist.cols; ++col)
+				{
+					ss << (col + 1) << ":" << hist.at<float>(0, col) << " ";
+
+					if (!(hist.at<float>(0, col) >= 0))
+					{
+						int zz = 0;
+						zz++;
+					}
+				}
+				current_line = ss.str();
+				ss.str("");
+				ss.clear();
+
+				switch(split)
+				{
+				case 1:
+					train1_lines.push_back(current_line);
+					break;
+				case 2:
+					train2_lines.push_back(current_line);
+					break;
+				case 3:
+					train3_lines.push_back(current_line);
+					break;
+				default:
+					cout << "Couldn't get right split! " << split << endl;
+					break;
+				}
+			} // end training files 'for loop'
+
+#pragma omp parallel for
+			for (int j = 0; j < testing_files.size(); ++j)
+			{
+				bool success;
+				cv::Mat hist = buildHistogram(testing_files[j], success);
+
+				if (!success)
+					continue;
+
+				// prepare line to be written to file.
+				stringstream ss;
+				string current_line;
+
+				ss << (action + 1) << " ";
+				for (int col = 0; col < hist.cols; ++col)
+				{
+					ss << (col + 1) << ":" << hist.at<float>(0, col) << " ";
+
+					if (!(hist.at<float>(0, col) >= 0))
+					{
+						int zz = 0;
+						zz++;
+					}
+				}
+				current_line = ss.str();
+				ss.str("");
+				ss.clear();
+
+				switch(split)
+				{
+				case 1:
+					test1_lines.push_back(current_line);
+					break;
+				case 2:
+					test2_lines.push_back(current_line);
+					break;
+				case 3:
+					test3_lines.push_back(current_line);
+					break;
+				default:
+					cout << "Couldn't get right split! " << split << endl;
+					break;
+				}
+			} // end testing files 'for loop'
+		}
+	}
+
+	// print all of the train/test files
+	for (auto it = train1_lines.begin(); it != train1_lines.end(); ++it)
+		train1 << *it << endl;
+	for (auto it = train2_lines.begin(); it != train2_lines.end(); ++it)
+		train2 << *it << endl;
+	for (auto it = train3_lines.begin(); it != train3_lines.end(); ++it)
+		train3 << *it << endl;
+
+	for (auto it = test1_lines.begin(); it != test1_lines.end(); ++it)
+		test1 << *it << endl;
+	for (auto it = test2_lines.begin(); it != test2_lines.end(); ++it)
+		test2 << *it << endl;
+	for (auto it = test3_lines.begin(); it != test3_lines.end(); ++it)
+		test3 << *it << endl;
+
+	train1.close();
+	train2.close();
+	train3.close();
+	test1.close();
+	test2.close();
+	test3.close();
+}
+void BagOfWordsRepresentation::computeBagOfWords(string SVM_PATH, string MOFREAK_PATH, string METADATA_PATH)
+{
+	if (dataset == HMDB51)
+	{
+		computeHMDB51BagOfWords(SVM_PATH, MOFREAK_PATH, METADATA_PATH);
+		return;
+	}
+	// open file streams to write data for SVM
+	ofstream hist_file("hist.txt");
+	ofstream label_file("label.txt");
 
 	vector<ofstream *> training_files;
 	vector<ofstream *> testing_files;
 	vector<vector<string> > training_file_lines;
 	vector<vector<string> > testing_file_lines;
 
+	if (dataset == KTH)
+	{
 	for (int i = 0; i < NUMBER_OF_PEOPLE; ++i)
 	{
 		stringstream training_string;
@@ -561,7 +1030,7 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		vector<string> testing_lines;
 		training_file_lines.push_back(training_lines);
 		testing_file_lines.push_back(testing_lines);
-
+	}
 	}
 
 	/*
@@ -583,6 +1052,8 @@ void BagOfWordsRepresentation::computeBagOfWords()
 
 		int action, person, video_number;
 
+		if (dataset == KTH)
+		{
 		// get the action.
 		if (boost::contains(file_name_str, "boxing"))
 		{
@@ -616,15 +1087,25 @@ void BagOfWordsRepresentation::computeBagOfWords()
 		std::vector<std::string> filename_parts = split(file_name_str, '_');
 		std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> person;
 		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
-		filename_parts.clear();
+		}
+		else if (dataset == UTI2)
+		{
+			// parse the filename.
+			std::vector<std::string> filename_parts = split(file_name_str, '_');
 
-		/*
-		Iterate over each feature and assign it to the closest codeword.
-		These assignments will build a histogram to be used
-		as an SVM feature.
-		*/
+			// the "person" (video) is the number after the first underscore.
+			std::string person_str = filename_parts[1];
+			std::stringstream(filename_parts[1]) >> person;
 
-		//cout << "Building histogram..." << endl;
+			// the action is the number after the second underscore, before .avi.
+			std::string vid_str = filename_parts[2];
+			std::stringstream(filename_parts[2].substr(0, 1)) >> action;
+
+			// video number.. not sure if useful for this dataset.
+			std::stringstream(filename_parts[0]) >> video_number;
+		}
+
+		// now extract each mosift point and assign it to the correct codeword.
 		bool success;
 		cv::Mat hist;
 		try
@@ -750,8 +1231,10 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim) :
 
 BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &file_list, 
 	int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, 
-	bool motion_is_bin) : NUMBER_OF_CLUSTERS(num_clust), 
-	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people), motion_is_binary(motion_is_bin), appearance_is_binary(appearance_is_bin)
+	bool motion_is_bin, int dset) : NUMBER_OF_CLUSTERS(num_clust), 
+	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people), 
+	motion_is_binary(motion_is_bin), appearance_is_binary(appearance_is_bin),
+	dataset(dset)
 {
 	files = file_list;
 	loadClusters();

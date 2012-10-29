@@ -1,5 +1,5 @@
 #include "Clustering.h"
-
+#include <exception>
 
 
 // taken from feng's work.
@@ -24,16 +24,6 @@
 	 }
  }
 
- Clustering::Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes) : DIMENSIONALITY(dim), NUMBER_OF_CLUSTERS(num_clust), 
-	 NUMBER_OF_POINTS_TO_SAMPLE(num_pts), NUMBER_OF_CLASSES(num_classes)
- {
-	possible_classes = poss_classes;
-	motion_descriptor_size = 8; 
-	appearance_descriptor_size = 0;
-	motion_is_binary = true;
-	appearance_is_binary = true;
- }
-
  Clustering::~Clustering()
  {
 	 data_pts->release();
@@ -45,8 +35,27 @@
 	 labels.release();
  }
 
- void Clustering::buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff, bool fix_class, int fixed_class)
+ Clustering::Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes) : DIMENSIONALITY(dim), NUMBER_OF_CLUSTERS(num_clust), 
+	 NUMBER_OF_POINTS_TO_SAMPLE(num_pts), NUMBER_OF_CLASSES(num_classes)
  {
+	possible_classes = poss_classes;
+	motion_descriptor_size = 8; 
+	appearance_descriptor_size = 0;
+	motion_is_binary = true;
+	appearance_is_binary = true;
+	center_row = 0;
+	data_pts = new cv::Mat();
+
+	centers = new cv::Mat(NUMBER_OF_CLUSTERS, DIMENSIONALITY, CV_32F);
+ }
+
+ void Clustering::buildDataFromMoFREAK(std::deque<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff, bool fix_class, int fixed_class)
+ {
+	 if (data_pts)
+	 {
+		 delete data_pts;
+	 }
+
 	 // allocate data matrix.
 	 // + 3 for metadata
 	 int num_ftrs = mofreak_ftrs.size();
@@ -147,32 +156,42 @@
  // these methods always assume we have more data points than clusters.
  // checks aren't hard to implement if that's not the case but i'm in a rush here!
  // this is how bad code gets written.
- void Clustering::randomClusters()
+ void Clustering::randomClusters(bool only_one_class)
  {
-	centers = new cv::Mat(NUMBER_OF_CLUSTERS, DIMENSIONALITY, data_pts->type());
+	//centers = new cv::Mat(NUMBER_OF_CLUSTERS, DIMENSIONALITY, data_pts->type());
 
 	// shuffle and take the top NUMBER_OF_CLUSTERS points as the clusters.
 	shuffleCVMat(*data_pts);
 	shuffleCVMat(*data_pts);
 	shuffleCVMat(*data_pts);
+	/*cout << "shuffled" << endl;
+	cout << data_pts->rows << endl;
+	cout << data_pts->cols << endl;*/
 
 	// sample an even number of points from each class to keep the classes balanced.
 	const int CLUSTERS_PER_CLASS = NUMBER_OF_CLUSTERS/NUMBER_OF_CLASSES;
 
-	int center_row = 0;
 	for (auto c = possible_classes.begin(); c != possible_classes.end(); ++c)
 	{
 		unsigned int sampled_from_this_class = 0;
 
 		for (unsigned row = 0; row < data_pts->rows; ++row)
 		{
-			if ((unsigned int)data_pts->at<float>(row, 0) == *c)
+			if (((unsigned int)data_pts->at<float>(row, 0) == *c) || only_one_class)
 			{
+				//cout << "sampling" << sampled_from_this_class << "/" << CLUSTERS_PER_CLASS << endl;
 				// sample this point.
 				// 3 metadata parameters at the start...?
 				for (unsigned col = 3; col < data_pts->cols; ++col)
 				{
-					centers->at<float>(center_row, col - 3) = data_pts->at<float>(row, col);
+					try
+					{
+						centers->at<float>(center_row, col - 3) = data_pts->at<float>(row, col);
+					}
+					catch (exception &e)
+					{
+						cout << "Error: " << e.what() << endl;
+					}
 				}
 
 				center_row++;
@@ -181,6 +200,9 @@
 					break;
 			}
 		}
+
+		if (only_one_class)
+			break;
 	}
 
  }

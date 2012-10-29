@@ -18,9 +18,9 @@ public:
 	Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes);
 	~Clustering();
 	void buildDataFromMoSIFT(vector<MoSIFTFeature> &mosift_ftrs, bool sample_pts);
-	void buildDataFromMoFREAK(vector<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff = false, bool fix_class = false, int fixed_class = 1);
+	void buildDataFromMoFREAK(std::deque<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff = false, bool fix_class = false, int fixed_class = 1);
 	void clusterWithKMeans();
-	void randomClusters();
+	void randomClusters(bool only_one_class = false);
 	void writeClusters();
 
 	void setMotionDescriptor(unsigned int size, bool binary);
@@ -43,6 +43,7 @@ private:
 	int appearance_descriptor_size;
 	bool motion_is_binary;
 	bool appearance_is_binary;
+	int center_row;
 };
 
 #endif

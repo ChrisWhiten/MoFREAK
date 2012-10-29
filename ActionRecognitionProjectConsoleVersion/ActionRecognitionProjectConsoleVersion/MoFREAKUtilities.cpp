@@ -2,6 +2,11 @@
 #include <brisk\brisk.h>
 
 
+MoFREAKUtilities::MoFREAKUtilities(int dset)
+{
+	dataset = dset;
+}
+
 // vanilla string split operation.  Direct copy-paste from stack overflow
 // source: http://stackoverflow.com/questions/236129/splitting-a-string-in-c
 std::vector<std::string> &MoFREAKUtilities::split(const std::string &s, char delim, std::vector<std::string> &elems) {
@@ -71,7 +76,7 @@ unsigned int totalframediff(cv::Mat &frame, cv::Mat &prev)
 // x, y correspond to the location in the 19x19 roi that we are centering a patch around.
 unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, cv::Mat &prev_frame, int x, int y)
 {
-	const int THETA = 2592;//1296; // recommended by MIP paper
+	const int THETA = 10368;//5184;//2592;//1296; // recommended by MIP paper
 	// extract patch on current frame.
 	cv::Rect roi(x - 1, y - 1, 3, 3);
 	cv::Mat patch_t(current_frame, roi);
@@ -185,14 +190,15 @@ bool MoFREAKUtilities::sufficientMotion(cv::Mat &current_frame, cv::Mat prev_fra
 
 	unsigned int num_ones = countOnes(descriptor);
 	
-	return true;//(num_ones > 3);
+	//return (num_ones > 0);//3);
+	return true;
 }
 
 bool MoFREAKUtilities::sufficientMotion(cv::Mat &diff_integral_img, float &x, float &y, float &scale, int &motion)
 {
 	// compute the sum of the values within this patch in the difference image.  It's that simple.
 	int radius = ceil((scale));///2);
-	const int MOTION_THRESHOLD = 4 * radius * 5;//5;//0;//4096;
+	const int MOTION_THRESHOLD = 4 * radius * 5;
 
 	// always + 1, since the integral image adds a row and col of 0s to the top-left.
 	int tl_x = MAX(0, x - radius + 1);
@@ -303,19 +309,6 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string video_filename, std::s
 				{
 					ftr.appearance[i] = motion_desc[i];
 				}
-
-				// alternative descriptor here...
-				// the idea is such:
-				//
-				// take what we're currently using as a motion descriptor,
-				// and let's call it the appearance descriptor (this makes more sense).
-				// then, take the keypoint and build an 8-byte motion descriptor like this:
-				// take the SURF keypoint, resize patch to 64x64.  
-				// get that patch for frames i and i - 5.
-				// smooth each with a Gaussian and take every 8th pixel.
-				// then, do a binary comparison on these to get 64 bit values.
-				// 1 if the difference between them is above some threshold, 0 else.
-				// this gives us a nice even motion descriptor to use.
 
 				// gather metadata.
 				int action, person, video_number;
@@ -632,13 +625,280 @@ double MoFREAKUtilities::motionNormalizedEuclideanDistance(vector<unsigned int> 
 	return distance;
 }
 
+void MoFREAKUtilities::setCurrentAction(string folder_name)
+{
+	if (folder_name == "brush_hair")
+	{
+		current_action = BRUSH_HAIR;
+	}
+
+	else if (folder_name == "cartwheel")
+	{
+		current_action = CARTWHEEL;	
+	}
+
+	else if (folder_name == "catch")
+	{
+		current_action = CATCH;
+	}
+
+	else if (folder_name == "chew")
+	{
+		current_action = CHEW;
+	}
+
+	else if (folder_name == "clap")
+	{
+		current_action = CLAP;
+	}
+
+	else if (folder_name == "climb")
+	{
+		current_action = CLIMB;
+	}
+
+	else if (folder_name == "climb_stairs")
+	{
+		current_action = CLIMB_STAIRS;
+	}
+
+	else if (folder_name == "draw_sword")
+	{
+		current_action = DRAW_SWORD;
+	}
+
+	else if (folder_name == "dribble")
+	{
+		current_action = DRIBBLE;
+	}
+
+	else if (folder_name == "drink")
+	{
+		current_action = DRINK;
+	}
+
+	else if (folder_name == "dive")
+	{
+		current_action = DIVE;
+	}
+
+	else if (folder_name == "eat")
+	{
+		current_action = EAT;
+	}
+
+	else if (folder_name == "fall_floor")
+	{
+		current_action = FALL_FLOOR;
+	}
+
+	else if (folder_name == "fencing")
+	{
+		current_action = FENCING;
+	}
+
+	else if (folder_name == "flic_flac")
+	{
+		current_action = FLIC_FLAC;
+	}
+
+	else if (folder_name == "golf")
+	{
+		current_action = GOLF;
+	}
+
+	else if (folder_name == "handstand")
+	{
+		current_action = HANDSTAND;
+	}
+
+	else if (folder_name == "hit")
+	{
+		current_action = HIT;
+	}
+
+	else if (folder_name == "hug")
+	{
+		current_action = HUG;
+	}
+
+	else if (folder_name == "jump")
+	{
+		current_action = JUMP;
+	}
+
+	else if (folder_name == "kick")
+	{
+		current_action = KICK;
+	}
+
+	else if (folder_name == "kick_ball")
+	{
+		current_action = KICK_BALL;
+	}
+
+	else if (folder_name == "kiss")
+	{
+		current_action = KISS;
+	}
+
+	else if (folder_name == "laugh")
+	{
+		current_action = LAUGH;
+	}
+
+	else if (folder_name == "pick")
+	{
+		current_action = PICK;
+	}
+
+	else if (folder_name == "pour")
+	{
+		current_action = POUR;
+	}
+
+	else if (folder_name == "pullup")
+	{
+		current_action = PULLUP;
+	}
+
+	else if (folder_name == "punch")
+	{
+		current_action = PUNCH;
+	}
+
+	else if (folder_name == "push")
+	{
+		current_action = PUSH;
+	}
+
+	else if (folder_name == "pushup")
+	{
+		current_action = PUSHUP;
+	}
+
+	else if (folder_name == "ride_bike")
+	{
+		current_action = RIDE_BIKE;
+	}
+
+	else if (folder_name == "ride_horse")
+	{
+		current_action = RIDE_HORSE;
+	}
+
+	else if (folder_name == "run")
+	{
+		current_action = RUN;
+	}
+
+	else if (folder_name == "shake_hands")
+	{
+		current_action = SHAKE_HANDS;
+	}
+
+	else if (folder_name == "shoot_ball")
+	{
+		current_action = SHOOT_BALL;
+	}
+
+	else if (folder_name == "shoot_bow")
+	{
+		current_action = SHOOT_BOW;
+	}
+
+	else if (folder_name == "shoot_gun")
+	{
+		current_action = SHOOT_GUN;
+	}
+
+	else if (folder_name == "sit")
+	{
+		current_action = SIT;
+	}
+
+	else if (folder_name == "situp")
+	{
+		current_action = SITUP;
+	}
+
+	else if (folder_name == "smile")
+	{
+		current_action = SMILE;
+	}
+
+	else if (folder_name == "smoke")
+	{
+		current_action = SMOKE;
+	}
+
+	else if (folder_name == "somersault")
+	{
+		current_action = SOMERSAULT;
+	}
+
+	else if (folder_name == "stand")
+	{
+		current_action = STAND;
+	}
+
+	else if (folder_name == "swing_baseball")
+	{
+		current_action = SWING_BASEBALL;
+	}
+
+	else if (folder_name == "sword")
+	{
+		current_action = SWORD;
+	}
+
+	else if (folder_name == "sword_exercise")
+	{
+		current_action = SWORD_EXERCISE;
+	}
+
+	else if (folder_name == "talk")
+	{
+		current_action = TALK;
+	}
+
+	else if (folder_name == "throw")
+	{
+		current_action = THROW;
+	}
+
+	else if (folder_name == "turn")
+	{
+		current_action = TURN;
+	}
+
+	else if (folder_name == "walk")
+	{
+		current_action = WALK;
+	}
+
+	else if (folder_name == "wave")
+	{
+		current_action = WAVE;
+	}
+
+	else
+	{
+		current_action = BRUSH_HAIR;
+		cout << "****Didn't find action" << endl;
+		system("PAUSE");
+		exit(1);
+	}
+}
+
 void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &video_number, int &person)
 {
-	//boost::filesystem::path file_path(filename.toStdString());
 	boost::filesystem::path file_path(filename);
 	boost::filesystem::path file_name = file_path.filename();
 	std::string file_name_str = file_name.generic_string();
 
+	if (dataset == KTH)
+	{
 		// get the action.
 		if (boost::contains(file_name_str, "boxing"))
 		{
@@ -678,9 +938,31 @@ void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &vide
 
 		// the video number is the last character of the 3rd section of the filename.
 		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
+	}
 
-		filename_parts.clear();
+	else if (dataset == HMDB51)
+	{
+		video_number = 0;
+		person = 0;
+	}
 
+	else if (dataset == UTI2)
+	{
+		// parse the filename.
+		std::vector<std::string> filename_parts = split(file_name_str, '_');
+
+		// the "person" (video) is the number after the first underscore.
+		std::string person_str = filename_parts[1];
+		std::stringstream(filename_parts[1]) >> person;
+
+		// the action is the number after the second underscore, before .avi.
+		std::string vid_str = filename_parts[2];
+		std::stringstream(filename_parts[2].substr(0, 1)) >> action;
+
+		// video number.. not sure if useful for this dataset.
+		std::stringstream(filename_parts[0]) >> video_number;
+
+}
 }
 
 void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
@@ -719,6 +1001,7 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 			unsigned int a;
 			stream >> a;
 		}*/
+		*/
 
 
 		// metadata
@@ -733,7 +1016,7 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 	stream.close();
 }
 
-vector<MoFREAKFeature> MoFREAKUtilities::getMoFREAKFeatures()
+std::deque<MoFREAKFeature> MoFREAKUtilities::getMoFREAKFeatures()
 {
 	return features;
 }
@@ -746,14 +1029,23 @@ void MoFREAKUtilities::setAllFeaturesToLabel(int label)
 	}
 }
 
-MoFREAKUtilities::MoFREAKUtilities(int motion_bytes, int appearance_bytes)
+void MoFREAKUtilities::clearFeatures()
+{
+	features.clear();
+}
+
+/*
+MoFREAKUtilities::MoFREAKUtilities(int motion_bytes)
 {
 	NUMBER_OF_BYTES_FOR_MOTION = motion_bytes;
 	NUMBER_OF_BYTES_FOR_APPEARANCE = appearance_bytes;
 }
+*/
 
+/*
 MoFREAKUtilities::~MoFREAKUtilities()
 {
 	recent_frame.release();
 	features.clear();
 }
+*/
