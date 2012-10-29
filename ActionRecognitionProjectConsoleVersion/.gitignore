@@ -21,3 +21,10 @@ ipch/**/*
 */Release/*
 */Release/**/*
 *.suo
+
+ActionRecognitionProjectConsoleVersion/clusters.txt
+ActionRecognitionProjectConsoleVersion/clusters.txt.real
+ActionRecognitionProjectConsoleVersion/hist.txt
+ActionRecognitionProjectConsoleVersion/label.txt
+ActionRecognitionProjectConsoleVersion/test.txt
+ActionRecognitionProjectConsoleVersion.opensdf

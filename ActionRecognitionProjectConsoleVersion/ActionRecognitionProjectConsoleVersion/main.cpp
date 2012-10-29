@@ -3,6 +3,7 @@
 #include <fstream>
 #include <time.h>
 #include <vector>
+#include <exception>
 
 #include <boost\filesystem.hpp>
 
@@ -17,31 +18,35 @@ using namespace std;
 using namespace boost::filesystem;
 
 bool DISTRIBUTED = false;
-bool TRECVID = false;
 
 string MOSIFT_DIR = "C:/data/TRECVID/mosift/testing/";
 string MOFREAK_PATH = MOSIFT_DIR; // because converting mosift to mofreak just puts them in the same folder as the mosift points. That's fine.
 string VIDEO_PATH = "C:/data/TRECVID/mosift/testing/videos/";//"C:/data/TRECVID/videos/";
 string SVM_PATH = "C:/data/TRECVID/svm/";
+string METADATA_PATH;
 
 // for clustering, separate mofreak into pos and neg examples.
 string MOFREAK_NEG_PATH = "C:/data/TRECVID/negative_mofreak_examples/";
 string MOFREAK_POS_PATH = "C:/data/TRECVID/positive_mofreak_examples/";
 
-int FEATURE_DIMENSIONALITY = 16;//8;
-int NUM_CLUSTERS = 1000;
-int NUMBER_OF_PEOPLE = 25;
-int NUM_CLASSES = 2;//1;//2;
-int ALPHA = 12; // for sliding window...
+int NUM_MOTION_BYTES = 8;
+int NUM_APPEARANCE_BYTES = 8;
+int FEATURE_DIMENSIONALITY = NUM_MOTION_BYTES + NUM_APPEARANCE_BYTES;
+int NUM_CLUSTERS, NUMBER_OF_PEOPLE, NUM_CLASSES, ALPHA;
 
 vector<int> possible_classes;
-
-MoFREAKUtilities mofreak;
-vector<MoFREAKFeature> mofreak_ftrs;
-SVMInterface svm_interface;
+std::deque<MoFREAKFeature> mofreak_ftrs;
 
 enum states {CLASSIFY, CONVERT, PICK_CLUSTERS, COMPUTE_BOW_HISTOGRAMS, DETECT, TRAIN, GET_SVM_RESPONSES,
 			MOSIFT_TO_DETECTION, POINT_DETECTION};
+
+enum datasets {KTH, TRECVID, HOLLYWOOD, UTI1, UTI2, HMDB51};
+
+int dataset = HMDB51;
+int state = MOSIFT_TO_DETECTION;
+
+MoFREAKUtilities mofreak(dataset);
+SVMInterface svm_interface;
 
 struct Detection
 {
@@ -59,7 +64,7 @@ struct Detection
 
 void setParameters()
 {
-	if (TRECVID)
+	if (dataset == TRECVID)
 	{
 		// event information for TRECVID videos.
 		NUM_CLUSTERS = 1000;
@@ -80,28 +85,143 @@ void setParameters()
 	}
 
 	// KTH
-	else
+	else if (dataset == KTH)
 	{
 		NUM_CLUSTERS = 600;
 		NUM_CLASSES = 6;
+		NUMBER_OF_PEOPLE = 25;
+
 		for (unsigned i = 0; i < NUM_CLASSES; ++i)
 		{
 			possible_classes.push_back(i);
 		}
-		// num people.
 
 		// structural folder info.
 		MOSIFT_DIR = "C:/data/kth/mosift/";
-		MOFREAK_PATH = "C:/data/kth/mofreak/"; // because converting mosift to mofreak just puts them in the same folder as the mosift points. That's fine.
-		VIDEO_PATH = "C:/data/kth/all_in_one/videos/";//"C:/data/TRECVID/videos/";
+		MOFREAK_PATH = "C:/data/kth/mofreak/"; 
+		VIDEO_PATH = "C:/data/kth/all_in_one/videos/";
 		SVM_PATH = "C:/data/kth/svm/";
+		METADATA_PATH = "";
+	}
 
-		// for clustering, separate mofreak into pos and neg examples.
-		//MOFREAK_NEG_PATH = "C:/data/TRECVID/negative_mofreak_examples/";
-		//MOFREAK_POS_PATH = "C:/data/TRECVID/positive_mofreak_examples/";
+	else if (dataset == HMDB51)
+	{
+		NUM_CLUSTERS = 5100;
+		NUM_CLASSES = 51;
+
+		for (unsigned i = 0; i < NUM_CLASSES; ++i)
+		{
+			possible_classes.push_back(i);
+		}
+
+		// structural folder info
+		MOFREAK_PATH = "C:/data/hmdb51/mofreak/";
+		VIDEO_PATH = "C:/data/hmdb51/videos/";
+		SVM_PATH = "C:/data/hmdb51/svm/";
+		METADATA_PATH = "C:/data/hmdb51/metadata/";
+	}
+
+	else if (dataset == UTI2)
+	{
+		NUM_CLUSTERS = 600;
+		NUM_CLASSES = 6;
+		NUMBER_OF_PEOPLE = 10;
+		for (unsigned i = 0; i < NUM_CLASSES; ++i)
+		{
+			possible_classes.push_back(i);
+		}
+
+		// structural folder info.
+		MOFREAK_PATH = "C:/data/UTI/segmented/mofreak/";
+		VIDEO_PATH = "C:/data/UTI/segmented/videos/";
+		SVM_PATH = "C:/data/UTI/segmented/svm/";
 	}
 }
 
+/*
+Cluster 1 class at a time, releasing memory in between.
+We are having huge memory issues, 
+so we can't load it all in at once.
+*/
+void clusterHMDB51()
+{
+	cout << "Gathering MoFREAK Features..." << endl;
+	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, 0, NUM_CLASSES, possible_classes);
+	clustering.setAppearanceDescriptor(8, true);
+	clustering.setMotionDescriptor(8, true);
+
+	/*cout << "Formatting features..." << endl;
+	clustering.buildDataFromMoFREAK(mofreak_ftrs, false, false);
+
+	cout << "Clustering..." << endl;
+	//clustering.clusterWithKMeans();
+	clustering.randomClusters();*/
+
+	directory_iterator end_iter;
+
+	for (directory_iterator dir_iter(MOFREAK_PATH); dir_iter != end_iter; ++dir_iter)
+	{
+		// new action.
+		if (is_directory(dir_iter->status()))
+		{
+			std::vector<string> mofreak_files;
+			string video_action = dir_iter->path().filename().generic_string();
+			cout << "action: " << video_action << endl;
+
+			// set the mofreak object's action to that folder name.
+			mofreak.setCurrentAction(video_action);
+
+			// compute mofreak on all files on that folder.
+			string action_mofreak_path = MOFREAK_PATH + "/" + video_action;
+			cout << "action mofreak path: " << action_mofreak_path << endl;
+
+			for (directory_iterator video_iter(action_mofreak_path); 
+				video_iter != end_iter; ++video_iter)
+			{
+				string filename = video_iter->path().filename().generic_string();
+				if (filename.substr(filename.length() - 7, 7) == "mofreak")
+				{
+					cout << video_iter->path().string() << endl;
+
+					try
+					{
+						mofreak_files.push_back(video_iter->path().string());
+						mofreak.readMoFREAKFeatures(mofreak_files.back());
+					}
+					catch (exception &e)
+					{
+						cout << e.what() << endl;
+						system("PAUSE");
+						exit(1);
+					}
+				}
+			}
+
+			// cluster this set, then drop these mofreak features.
+			cout << "assign data pts" << endl;
+			std::deque<MoFREAKFeature> ftrs = mofreak.getMoFREAKFeatures();
+			cout << "got mofreak features" << endl;
+			try
+			{
+				cv::Mat data_pts(ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
+			}
+			catch (exception &e)
+			{
+				cout << "Error: " << e.what() << endl;
+				system("PAUSE");
+				exit(1);
+			}
+			cout << "build data" << endl;
+			clustering.buildDataFromMoFREAK(ftrs, false, false);
+			cout << "rand clust" << endl;
+			clustering.randomClusters(true);
+			cout << "clear" << endl;
+			mofreak.clearFeatures();
+		}
+	}
+
+	clustering.writeClusters();
+}
 void clusterKTH()
 {
 	// gather mofreak files...
@@ -122,6 +242,40 @@ void clusterKTH()
 				mofreak.readMoFREAKFeatures(mofreak_files.back());
 			}
 		}
+		else if (is_directory(dir_iter->status()))
+		{
+			string video_action = dir_iter->path().filename().generic_string();
+			cout << "action: " << video_action << endl;
+
+			// set the mofreak object's action to that folder name.
+			mofreak.setCurrentAction(video_action);
+
+			// compute mofreak on all files on that folder.
+			string action_mofreak_path = MOFREAK_PATH + "/" + video_action;
+			cout << "action mofreak path: " << action_mofreak_path << endl;
+
+			for (directory_iterator video_iter(action_mofreak_path); 
+				video_iter != end_iter; ++video_iter)
+			{
+				string filename = video_iter->path().filename().generic_string();
+				if (filename.substr(filename.length() - 7, 7) == "mofreak")
+				{
+					cout << video_iter->path().string() << endl;
+
+					try
+					{
+						mofreak_files.push_back(video_iter->path().string());
+						mofreak.readMoFREAKFeatures(mofreak_files.back());
+					}
+					catch (exception &e)
+					{
+						cout << e.what() << endl;
+						system("PAUSE");
+						exit(1);
+					}
+				}
+			}
+		}
 	}
 
 	mofreak_ftrs = mofreak.getMoFREAKFeatures();
@@ -132,6 +286,7 @@ void clusterKTH()
 
 	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, 0, NUM_CLASSES, possible_classes);
 	clustering.setAppearanceDescriptor(8, true);
+	//clustering.setMotionDescriptor(8, true);
 	clustering.setMotionDescriptor(8, true);
 
 	cout << "Formatting features..." << endl;
@@ -149,7 +304,6 @@ void clusterKTH()
 
 void computeBOWKTH()
 {
-	// gather all files int vector<string> mofreak_files
 	cout << "Gathering MoFREAK Features..." << endl;
 	vector<std::string> mofreak_files;
 	directory_iterator end_iter;
@@ -165,15 +319,36 @@ void computeBOWKTH()
 				mofreak_files.push_back(current_file.string());
 			}
 		}
+
+		// for hmdb51
+		else if (is_directory(dir_iter->status()))
+		{
+			// get folder name.
+			string video_action = dir_iter->path().filename().generic_string();
+			string action_video_path = VIDEO_PATH + "/" + video_action;
+
+			for (directory_iterator video_iter(action_video_path); 
+				video_iter != end_iter; ++video_iter)
+			{
+				if (is_regular_file(video_iter->status()))
+				{
+					string video_filename = video_iter->path().filename().generic_string();
+					if (video_filename.substr(video_filename.length() - 7, 7) == "mofreak")
+					{
+						mofreak_files.push_back(video_iter->path().string());
+					}
+				}
+			}
+		}
 	}
 
 	cout << "Computing BOW Representation..." << endl;
+	BagOfWordsRepresentation bow_rep(mofreak_files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE, true, true, dataset);
 
-	BagOfWordsRepresentation bow_rep(mofreak_files, NUM_CLUSTERS, FEATURE_DIMENSIONALITY, NUMBER_OF_PEOPLE, true, true);
-	bow_rep.setAppearanceDescriptor(8, true);
-	bow_rep.setMotionDescriptor(8, true);
-	bow_rep.computeBagOfWords();
+	bow_rep.setAppearanceDescriptor(NUM_APPEARANCE_BYTES, true);
+	bow_rep.setMotionDescriptor(NUM_MOTION_BYTES, true);
 
+	bow_rep.computeBagOfWords(SVM_PATH, MOFREAK_PATH, METADATA_PATH);
 	cout << "BOW Representation computed." << endl;
 }
 
@@ -183,7 +358,6 @@ void evaluateSVMWithLeaveOneOut()
 	// gather testing and training files...
 	vector<std::string> testing_files;
 	vector<std::string> training_files;
-
 	directory_iterator end_iter;
 
 	for (directory_iterator dir_iter(SVM_PATH); dir_iter != end_iter; ++dir_iter)
@@ -203,11 +377,20 @@ void evaluateSVMWithLeaveOneOut()
 		}
 	}
 
-
 	// evaluate the SVM with leave-one-out.
-	ofstream output_file("C:/data/kth/chris/svm_results.txt");
-	string model_file_name = "C:/data/kth/svm/model.svm";
-	string svm_out = "C:/data/kth/svm/responses.txt";
+	std::string results_file = SVM_PATH;
+	results_file.append("/svm_results.txt");
+	ofstream output_file(results_file);
+
+	string model_file_name = SVM_PATH;
+	model_file_name.append("/model.svm");
+
+	string svm_out = SVM_PATH;
+	svm_out.append("/responses.txt");
+
+	// confusion matrix.
+	// 6x6, since we have 6 action in KTH/UTI2.
+	cv::Mat confusion_matrix = cv::Mat::zeros(6, 6, CV_32F);
 
 	double summed_accuracy = 0.0;
 	for (unsigned i = 0; i < training_files.size(); ++i)
@@ -224,9 +407,77 @@ void evaluateSVMWithLeaveOneOut()
 		double accuracy = svm_guy.testModel(test_filename, model_file_name, svm_out);
 		summed_accuracy += accuracy;
 
+		// update confusion matrix.
+		// get svm responses.
+		vector<int> responses;
+
+		ifstream response_file(svm_out);
+		string line;
+		while (std::getline(response_file, line))
+		{
+			int response;
+			istringstream(line) >> response;
+			//response_file >> (int)response;
+			responses.push_back(response);
+		}
+		response_file.close();
+
+		// now get expected output.
+		vector<int> ground_truth;
+
+		ifstream truth_file(test_filename);
+		while (std::getline(truth_file, line))
+		{
+			int truth;
+			int first_space = line.find(" ");
+			if (first_space != string::npos)
+			{
+				istringstream (line.substr(0, first_space)) >> truth;
+				ground_truth.push_back(truth);
+			}
+		}
+
+		// now add that info to the confusion matrix.
+		// row = ground truth, col = predicted..
+		for (int i = 0; i < responses.size(); ++i)
+		{
+			int row = ground_truth[i] - 1;
+			int col = responses[i] - 1;
+
+			confusion_matrix.at<float>(row, col) += 1;
+		}
+		
+		
+
 		// debugging...print to testing file.
 		output_file << training_files[i] <<", " << testing_files[i] << ", " << accuracy << std::endl;
 	}	
+
+	// normalize each row.
+	// 6 rows/cols (1 per action)
+	for (int row = 0; row < 6; ++row)
+	{
+		float normalizer = 0.0;
+		for (int col = 0; col < 6; ++col)
+		{
+			normalizer += confusion_matrix.at<float>(row, col);
+		}
+
+		for (int col = 0; col < 6; ++col)
+		{
+			confusion_matrix.at<float>(row, col) /= normalizer;
+		}
+	}
+
+	cout << "Confusion matrix" << endl << "---------------------" << endl;
+	for (int row = 0; row < confusion_matrix.rows; ++row)
+	{
+		for (int col = 0; col < confusion_matrix.cols; ++col)
+		{
+			cout << confusion_matrix.at<float>(row, col) << ", ";
+		}
+		cout << endl << endl;
+	}
 
 	output_file.close();
 
@@ -279,7 +530,7 @@ void convertMoSIFTToMoFREAK()
 			string mofreak_path = MOFREAK_PATH + mosift_filename + ".mofreak";//mosift_path;
 			//mofreak_path.append(".mofreak");
 			// compute. write.
-			MoFREAKUtilities mofreak;
+			MoFREAKUtilities mofreak(dataset);
 			
 			cout << "Buidling " << mofreak_path << " from " << mosift_path << " with video " << video_file << endl;
 			mofreak.buildMoFREAKFeaturesFromMoSIFT(mosift_path, video_file, mofreak_path);
@@ -318,7 +569,7 @@ void pickClusters()
 	mofreak_ftrs = mofreak.getMoFREAKFeatures();
 
 	// NEGATIVE EXAMPLES
-	MoFREAKUtilities negative_mofreak;
+	MoFREAKUtilities negative_mofreak(dataset);
 
 	for (directory_iterator dir_iter(MOFREAK_NEG_PATH); dir_iter != end_iter; ++dir_iter)
 	{
@@ -334,7 +585,7 @@ void pickClusters()
 	}
 
 	negative_mofreak.setAllFeaturesToLabel(-1);
-	std::vector<MoFREAKFeature> negative_ftrs = negative_mofreak.getMoFREAKFeatures();
+	std::deque<MoFREAKFeature> negative_ftrs = negative_mofreak.getMoFREAKFeatures();
 
 	// append the negative features to the end of the positive ones.
 	mofreak_ftrs.insert(mofreak_ftrs.end(), negative_ftrs.begin(), negative_ftrs.end());
@@ -344,16 +595,10 @@ void pickClusters()
 	cv::Mat data_pts(mofreak_ftrs.size(), FEATURE_DIMENSIONALITY, CV_32FC1);
 
 	Clustering clustering(FEATURE_DIMENSIONALITY, NUM_CLUSTERS, 1, NUM_CLASSES, possible_classes);
-	clustering.setAppearanceDescriptor(0, true);
+	clustering.setAppearanceDescriptor(8, true);
 	clustering.setMotionDescriptor(8, true);
 
 	cout << "Formatting features..." << endl;
-	// [TODO]
-	// MAKE FIXED_CLASS 1 WHEN WE ADD POSITIVE EXAMPLES.
-	// -1 WHEN WE ADD NEGATIVE EXAMPLES.
-	// MAKE THIS CLASS ADAPTABLE TO INCREMENTALLY ADD POINTS (on a per-file basis maybe... I'm not sure.)
-	//int fixed_class = 1;
-	//clustering.buildDataFromMoFREAK(mofreak_ftrs, false, false, true, fixed_class);
 	clustering.buildDataFromMoFREAK(mofreak_ftrs, false, false, false);
 
 	cout << "Clustering..." << endl;
@@ -377,7 +622,6 @@ void computeBOWHistograms(bool positive_examples)
 	// gather all files int vector<string> mofreak_files
 	cout << "Gathering MoFREAK Features..." << endl;
 	vector<std::string> mofreak_files;
-
 	directory_iterator end_iter;
 
 	if (DISTRIBUTED)
@@ -397,8 +641,6 @@ void computeBOWHistograms(bool positive_examples)
 			}
 		}
 	}
-
-	//mofreak_ftrs = mofreak.getMoFREAKFeatures();
 	cout << "MoFREAK features gathered." << endl;
 
 	// load clusters.
@@ -419,9 +661,6 @@ void computeBOWHistograms(bool positive_examples)
 		bow_out.close();
 		cout << "Done " << mofreak_files[i] << endl;
 	}
-
-	// write each feature to libsvm file with 1 if pos, -1 if neg.
-	// [that's done in computeSlidingBag...]
 }
 
 void detectEvents()
@@ -675,12 +914,44 @@ void computeMoFREAKFiles()
 				mofreak.computeMoFREAKFromFile(video, mofreak_path, true);
 			}
 		}
+		else if (is_directory(dir_iter->status()))
+		{
+			// get folder name.
+			string video_action = dir_iter->path().filename().generic_string();
+			cout << "action: " << video_action << endl;
+
+			// set the mofreak object's action to that folder name.
+			mofreak.setCurrentAction(video_action);
+
+			// compute mofreak on all files on that folder.
+			string action_video_path = VIDEO_PATH + "/" + video_action;
+			cout << "action video path: " << action_video_path << endl;
+
+			for (directory_iterator video_iter(action_video_path); 
+				video_iter != end_iter; ++video_iter)
+			{
+				if (is_regular_file(video_iter->status()))
+				{
+					string video_filename = video_iter->path().filename().generic_string();
+					if (video_filename.substr(video_filename.length() - 3, 3) == "avi")
+					{
+						cout << "filename: " << video_filename << endl;
+						cout << "AVI: " << action_video_path << video_filename << endl;
+
+						string mofreak_path = MOFREAK_PATH + "/" + video_action + "/" + video_filename + ".mofreak";
+						cout << "mofreak path: " << mofreak_path << endl;
+						mofreak.computeMoFREAKFromFile(action_video_path + "/" + video_filename, mofreak_path, true);
+					}
+				}
+			}
+		}
 	}
 }
 
 void main()
 {
-	int state = MOSIFT_TO_DETECTION;///PICK_CLUSTERS;//MOSIFT_TO_DETECTION;
+	//int state = MOSIFT_TO_DETECTION;///PICK_CLUSTERS;//MOSIFT_TO_DETECTION;
+	//int dataset = KTH;
 	setParameters();
 
 	clock_t start, end;
@@ -742,9 +1013,9 @@ void main()
 	else if (state == MOSIFT_TO_DETECTION)
 	{
 		start = clock();
-		computeMoFREAKFiles();
+		//computeMoFREAKFiles();
 		//convertMoSIFTToMoFREAK();
-		if (TRECVID)
+		if (dataset == TRECVID)
 		{
 			pickClusters();
 			computeBOWHistograms(false);
@@ -752,12 +1023,28 @@ void main()
 			detectEvents();
 		}
 		
-		else
+		else if (dataset == KTH)
 		{
 			clusterKTH();
 			computeBOWKTH();
 			evaluateSVMWithLeaveOneOut();
 		}
+
+		else if (dataset == UTI2)
+		{
+			//clusterUTI2();
+			clusterKTH(); // same number of classes here... why not?
+			//computeBOWUTI2();
+			computeBOWKTH(); 
+			evaluateSVMWithLeaveOneOut();// same as above.  Why not?
+		}
+
+		else if (dataset == HMDB51)
+		{
+			//clusterHMDB51();
+			computeBOWKTH();
+		}
+
 		end = clock();
 	}
 

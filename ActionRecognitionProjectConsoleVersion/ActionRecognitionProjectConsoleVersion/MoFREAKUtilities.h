@@ -21,7 +21,19 @@ using namespace std;
 
 struct MoFREAKFeature
 {
-	MoFREAKFeature() { using_image_difference = false; } // just to set the default value, for compatibility.
+	MoFREAKFeature(int motion_bytes, int appearance_bytes) 
+	{
+		for (int i = 0; i < motion_bytes; ++i)
+		{
+			motion.push_back(0);
+		}
+
+		for (int i = 0; i < appearance_bytes; ++i)
+		{
+			appearance.push_back(0);
+		}
+		using_image_difference = false; 
+	} 
 
 	bool using_image_difference;
 	float x;
@@ -31,9 +43,12 @@ struct MoFREAKFeature
 	float motion_y;
 
 	int frame_number;
+	std::vector<unsigned int> motion;
+	std::vector<unsigned int> appearance;
 	//unsigned int appearance[1];
-	unsigned int appearance[APPEARANCE_BYTES];
-	unsigned int motion[MOTION_BYTES];
+	//unsigned int appearance[APPEARANCE_BYTES];
+	//unsigned int motion[MOTION_BYTES];
+	//unsigned int motion[1];
 
 	int action;
 	int video_number;
@@ -43,12 +58,18 @@ struct MoFREAKFeature
 class MoFREAKUtilities
 {
 public:
+	MoFREAKUtilities(int dset);
 	void readMoFREAKFeatures(std::string filename);
-	vector<MoFREAKFeature> getMoFREAKFeatures();
+	std::deque<MoFREAKFeature> getMoFREAKFeatures();
+	void clearFeatures();
+
 	void buildMoFREAKFeaturesFromMoSIFT(std::string mosift_file, string video_path, string mofreak_path);
 	void writeMoFREAKFeaturesToFile(string output_file);
 	void computeMoFREAKFromFile(std::string video_filename, std::string mofreak_filename, bool clear_features_after_computation);
 	void setAllFeaturesToLabel(int label);
+
+	void setCurrentAction(string folder_name);
+	int current_action; // for hmdb51..
 
 private:
 	
@@ -74,9 +95,12 @@ private:
 	std::vector<std::string> split(const std::string &s, char delim);
 	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
-	vector<MoFREAKFeature> features;
+	std::deque<MoFREAKFeature> features; // using deque because I'm running into memory issues..
 	static const int NUMBER_OF_BYTES_FOR_MOTION = MOTION_BYTES;
 	static const int NUMBER_OF_BYTES_FOR_APPEARANCE = APPEARANCE_BYTES;
 	cv::Mat recent_frame;
+
+	int dataset;
+	enum datasets {KTH, TRECVID, HOLLYWOOD, UTI1, UTI2, HMDB51};
 };
 #endif
