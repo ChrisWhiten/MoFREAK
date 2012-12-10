@@ -1,7 +1,7 @@
 ActionRecognitionProject
 ========================
 
-Action recognition for surveillance scenarios with LBPs.
+Action recognition for surveillance scenarios with local binary feature descriptors.
 Root project is not currently being maintained.  Instead, work is being done in ActionRecognitionProjectConsoleVersion (for efficiency, losing the GUI)
 
 
