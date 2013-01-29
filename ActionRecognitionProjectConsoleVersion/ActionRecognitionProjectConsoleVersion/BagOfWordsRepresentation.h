@@ -39,29 +39,21 @@ private:
 	void loadClusters();
 
 	cv::Mat buildHistogram(std::string &file, bool &success);
-	float standardEuclideanDistance(cv::Mat &a, cv::Mat &b) const;
-	void findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score);
-	unsigned int hammingDistance(cv::Mat &a, cv::Mat &b);
 	int actionStringToActionInt(string act);
-
-	void normalizeClusters();
-	void normalizeMotionOfFeature(cv::Mat &ftr);
-	void normalizeAppearanceOfFeature(cv::Mat &ftr);
 
 	std::vector<std::string> split(const std::string &s, char delim);
 	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
 	std::vector<std::string> files;
-	const int NUMBER_OF_CLUSTERS;
-	const int FEATURE_DIMENSIONALITY;
-	const int NUMBER_OF_GROUPS;
+	const unsigned int NUMBER_OF_CLUSTERS;
+	const unsigned int FEATURE_DIMENSIONALITY;
+	const unsigned int NUMBER_OF_GROUPS;
 	const std::string SVM_PATH;
 
 	cv::Mat *clusters;
 	std::vector<cv::Mat> clusters_for_matching;
 
-	enum KTH_action {BOXING, HANDCLAPPING, HANDWAVING, JOGGING, RUNNING, WALKING};
-	enum WEIZMANN_action {bend, jack, jump, pjump, run, side, skip, walk, wave1, wave2};
+	//enum WEIZMANN_action {bend, jack, jump, pjump, run, side, skip, walk, wave1, wave2};
 	enum HMDB_action {BRUSH_HAIR, CARTWHEEL, CATCH, CHEW, CLAP, CLIMB, CLIMB_STAIRS,
 		DIVE, DRAW_SWORD, DRIBBLE, DRINK, EAT, FALL_FLOOR, FENCING, FLIC_FLAC, GOLF,
 		HANDSTAND, HIT, HUG, JUMP, KICK, KICK_BALL, KISS, LAUGH, PICK, POUR, PULLUP,

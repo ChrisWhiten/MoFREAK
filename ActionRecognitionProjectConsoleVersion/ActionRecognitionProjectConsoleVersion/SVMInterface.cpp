@@ -560,15 +560,8 @@ double SVMInterface::testModel(std::string testing_data_file, std::string model_
 
 SVMInterface::~SVMInterface()
 {
-	//delete model;
-	//delete model2;
-	std::cout << "deleting xspace " << std::endl;
 	delete x_space;
-	std::cout << "deleting x " << std::endl;
 	delete x;
-	std::cout << "deleting line" << std::endl;
-	//delete line;
-	std::cout << "deleted" << std::endl;
 }
 
 int SVMInterface::max_line_len = 1024;

@@ -20,213 +20,6 @@ std::vector<std::string> BagOfWordsRepresentation::split(const std::string &s, c
     return split(s, delim, elems);
 }
 
-
-void BagOfWordsRepresentation::normalizeClusters()
-{
-	for (unsigned int clust = 0; clust < clusters->rows; ++clust)
-	{
-		normalizeAppearanceOfFeature((*clusters)(cv::Range(clust, clust + 1), cv::Range(0, clusters->cols)));
-		normalizeMotionOfFeature((*clusters)(cv::Range(clust, clust + 1), cv::Range(0, clusters->cols)));
-	}
-}
-
-void BagOfWordsRepresentation::normalizeAppearanceOfFeature(cv::Mat &ftr)
-{
-	// only normalize euclidean motion spaces
-	if (appearance_is_binary)
-		return;
-
-	const int APPEARANCE_START = 0;
-	const int APPEARANCE_END = appearance_descriptor_size;
-
-	float normalizer = 0.0;
-
-	// compute normalizer
-	for (unsigned col = APPEARANCE_START; col < APPEARANCE_END; ++col)
-	{
-		normalizer += ftr.at<float>(0, col);
-	}
-
-	// divide each val by the normalizer.
-	for (unsigned col = APPEARANCE_START; col < APPEARANCE_END; ++col)
-	{
-		ftr.at<float>(0, col) = ftr.at<float>(0, col)/normalizer;
-	}
-}
-
-void BagOfWordsRepresentation::normalizeMotionOfFeature(cv::Mat &ftr)
-{
-	// only normalize euclidean motion spaces
-	if (motion_is_binary)
-		return;
-
-	const int MOTION_START = appearance_descriptor_size;//64;
-	const int MOTION_END = appearance_descriptor_size + motion_descriptor_size;//192;
-
-	float normalizer = 0.0;
-
-	// compute normalizer
-	for (unsigned col = MOTION_START; col < MOTION_END; ++col)
-	{
-		normalizer += ftr.at<float>(0, col);
-	}
-
-	// divide each val by the normalizer.
-	for (unsigned col = MOTION_START; col < MOTION_END; ++col)
-	{
-		ftr.at<float>(0, col) = ftr.at<float>(0, col)/normalizer;
-	}
-}
-
-float BagOfWordsRepresentation::standardEuclideanDistance(cv::Mat &a, cv::Mat &b) const
-{
-	float distance = 0.0;
-
-	// compute distance between the two vectors.
-	for (unsigned int i = 0; i < a.cols; ++i)
-	{
-		float a_i = a.at<float>(0, i);
-		float b_i = b.at<float>(0, i);
-		distance += ((a_i - b_i) * (a_i - b_i));
-	}
-
-	distance = sqrt(distance);
-	return distance;
-}
-
-unsigned int BagOfWordsRepresentation::hammingDistance(cv::Mat &a, cv::Mat &b)
-{
-	unsigned int hamming_distance = 0;
-
-	for (unsigned i = 0; i < a.cols; ++i)
-	{
-		unsigned int a_bits = (unsigned int)a.at<unsigned char>(0, i);
-		unsigned int b_bits = (unsigned int)b.at<unsigned char>(0, i);
-
-		// start as 0000 0001
-		unsigned int bit = 1;
-
-		// get the xor of a and b, each 1 in the xor adds to the hamming distance...
-		unsigned int xor_result = a_bits ^ b_bits;
-
-		// now count the bits, using 'bit' as a mask and performing a bitwise AND
-		for (bit = 1; bit != 0; bit <<= 1)
-		{
-			if ((xor_result & bit) > 0)
-			{
-				hamming_distance++;
-			}
-		}
-	}
-
-	return hamming_distance;
-}
-
-
-void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &clusters, int &best_cluster_index, float &best_cluster_score)
-{
-	// constants
-	const unsigned int APPEARANCE_HAMMING_DIST_NORM = 99999999;//1024;//= appearance_descriptor_size * 8;
-	const unsigned int APPEARANCE_START_INDEX = 0;
-	const unsigned int APPEARNCE_END_INDEX = appearance_descriptor_size;
-	const unsigned int MOTION_HAMMING_DIST_NORM = motion_descriptor_size * 8;
-	const unsigned int MOTION_START_INDEX = appearance_descriptor_size;
-	const unsigned int MOTION_END_INDEX = appearance_descriptor_size + motion_descriptor_size;
-
-	// clusters a pre-normalized.  normalize feature vector.
-	//normalizeMotionOfFeature(feature_vector);
-	//normalizeAppearanceOfFeature(feature_vector);
-
-	// base case: initialize with the score/index of the 0th cluster.
-	best_cluster_index = 0;
-	float appearance_distance = 0.0;
-	float motion_distance = 0.0;
-
-	// Compute the distance between the appearance components
-	cv::Mat query_appearance_descriptor, cluster_appearance_descriptor;
-	query_appearance_descriptor = feature_vector(cv::Range(0, 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
-	cluster_appearance_descriptor = clusters(cv::Range(0, 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
-
-	if (appearance_is_binary && (appearance_descriptor_size > 0))
-	{
-		appearance_distance = hammingDistance(query_appearance_descriptor, cluster_appearance_descriptor);
-		appearance_distance /= APPEARANCE_HAMMING_DIST_NORM;
-	}
-	else
-	{
-		appearance_distance = standardEuclideanDistance(query_appearance_descriptor, cluster_appearance_descriptor);
-	}
-	
-
-	// Compute the distance between the motion components
-	cv::Mat query_motion_descriptor, cluster_motion_descriptor;
-	query_motion_descriptor = feature_vector(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
-	cluster_motion_descriptor = clusters(cv::Range(0, 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
-
-	if (motion_is_binary && (motion_descriptor_size > 0))
-	{
-		motion_distance = hammingDistance(query_motion_descriptor, cluster_motion_descriptor);
-		motion_distance /= MOTION_HAMMING_DIST_NORM;
-	}
-	else
-	{
-		motion_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
-	}
-
-	appearance_distance = 0;
-	float final_dist = appearance_distance + motion_distance;
-	best_cluster_score = final_dist;
-
-	// Previous computations were just so everything was initialized (for the base case)
-	// Now run those computations against all other clusters.
-	for (unsigned cluster = 1; cluster < clusters.rows; ++cluster)
-	{
-		final_dist = 0.0;
-		motion_distance = 0.0;
-		appearance_distance = 0.0;
-
-		query_appearance_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(APPEARANCE_START_INDEX, APPEARNCE_END_INDEX));
-		cluster_motion_descriptor = clusters(cv::Range(cluster, cluster + 1), cv::Range(MOTION_START_INDEX, MOTION_END_INDEX));
-
-		// Appearance distance.
-		if (appearance_is_binary && (appearance_descriptor_size > 0))
-		{
-			appearance_distance = hammingDistance(query_appearance_descriptor, cluster_appearance_descriptor);
-			appearance_distance /= APPEARANCE_HAMMING_DIST_NORM;
-		}
-		else
-		{
-			appearance_distance = standardEuclideanDistance(query_appearance_descriptor, cluster_appearance_descriptor);
-		}
-
-		// Motion distance.
-		if (motion_is_binary && (motion_descriptor_size > 0))
-		{
-			motion_distance = hammingDistance(query_motion_descriptor, cluster_motion_descriptor);
-			motion_distance /= MOTION_HAMMING_DIST_NORM;
-		}
-		else
-		{
-			motion_distance = standardEuclideanDistance(query_motion_descriptor, cluster_motion_descriptor);
-		}
-
-		appearance_distance = 0;
-		final_dist = appearance_distance + motion_distance;
-
-		// If we have a new shortest distance, store that.
-		if (final_dist < best_cluster_score)
-		{
-			best_cluster_score = final_dist;
-			best_cluster_index = cluster;
-		}
-	}
-
-	query_appearance_descriptor.release();
-	cluster_appearance_descriptor.release();
-	query_motion_descriptor.release();
-	cluster_motion_descriptor.release();
-}
-
 cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &success)
 {
 	success = false;
@@ -263,19 +56,13 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 			iss >> elem;
 			feature_vector.at<unsigned char>(0, i) = (unsigned char)elem;
 		}
-		
-		std::vector<cv::DMatch> matches;
-		bf_matcher.match(feature_vector, matches);		
 
 		// match that vector against centroids to assign to correct codeword.
 		// brute force match each mofreak point against all clusters to find best match.
-		// DEPRECATED [TODO]
-		int best_cluster_index;
-		float best_cluster_score;
-		//findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
+		std::vector<cv::DMatch> matches;
+		bf_matcher.match(feature_vector, matches);
 
 		// + 1 to that codeword
-		//histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
 		histogram.at<float>(0, matches[0].imgIdx) = histogram.at<float>(0, matches[0].imgIdx) + 1;
 		success = true;
 		feature_vector.release();
@@ -288,12 +75,12 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 
 	// after doing that for all lines in file, normalize.
 	float histogram_sum = 0;
-	for (unsigned col = 0; col < histogram.cols; ++col)
+	for (int col = 0; col < histogram.cols; ++col)
 	{
 		histogram_sum += histogram.at<float>(0, col);
 	}
 
-	for (unsigned col = 0; col < histogram.cols; ++col)
+	for (int col = 0; col < histogram.cols; ++col)
 	{
 		histogram.at<float>(0, col) = histogram.at<float>(0, col)/histogram_sum;
 	}
@@ -336,6 +123,10 @@ void BagOfWordsRepresentation::loadClusters()
 // when doing this, make sure all mofreak points for the video are in ONE file, to avoid missing cuts.
 void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int alpha, int label, ofstream &out)
 {
+	// descriptor matcher.
+	cv::BFMatcher bf_matcher(cv::NORM_HAMMING);
+	bf_matcher.add(clusters_for_matching);
+
 	bool over_alpha_frames = false;
 	string distance_file = file;
 
@@ -413,14 +204,12 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 			for (auto it = feature_list.begin(); it != feature_list.end(); ++it)
 			{
 				// match that vector against centroids to assign to correct codeword.
-				// brute force match each mosift point against all clusters to find best match.
-				int best_cluster_index;
-				float best_cluster_score;
-		
-				findBestMatch(*it, *clusters, best_cluster_index, best_cluster_score);
+				// brute force match each mofreak point against all clusters to find best match.
+				std::vector<cv::DMatch> matches;
+				bf_matcher.match(*it, matches);	
 
 				// + 1 to that codeword
-				new_histogram.at<float>(0, best_cluster_index) = new_histogram.at<float>(0, best_cluster_index) + 1;
+				new_histogram.at<float>(0, matches[0].imgIdx) = new_histogram.at<float>(0, matches[0].imgIdx) + 1;
 			}
 
 			// 2: add the histogram to our list.
@@ -451,7 +240,7 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 				histograms_per_frame.pop_front();
 
 				// normalize the histogram.
-				double normalizer = 0.0;
+				float normalizer = 0.0;
 				for (int col = 0; col < NUMBER_OF_CLUSTERS; ++col)
 				{
 					normalizer += histogram.at<float>(0, col);
@@ -511,7 +300,7 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 		}
 
 		// normalize the histogram.
-		double normalizer = 0.0;
+		float normalizer = 0.0;
 		for (int col = 0; col < NUMBER_OF_CLUSTERS; ++col)
 		{
 			normalizer += histogram.at<float>(0, col);
@@ -539,6 +328,9 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 	}
 }
 
+// this function should be deprecated,
+// since we are now using the automatic action-tagging, rather than
+// hard-coding this stuff.. only exists for hmdb temporarily [DEPRECATED] [TODO]
 int BagOfWordsRepresentation::actionStringToActionInt(string act)
 {
 	if (act == "brush_hair")
@@ -1006,7 +798,7 @@ void BagOfWordsRepresentation::extractMetadata(std::string filename, int &action
 	if (false)//dataset == KTH)
 	{
 		// get the action.
-		if (boost::contains(filename, "boxing"))
+		/*if (boost::contains(filename, "boxing"))
 		{
 			action = BOXING;
 		}
@@ -1034,7 +826,7 @@ void BagOfWordsRepresentation::extractMetadata(std::string filename, int &action
 		{
 			std::cout << "Didn't find action: " << filename << std::endl;
 			exit(1);
-		}
+		}*/
 
 		std::vector<std::string> filename_parts = split(filename, '_');
 		std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> group;
@@ -1305,7 +1097,6 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim, s
 	NUMBER_OF_CLUSTERS(num_clust), FEATURE_DIMENSIONALITY(ftr_dim), SVM_PATH(svm_path), NUMBER_OF_GROUPS(num_groups), dataset(dset)
 {
 	loadClusters();
-	//normalizeClusters();
 
 	motion_descriptor_size = 8;
 	appearance_descriptor_size = 8;
@@ -1324,7 +1115,6 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &fil
 {
 	files = file_list;
 	loadClusters();
-	//normalizeClusters(); [maybe put this back] [TODO]
 
 	// default values.
 	motion_descriptor_size = 8; 
