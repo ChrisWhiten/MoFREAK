@@ -35,18 +35,22 @@
 	 labels.release();
  }
 
- Clustering::Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes) : DIMENSIONALITY(dim), NUMBER_OF_CLUSTERS(num_clust), 
-	 NUMBER_OF_POINTS_TO_SAMPLE(num_pts), NUMBER_OF_CLASSES(num_classes)
+ Clustering::Clustering(int dim, int num_clust, int num_pts, int num_classes, vector<int> poss_classes, string svm_path) : 
+	DIMENSIONALITY(dim), NUMBER_OF_CLUSTERS(num_clust), NUMBER_OF_POINTS_TO_SAMPLE(num_pts), NUMBER_OF_CLASSES(num_classes),
+		SVM_PATH(svm_path)
  {
 	possible_classes = poss_classes;
-	motion_descriptor_size = 8; 
+	center_row = 0;
+	data_pts = new cv::Mat();
+	centers = new cv::Mat(NUMBER_OF_CLUSTERS, DIMENSIONALITY, CV_8U);
+
+	// some default values that will be overwritten..
+	// If debugging program and both descriptors are size 0,
+	// then we have not set the descriptor attributes with setMotionDescriptor and setAppearanceDescriptor.
+	motion_descriptor_size = 0; 
 	appearance_descriptor_size = 0;
 	motion_is_binary = true;
 	appearance_is_binary = true;
-	center_row = 0;
-	data_pts = new cv::Mat();
-
-	centers = new cv::Mat(NUMBER_OF_CLUSTERS, DIMENSIONALITY, CV_32F);
  }
 
  void Clustering::buildDataFromMoFREAK(std::deque<MoFREAKFeature> &mofreak_ftrs, bool sample_pts, bool img_diff, bool fix_class, int fixed_class)
@@ -59,8 +63,8 @@
 	 // allocate data matrix.
 	 // + 3 for metadata
 	 int num_ftrs = mofreak_ftrs.size();
-	 cout << "allocating data_pts in builddatafrommofreaK" << endl;
-	 data_pts = new cv::Mat(num_ftrs, DIMENSIONALITY + 3, CV_32FC1);
+	 cout << "allocating data_pts in builddatafrommofreaK: " << num_ftrs << endl;
+	 data_pts = new cv::Mat(num_ftrs, DIMENSIONALITY + 3, CV_8U);
 	 cout << "allocated" << endl;
 
 	 // convert mofreak pts into rows in the matrix
@@ -71,28 +75,26 @@
 		// first, metadata.
 		if (fix_class)
 		{
-			data_pts->at<float>(row, 0) = fixed_class;
+			data_pts->at<unsigned char>(row, 0) = fixed_class;
 		}
 		else
 		{
-			data_pts->at<float>(row, 0) = ftr.action;
+			data_pts->at<unsigned char>(row, 0) = (unsigned char)ftr.action;
 		}
-		data_pts->at<float>(row, 1) = ftr.person;
-		data_pts->at<float>(row, 2) = ftr.video_number;
+		data_pts->at<unsigned char>(row, 1) = (unsigned char)ftr.person;
+		data_pts->at<unsigned char>(row, 2) = (unsigned char)ftr.video_number;
 
 		// appearance.
 		for (unsigned col = 0; col < appearance_descriptor_size; ++col)
 		{
-			data_pts->at<float>(row, col + 3) = (float)ftr.appearance[col];
+			data_pts->at<unsigned char>(row, col + 3) = (unsigned char)ftr.appearance[col];
 		}
 
 		// motion.
 		for (unsigned col = 0; col < motion_descriptor_size; ++col)
 		{
-			//cout << "feature motion size: " << ftr.motion.size() << endl;
-			data_pts->at<float>(row, col + appearance_descriptor_size + 3) = (float)ftr.motion[col];
+			data_pts->at<unsigned char>(row, col + appearance_descriptor_size + 3) = (unsigned char)ftr.motion[col];
 		}
-		
 	 }
 
 	 cout << "converted into matrix of pts" << endl;
@@ -111,8 +113,12 @@
 			data_pts->pop_back(data_pts->rows - NUMBER_OF_POINTS_TO_SAMPLE);
 		}
 	}
+
+	// we've stored the data in a clusterable format.  Now clear out the intermediate data.
+	mofreak_ftrs.clear();
  }
 
+ // [DEPRECATED] [TODO]
  void Clustering::buildDataFromMoSIFT(vector<MoSIFTFeature> &mosift_ftrs, bool sample_pts)
  {
 	 // allocate data matrix.
@@ -158,39 +164,38 @@
  // this is how bad code gets written.
  void Clustering::randomClusters(bool only_one_class)
  {
-	//centers = new cv::Mat(NUMBER_OF_CLUSTERS, DIMENSIONALITY, data_pts->type());
+	 std::cout << "Random clustering" << std::endl;
 
 	// shuffle and take the top NUMBER_OF_CLUSTERS points as the clusters.
 	shuffleCVMat(*data_pts);
 	shuffleCVMat(*data_pts);
 	shuffleCVMat(*data_pts);
-	/*cout << "shuffled" << endl;
-	cout << data_pts->rows << endl;
-	cout << data_pts->cols << endl;*/
 
 	// sample an even number of points from each class to keep the classes balanced.
 	const int CLUSTERS_PER_CLASS = NUMBER_OF_CLUSTERS/NUMBER_OF_CLASSES;
 
+	cout << "Sampling " << CLUSTERS_PER_CLASS << endl;
+	cout << "Current center row:" << center_row << endl;
 	for (auto c = possible_classes.begin(); c != possible_classes.end(); ++c)
 	{
 		unsigned int sampled_from_this_class = 0;
 
 		for (unsigned row = 0; row < data_pts->rows; ++row)
 		{
-			if (((unsigned int)data_pts->at<float>(row, 0) == *c) || only_one_class)
+			if (((unsigned int)data_pts->at<unsigned char>(row, 0) == *c) || only_one_class)
 			{
-				//cout << "sampling" << sampled_from_this_class << "/" << CLUSTERS_PER_CLASS << endl;
-				// sample this point.
-				// 3 metadata parameters at the start...?
+				// sampling this point.
 				for (unsigned col = 3; col < data_pts->cols; ++col)
 				{
 					try
 					{
-						centers->at<float>(center_row, col - 3) = data_pts->at<float>(row, col);
+						centers->at<unsigned char>(center_row, col - 3) = data_pts->at<unsigned char>(row, col);
 					}
 					catch (exception &e)
 					{
 						cout << "Error: " << e.what() << endl;
+						system("PAUSE");
+						exit(1);
 					}
 				}
 
@@ -225,15 +230,25 @@
 	 kmeans(clusterable_data, NUMBER_OF_CLUSTERS, labels,  cvTermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 100000, 0.001),1,cv::KMEANS_PP_CENTERS, *centers);
  }
 
- void Clustering::writeClusters()
+ void Clustering::writeClusters(bool append)
  {
-	 ofstream output_file("clusters.txt");
+	 cout << "writing" << endl;
+	 std::ofstream output_file;
+
+	 if (append)
+	 {
+		 output_file.open(SVM_PATH + "/clusters.txt", std::ios_base::app);
+	 }
+	 else
+	 {
+		output_file.open(SVM_PATH + "/clusters.txt");
+	 }
 
 	for (int i = 0; i < NUMBER_OF_CLUSTERS; ++i)
 	{
 		for (unsigned j = 0; j < centers->cols; ++j)
 		{
-			output_file << centers->at<float>(i, j) << " ";
+			output_file << (float)centers->at<unsigned char>(i, j) << " ";
 		}
 
 		output_file << std::endl;

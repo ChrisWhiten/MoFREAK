@@ -38,38 +38,6 @@ unsigned int MoFREAKUtilities::countOnes(unsigned int byte)
 	return num_ones;
 }
 
-// this is only implemented here, but not being used right now.
-// the general idea is that we are going to replace optical flow by simple image difference.
-// representing motion as a single unsigned integer.
-unsigned int MoFREAKUtilities::extractMotionByImageDifference(cv::Mat &frame, cv::Mat &prev_frame, float x, float y)
-{
-	int f_rows = frame.rows;
-	int p_rows = prev_frame.rows;
-
-	int value_at_current_frame = frame.at<unsigned char>(y, x);
-	int value_at_prev_frame = prev_frame.at<unsigned char>(y, x);
-
-	return abs(value_at_current_frame - value_at_prev_frame);
-}
-
-unsigned int totalframediff(cv::Mat &frame, cv::Mat &prev)
-{
-	int frame_diff = 0;
-	for (int row = 0; row < frame.rows; ++row)
-	{
-		for (int col = 0; col < frame.cols; ++col)
-		{
-			int value_at_current_frame = frame.at<unsigned char>(row, col);
-			int value_at_prev_frame = prev.at<unsigned char>(row, col);
-
-			frame_diff += abs(value_at_current_frame - value_at_prev_frame);
-		}
-	}
-
-	return frame_diff;
-}
-
-
 // Computes the motion interchange pattern between the current and previous frame.
 // Assumes both matrices are 19 x 19, and we will check the 8 motion patch locations in the previous frame
 // returns a binary descriptor representing the MIP responses for the patch at the SURF descriptor.
@@ -219,9 +187,7 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string video_filename, std::s
 {
 	std::string debug_filename = video_filename;
 	// ignore the first frames because we can't compute the frame difference with them.
-	// Beyond that, go over all frames, extract FAST/SURF points, compute frame difference,
-	// if frame difference is above some threshold, compute FREAK point and save.
-	const int GAP_FOR_FRAME_DIFFERENCE = 2;
+	const int GAP_FOR_FRAME_DIFFERENCE = 5;
 
 	cv::VideoCapture capture;
 	capture.open(video_filename);
@@ -627,267 +593,281 @@ double MoFREAKUtilities::motionNormalizedEuclideanDistance(vector<unsigned int> 
 
 void MoFREAKUtilities::setCurrentAction(string folder_name)
 {
-	if (folder_name == "brush_hair")
+	if (dataset == HMDB51)
 	{
-		current_action = BRUSH_HAIR;
-	}
+		if (folder_name == "brush_hair")
+		{
+			current_action = BRUSH_HAIR;
+		}
 
-	else if (folder_name == "cartwheel")
-	{
-		current_action = CARTWHEEL;	
-	}
+		else if (folder_name == "cartwheel")
+		{
+			current_action = CARTWHEEL;	
+		}
 
-	else if (folder_name == "catch")
-	{
-		current_action = CATCH;
-	}
+		else if (folder_name == "catch")
+		{
+			current_action = CATCH;
+		}
 
-	else if (folder_name == "chew")
-	{
-		current_action = CHEW;
-	}
+		else if (folder_name == "chew")
+		{
+			current_action = CHEW;
+		}
 
-	else if (folder_name == "clap")
-	{
-		current_action = CLAP;
-	}
+		else if (folder_name == "clap")
+		{
+			current_action = CLAP;
+		}
 
-	else if (folder_name == "climb")
-	{
-		current_action = CLIMB;
-	}
+		else if (folder_name == "climb")
+		{
+			current_action = CLIMB;
+		}
 
-	else if (folder_name == "climb_stairs")
-	{
-		current_action = CLIMB_STAIRS;
-	}
+		else if (folder_name == "climb_stairs")
+		{
+			current_action = CLIMB_STAIRS;
+		}
 
-	else if (folder_name == "draw_sword")
-	{
-		current_action = DRAW_SWORD;
-	}
+		else if (folder_name == "draw_sword")
+		{
+			current_action = DRAW_SWORD;
+		}
 
-	else if (folder_name == "dribble")
-	{
-		current_action = DRIBBLE;
-	}
+		else if (folder_name == "dribble")
+		{
+			current_action = DRIBBLE;
+		}
 
-	else if (folder_name == "drink")
-	{
-		current_action = DRINK;
-	}
+		else if (folder_name == "drink")
+		{
+			current_action = DRINK;
+		}
 
-	else if (folder_name == "dive")
-	{
-		current_action = DIVE;
-	}
+		else if (folder_name == "dive")
+		{
+			current_action = DIVE;
+		}
 
-	else if (folder_name == "eat")
-	{
-		current_action = EAT;
-	}
+		else if (folder_name == "eat")
+		{
+			current_action = EAT;
+		}
 
-	else if (folder_name == "fall_floor")
-	{
-		current_action = FALL_FLOOR;
-	}
+		else if (folder_name == "fall_floor")
+		{
+			current_action = FALL_FLOOR;
+		}
 
-	else if (folder_name == "fencing")
-	{
-		current_action = FENCING;
-	}
+		else if (folder_name == "fencing")
+		{
+			current_action = FENCING;
+		}
 
-	else if (folder_name == "flic_flac")
-	{
-		current_action = FLIC_FLAC;
-	}
+		else if (folder_name == "flic_flac")
+		{
+			current_action = FLIC_FLAC;
+		}
 
-	else if (folder_name == "golf")
-	{
-		current_action = GOLF;
-	}
+		else if (folder_name == "golf")
+		{
+			current_action = GOLF;
+		}
 
-	else if (folder_name == "handstand")
-	{
-		current_action = HANDSTAND;
-	}
+		else if (folder_name == "handstand")
+		{
+			current_action = HANDSTAND;
+		}
 
-	else if (folder_name == "hit")
-	{
-		current_action = HIT;
-	}
+		else if (folder_name == "hit")
+		{
+			current_action = HIT;
+		}
 
-	else if (folder_name == "hug")
-	{
-		current_action = HUG;
-	}
+		else if (folder_name == "hug")
+		{
+			current_action = HUG;
+		}
 
-	else if (folder_name == "jump")
-	{
-		current_action = JUMP;
-	}
+		else if (folder_name == "jump")
+		{
+			current_action = JUMP;
+		}
 
-	else if (folder_name == "kick")
-	{
-		current_action = KICK;
-	}
+		else if (folder_name == "kick")
+		{
+			current_action = KICK;
+		}
 
-	else if (folder_name == "kick_ball")
-	{
-		current_action = KICK_BALL;
-	}
+		else if (folder_name == "kick_ball")
+		{
+			current_action = KICK_BALL;
+		}
 
-	else if (folder_name == "kiss")
-	{
-		current_action = KISS;
-	}
+		else if (folder_name == "kiss")
+		{
+			current_action = KISS;
+		}
 
-	else if (folder_name == "laugh")
-	{
-		current_action = LAUGH;
-	}
+		else if (folder_name == "laugh")
+		{
+			current_action = LAUGH;
+		}
 
-	else if (folder_name == "pick")
-	{
-		current_action = PICK;
-	}
+		else if (folder_name == "pick")
+		{
+			current_action = PICK;
+		}
 
-	else if (folder_name == "pour")
-	{
-		current_action = POUR;
-	}
+		else if (folder_name == "pour")
+		{
+			current_action = POUR;
+		}
 
-	else if (folder_name == "pullup")
-	{
-		current_action = PULLUP;
-	}
+		else if (folder_name == "pullup")
+		{
+			current_action = PULLUP;
+		}
 
-	else if (folder_name == "punch")
-	{
-		current_action = PUNCH;
-	}
+		else if (folder_name == "punch")
+		{
+			current_action = PUNCH;
+		}
 
-	else if (folder_name == "push")
-	{
-		current_action = PUSH;
-	}
+		else if (folder_name == "push")
+		{
+			current_action = PUSH;
+		}
 
-	else if (folder_name == "pushup")
-	{
-		current_action = PUSHUP;
-	}
+		else if (folder_name == "pushup")
+		{
+			current_action = PUSHUP;
+		}
 
-	else if (folder_name == "ride_bike")
-	{
-		current_action = RIDE_BIKE;
-	}
+		else if (folder_name == "ride_bike")
+		{
+			current_action = RIDE_BIKE;
+		}
 
-	else if (folder_name == "ride_horse")
-	{
-		current_action = RIDE_HORSE;
-	}
+		else if (folder_name == "ride_horse")
+		{
+			current_action = RIDE_HORSE;
+		}
 
-	else if (folder_name == "run")
-	{
-		current_action = RUN;
-	}
+		else if (folder_name == "run")
+		{
+			current_action = RUN;
+		}
 
-	else if (folder_name == "shake_hands")
-	{
-		current_action = SHAKE_HANDS;
-	}
+		else if (folder_name == "shake_hands")
+		{
+			current_action = SHAKE_HANDS;
+		}
 
-	else if (folder_name == "shoot_ball")
-	{
-		current_action = SHOOT_BALL;
-	}
+		else if (folder_name == "shoot_ball")
+		{
+			current_action = SHOOT_BALL;
+		}
 
-	else if (folder_name == "shoot_bow")
-	{
-		current_action = SHOOT_BOW;
-	}
+		else if (folder_name == "shoot_bow")
+		{
+			current_action = SHOOT_BOW;
+		}
 
-	else if (folder_name == "shoot_gun")
-	{
-		current_action = SHOOT_GUN;
-	}
+		else if (folder_name == "shoot_gun")
+		{
+			current_action = SHOOT_GUN;
+		}
 
-	else if (folder_name == "sit")
-	{
-		current_action = SIT;
-	}
+		else if (folder_name == "sit")
+		{
+			current_action = SIT;
+		}
 
-	else if (folder_name == "situp")
-	{
-		current_action = SITUP;
-	}
+		else if (folder_name == "situp")
+		{
+			current_action = SITUP;
+		}
 
-	else if (folder_name == "smile")
-	{
-		current_action = SMILE;
-	}
+		else if (folder_name == "smile")
+		{
+			current_action = SMILE;
+		}
 
-	else if (folder_name == "smoke")
-	{
-		current_action = SMOKE;
-	}
+		else if (folder_name == "smoke")
+		{
+			current_action = SMOKE;
+		}
 
-	else if (folder_name == "somersault")
-	{
-		current_action = SOMERSAULT;
-	}
+		else if (folder_name == "somersault")
+		{
+			current_action = SOMERSAULT;
+		}
 
-	else if (folder_name == "stand")
-	{
-		current_action = STAND;
-	}
+		else if (folder_name == "stand")
+		{
+			current_action = STAND;
+		}
 
-	else if (folder_name == "swing_baseball")
-	{
-		current_action = SWING_BASEBALL;
-	}
+		else if (folder_name == "swing_baseball")
+		{
+			current_action = SWING_BASEBALL;
+		}
 
-	else if (folder_name == "sword")
-	{
-		current_action = SWORD;
-	}
+		else if (folder_name == "sword")
+		{
+			current_action = SWORD;
+		}
 
-	else if (folder_name == "sword_exercise")
-	{
-		current_action = SWORD_EXERCISE;
-	}
+		else if (folder_name == "sword_exercise")
+		{
+			current_action = SWORD_EXERCISE;
+		}
 
-	else if (folder_name == "talk")
-	{
-		current_action = TALK;
-	}
+		else if (folder_name == "talk")
+		{
+			current_action = TALK;
+		}
 
-	else if (folder_name == "throw")
-	{
-		current_action = THROW;
-	}
+		else if (folder_name == "throw")
+		{
+			current_action = THROW;
+		}
 
-	else if (folder_name == "turn")
-	{
-		current_action = TURN;
-	}
+		else if (folder_name == "turn")
+		{
+			current_action = TURN;
+		}
 
-	else if (folder_name == "walk")
-	{
-		current_action = WALK;
-	}
+		else if (folder_name == "walk")
+		{
+			current_action = WALK;
+		}
 
-	else if (folder_name == "wave")
-	{
-		current_action = WAVE;
-	}
+		else if (folder_name == "wave")
+		{
+			current_action = WAVE;
+		}
 
-	else
+		else
+		{
+			current_action = BRUSH_HAIR;
+			cout << "****Didn't find action" << endl;
+			system("PAUSE");
+			exit(1);
+		}
+	}
+	else if (dataset == UCF101)
 	{
-		current_action = BRUSH_HAIR;
-		cout << "****Didn't find action" << endl;
-		system("PAUSE");
-		exit(1);
+		// This is the right way to do this.  Verify that it works,
+		// Then replace the other examples.
+		if (actions.find(folder_name) == actions.end())
+		{
+			actions[folder_name] = actions.size();
+		}
+
+		current_action = actions[folder_name];
 	}
 }
 
@@ -897,7 +877,7 @@ void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &vide
 	boost::filesystem::path file_name = file_path.filename();
 	std::string file_name_str = file_name.generic_string();
 
-	if (dataset == KTH)
+	if (false)//dataset == KTH)
 	{
 		// get the action.
 		if (boost::contains(file_name_str, "boxing"))
@@ -944,6 +924,7 @@ void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &vide
 	{
 		video_number = 0;
 		person = 0;
+		action = current_action;
 	}
 
 	else if (dataset == UTI2)
@@ -961,14 +942,16 @@ void MoFREAKUtilities::readMetadata(std::string filename, int &action, int &vide
 
 		// video number.. not sure if useful for this dataset.
 		std::stringstream(filename_parts[0]) >> video_number;
-
+	}
 }
-}
 
-void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
+void MoFREAKUtilities::readMoFREAKFeatures(std::string filename, int num_to_sample)
 {
+	std::deque<MoFREAKFeature> new_features;
+
 	int action, video_number, person;
 	readMetadata(filename, action, video_number, person);
+	std::cout << "read metadata." << std::endl;
 
 	ifstream stream;
 	stream.open(filename);
@@ -978,8 +961,14 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 		// single feature
 		MoFREAKFeature ftr(NUMBER_OF_BYTES_FOR_MOTION, NUMBER_OF_BYTES_FOR_APPEARANCE);
 		stream >> ftr.x >> ftr.y >> ftr.frame_number >> ftr.scale >> ftr.motion_x >> ftr.motion_y;
+		//std::cout << ftr.x << ftr.y << ftr.frame_number << std::endl;
 	
-		// appearanace
+		// if there was some extra data and it's not an actual feature point, leave.
+		if (stream.eof())
+		{
+			break;
+		}
+		// otherwise, we read appearanace data
 		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)
 		{
 			unsigned int a;
@@ -987,7 +976,7 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 			ftr.appearance[i] = a;
 		}
 		
-		// motion
+		// motion data
 		for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
 		{
 			unsigned int a;
@@ -1009,10 +998,30 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename)
 		ftr.person = person;
 
 		// add new feature to collection.
-		features.push_back(ftr);
+		new_features.push_back(ftr);
 		++iter;
 	}
 	stream.close();
+
+	// if we are randomly sampling the new features, do that sampling process now.
+	if (num_to_sample && (new_features.size() > num_to_sample))
+	{
+		std::random_shuffle(new_features.begin(), new_features.end());
+
+		for (int i = 0; i < num_to_sample; ++i)
+		{
+			features.push_back(new_features.back());
+			new_features.pop_back();
+		}
+	}
+	else
+	{
+		while (!new_features.empty())
+		{
+			features.push_back(new_features.back());
+			new_features.pop_back();
+		}
+	}
 }
 
 std::deque<MoFREAKFeature> MoFREAKUtilities::getMoFREAKFeatures()

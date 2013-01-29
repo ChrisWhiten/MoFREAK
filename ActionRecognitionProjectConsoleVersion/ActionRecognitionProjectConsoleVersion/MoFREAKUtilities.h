@@ -11,6 +11,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include <queue>
+#include <unordered_map>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include "MoSIFTUtilities.h"
@@ -55,7 +56,7 @@ class MoFREAKUtilities
 {
 public:
 	MoFREAKUtilities(int dset);
-	void readMoFREAKFeatures(std::string filename);
+	void readMoFREAKFeatures(std::string filename, int num_to_sample = 0);
 	std::deque<MoFREAKFeature> getMoFREAKFeatures();
 	void clearFeatures();
 
@@ -66,6 +67,8 @@ public:
 
 	void setCurrentAction(string folder_name);
 	int current_action; // for hmdb51..
+	std::unordered_map<std::string, int> actions;
+
 	static const int NUMBER_OF_BYTES_FOR_APPEARANCE = APPEARANCE_BYTES;
 	static const int NUMBER_OF_BYTES_FOR_MOTION = MOTION_BYTES;
 
@@ -97,6 +100,6 @@ private:
 	cv::Mat recent_frame;
 
 	int dataset;
-	enum datasets {KTH, TRECVID, HOLLYWOOD, UTI1, UTI2, HMDB51};
+	enum datasets {KTH, TRECVID, HOLLYWOOD, UTI1, UTI2, HMDB51, UCF101};
 };
 #endif

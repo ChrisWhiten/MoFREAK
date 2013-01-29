@@ -1,5 +1,7 @@
 #include "BagOfWordsRepresentation.h"
 #include <exception>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/core/core.hpp>
 
 // vanilla string split operation.  Direct copy-paste from stack overflow
 // source: http://stackoverflow.com/questions/236129/splitting-a-string-in-c
@@ -98,8 +100,8 @@ unsigned int BagOfWordsRepresentation::hammingDistance(cv::Mat &a, cv::Mat &b)
 
 	for (unsigned i = 0; i < a.cols; ++i)
 	{
-		unsigned int a_bits = (unsigned int)a.at<float>(0, i);
-		unsigned int b_bits = (unsigned int)b.at<float>(0, i);
+		unsigned int a_bits = (unsigned int)a.at<unsigned char>(0, i);
+		unsigned int b_bits = (unsigned int)b.at<unsigned char>(0, i);
 
 		// start as 0000 0001
 		unsigned int bit = 1;
@@ -224,6 +226,7 @@ void BagOfWordsRepresentation::findBestMatch(cv::Mat &feature_vector, cv::Mat &c
 	query_motion_descriptor.release();
 	cluster_motion_descriptor.release();
 }
+
 cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &success)
 {
 	success = false;
@@ -235,6 +238,10 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 	// open file.
 	ifstream input_file(file);
 	string line;
+
+	// load clusters for matching
+	cv::BFMatcher bf_matcher(cv::NORM_HAMMING);
+	bf_matcher.add(clusters_for_matching);
 
 	while (std::getline(input_file, line))
 	{
@@ -248,24 +255,28 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 		}
 
 		// read line and parse into FEATURE_DIMENSIONALITY-dim vector.
-		cv::Mat feature_vector(1, FEATURE_DIMENSIONALITY, CV_32FC1);
+		cv::Mat feature_vector(1, FEATURE_DIMENSIONALITY, CV_8U);
 		float elem;
 		
 		for (unsigned int i = 0; i < FEATURE_DIMENSIONALITY; ++i)
 		{
 			iss >> elem;
-			feature_vector.at<float>(0, i) = elem;
+			feature_vector.at<unsigned char>(0, i) = (unsigned char)elem;
 		}
+		
+		std::vector<cv::DMatch> matches;
+		bf_matcher.match(feature_vector, matches);		
 
 		// match that vector against centroids to assign to correct codeword.
-		// brute force match each mosift point against all clusters to find best match.
+		// brute force match each mofreak point against all clusters to find best match.
+		// DEPRECATED [TODO]
 		int best_cluster_index;
 		float best_cluster_score;
-		
-		findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
+		//findBestMatch(feature_vector, *clusters, best_cluster_index, best_cluster_score);
 
 		// + 1 to that codeword
-		histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
+		//histogram.at<float>(0, best_cluster_index) = histogram.at<float>(0, best_cluster_index) + 1;
+		histogram.at<float>(0, matches[0].imgIdx) = histogram.at<float>(0, matches[0].imgIdx) + 1;
 		success = true;
 		feature_vector.release();
 	}
@@ -292,30 +303,33 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 
 void BagOfWordsRepresentation::loadClusters()
 {
-	clusters = new cv::Mat(NUMBER_OF_CLUSTERS, FEATURE_DIMENSIONALITY, CV_32FC1);
+	clusters = new cv::Mat(NUMBER_OF_CLUSTERS, FEATURE_DIMENSIONALITY, CV_8U);
 
-	string cluster_path = "clusters.txt";
+	string cluster_path = SVM_PATH + "/clusters.txt";
 
-	bool DISTRIBUTED = false;
-	if (DISTRIBUTED)
-	{
-		cluster_path = "C:/TRECVID/clusters.txt";
-	}
 	ifstream cluster_file(cluster_path);
-	string line;
+	if ((!cluster_file.is_open()) || cluster_file.bad())
+	{
+		cout << "could not open clusters file" << endl;
+		exit(1);
+	}
 
+	string line;
 	unsigned int row = 0;
+	
 	while (std::getline(cluster_file, line))
 	{
+		cv::Mat single_cluster(1, FEATURE_DIMENSIONALITY, CV_8U);
 		float elem;
 		for (unsigned int col = 0; col < FEATURE_DIMENSIONALITY; ++col)
 		{
 			cluster_file >> elem;
-			clusters->at<float>(row, col) = elem;
+			clusters->at<unsigned char>(row, col) = (unsigned char)elem;
+			single_cluster.at<unsigned char>(0, col) = (unsigned char)elem;
 		}
+		clusters_for_matching.push_back(single_cluster);
 		++row;
 	}
-
 	cluster_file.close();
 }
 
@@ -986,191 +1000,213 @@ void BagOfWordsRepresentation::computeHMDB51BagOfWords(string SVM_PATH, string M
 	test2.close();
 	test3.close();
 }
-void BagOfWordsRepresentation::computeBagOfWords(string SVM_PATH, string MOFREAK_PATH, string METADATA_PATH)
+
+void BagOfWordsRepresentation::extractMetadata(std::string filename, int &action, int &group, int &clip_number)
 {
-	if (dataset == HMDB51)
+	if (false)//dataset == KTH)
 	{
-		computeHMDB51BagOfWords(SVM_PATH, MOFREAK_PATH, METADATA_PATH);
-		return;
-	}
-	// open file streams to write data for SVM
-	ofstream hist_file("hist.txt");
-	ofstream label_file("label.txt");
-
-	vector<ofstream *> training_files;
-	vector<ofstream *> testing_files;
-	vector<vector<string> > training_file_lines;
-	vector<vector<string> > testing_file_lines;
-
-	if (dataset == KTH)
-	{
-	for (int i = 0; i < NUMBER_OF_PEOPLE; ++i)
-	{
-		stringstream training_string;
-		stringstream testing_string;
-
-		training_string << "C:/data/kth/svm/left_out_" << i + 1 << ".train";
-		testing_string << "C:/data/kth/svm/left_out_" << i + 1 << ".test";
-
-		ofstream *training_file = new ofstream(training_string.str());
-		ofstream *testing_file = new ofstream(testing_string.str());
-
-		training_string.str("");
-		training_string.clear();
-		testing_string.str("");
-		testing_string.clear();
-
-		training_files.push_back(training_file);
-		testing_files.push_back(testing_file);
-
-		vector<string> training_lines;
-		vector<string> testing_lines;
-		training_file_lines.push_back(training_lines);
-		testing_file_lines.push_back(testing_lines);
-	}
-	}
-
-	/*
-	For each file, find the action + person number + video number
-	person01_boxing_d2_uncomp.txt....
-	So, split it on the underscore.
-	word_1[-2:] is the person.
-	word_2[:] should match one of the strings...
-	word_3[1:] is the video number
-	*/
-	
-	cout << "parallel time" << endl;
-#pragma omp parallel for
-	for (int i = 0; i < files.size(); ++i)
-	{
-		boost::filesystem::path file_path(files[i]);
-		boost::filesystem::path file_name = file_path.filename();
-		std::string file_name_str = file_name.generic_string();
-
-		int action, person, video_number;
-
-		if (dataset == KTH)
-		{
 		// get the action.
-		if (boost::contains(file_name_str, "boxing"))
+		if (boost::contains(filename, "boxing"))
 		{
 			action = BOXING;
 		}
-		else if (boost::contains(file_name_str, "walking"))
+		else if (boost::contains(filename, "walking"))
 		{
 			action = WALKING;
 		}
-		else if (boost::contains(file_name_str, "jogging"))
+		else if (boost::contains(filename, "jogging"))
 		{
 			action = JOGGING;
 		}
-		else if (boost::contains(file_name_str, "running"))
+		else if (boost::contains(filename, "running"))
 		{
 			action = RUNNING;
 		}
-		else if (boost::contains(file_name_str, "handclapping"))
+		else if (boost::contains(filename, "handclapping"))
 		{
 			action = HANDCLAPPING;
 		}
-		else if (boost::contains(file_name_str, "handwaving"))
+		else if (boost::contains(filename, "handwaving"))
 		{
 			action = HANDWAVING;
 		}
 		else
 		{
-			action = HANDWAVING; // hopefully we never miss this?  Just giving a default value. 
-		}
-
-		std::vector<std::string> filename_parts = split(file_name_str, '_');
-		std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> person;
-		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> video_number;
-		}
-		else if (dataset == UTI2)
-		{
-			// parse the filename.
-			std::vector<std::string> filename_parts = split(file_name_str, '_');
-
-			// the "person" (video) is the number after the first underscore.
-			std::string person_str = filename_parts[1];
-			std::stringstream(filename_parts[1]) >> person;
-
-			// the action is the number after the second underscore, before .avi.
-			std::string vid_str = filename_parts[2];
-			std::stringstream(filename_parts[2].substr(0, 1)) >> action;
-
-			// video number.. not sure if useful for this dataset.
-			std::stringstream(filename_parts[0]) >> video_number;
-		}
-
-		// now extract each mosift point and assign it to the correct codeword.
-		bool success;
-		cv::Mat hist;
-		try
-		{
-			hist = buildHistogram(files[i], success);
-		}
-		catch (cv::Exception &e)
-		{
-			cout << "Error: " << e.what() << endl;
+			std::cout << "Didn't find action: " << filename << std::endl;
 			exit(1);
 		}
 
-		if (!success)
-			continue;
-
-		/*
-		Prepare each histogram to be written as a line to multiple files.
-		It gets assigned to each training file, except for the training
-		file where the person id matches that leave-one-out iteration
-		*/
-
-		stringstream ss;
-		string current_line;
-
-		ss << (action + 1) << " ";
-		for (int col = 0; col < hist.cols; ++col)
-		{
-			ss << (int)(col + 1) << ":" << (float)hist.at<float>(0, col) << " ";
-		}
-		current_line = ss.str();
-		ss.str("");
-		ss.clear();
-
-		for (int p = 0; p < NUMBER_OF_PEOPLE; ++p)
-		{
-			if ((p + 1) == person)
-			{
-				testing_file_lines[p].push_back(current_line);
-			}
-			else
-			{
-				training_file_lines[p].push_back(current_line);
-			}
-		}
+		std::vector<std::string> filename_parts = split(filename, '_');
+		std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> group;
+		std::stringstream(filename_parts[2].substr(filename_parts[2].length() - 1, 1)) >> clip_number;
 	}
+	else if (dataset == UTI2)
+	{
+		// parse the filename.
+		std::vector<std::string> filename_parts = split(filename, '_');
 
-	cout << "done being parallel" << endl;
+		// the "person" (video) is the number after the first underscore.
+		std::string person_str = filename_parts[1];
+		std::stringstream(filename_parts[1]) >> group;
+
+		// the action is the number after the second underscore, before .avi.
+		std::string vid_str = filename_parts[2];
+		std::stringstream(filename_parts[2].substr(0, 1)) >> action;
+
+		// video number.. not sure if useful for this dataset.
+		std::stringstream(filename_parts[0]) >> clip_number;
+	}
+	else if (dataset == UCF101 || dataset == KTH)
+	{
+		std::vector<std::string> filename_parts = split(filename, '_');
+
+		// extract action.
+		std::string parsed_action = filename_parts[1];
+
+		if (actions.find(parsed_action) == actions.end())
+		{
+			actions[parsed_action] = actions.size();
+		}
+
+		action = actions[parsed_action];
+
+		// extract group
+		if (dataset == KTH)
+		{
+			std::stringstream(filename_parts[0].substr(filename_parts[0].length() - 2, 2)) >> group;
+		}
+		else
+		{
+			std::string parsed_group = filename_parts[2].substr(1, 2);
+			std::stringstream(parsed_group) >> group;
+		}
+		group--; // group indices start at 0, not 1, so decrement.
+
+		// extract clip number.
+		std::string parsed_clip = filename_parts[3].substr(2, 2);
+		std::stringstream(parsed_clip) >> clip_number;
+	}
+}
+
+void BagOfWordsRepresentation::intializeBOWMemory(string SVM_PATH)
+{
+
+	// initialize the output files and memory for BOW features for each grouping.
+	for (int group = 0; group < NUMBER_OF_GROUPS; ++group)
+	{
+		stringstream training_filepath, testing_filepath;
+		training_filepath << SVM_PATH << "/" << group + 1 << ".train";
+		testing_filepath << SVM_PATH << "/" << group + 1 << ".test";
+
+		ofstream *training_filestream = new ofstream(training_filepath.str());
+		ofstream *testing_filestream = new ofstream(testing_filepath.str());
+
+		training_files.push_back(training_filestream);
+		testing_files.push_back(testing_filestream);
+
+		training_filepath.str("");
+		training_filepath.clear();
+		testing_filepath.str("");
+		testing_filepath.clear();
+
+		std::vector<string> training_features;
+		std::vector<string> testing_features;
+		bow_training_crossvalidation_sets.push_back(training_features);
+		bow_testing_crossvalidation_sets.push_back(testing_features);
+	}
+}
+
+void BagOfWordsRepresentation::convertFileToBOWFeature(std::string file)
+{
+	boost::filesystem::path file_path(file);
+	boost::filesystem::path file_name = file_path.filename();
+	std::string file_name_str = file_name.generic_string();
+
+	// extract the metadata from this file, such as the group and action performed.
+	int action, group, video_number;
+	extractMetadata(file_name_str, action, group, video_number);
 
 	/*
-	Finally, after all of the BOW features have been computed,
-	we write them to the corresponding files.
-	This is outside of the parallelized loop,
-	since writing to a file isn't thread-safe.
+	Now, extract each mofreak features and assign them to the correct codeword.
+	buildHistogram returns a histogram representation (1 row, num_clust cols)
+	of the bag-of-words feature.  If for any reason the process fails,
+	the "success" boolean will be returned as false
 	*/
+	bool success;
+	cv::Mat bow_feature;
 
-	if (training_file_lines.size() != NUMBER_OF_PEOPLE || testing_file_lines.size() != NUMBER_OF_PEOPLE)
+	try
 	{
-		cout << "Why on earth?" << endl;
+		bow_feature = buildHistogram(file, success);
+	}
+	catch (cv::Exception &e)
+	{
+		cout << "Error: " << e.what() << endl;
 		exit(1);
 	}
-	for (int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+
+	if (!success)
 	{
-		cout << "num lines: " << training_file_lines[i].size() << endl;
-		for (unsigned line = 0; line < training_file_lines[i].size(); ++line)
+		std::cout << "Bag-of-words feature construction was unsuccessful.  Investigate." << std::endl;
+		exit(1);
+	//	continue;
+	}
+
+	/*
+	Prepare each histogram to be written as a line to multiple files.
+	It gets assigned to each training file, except for the training
+	file where the group id matches that leave-one-out iteration
+	*/
+
+	stringstream ss;
+	ss << (action + 1) << " ";
+
+	for (int col = 0; col < bow_feature.cols; ++col)
+	{
+		ss << (int)(col + 1) << ":" << (float)bow_feature.at<float>(0, col) << " ";
+	}
+
+	string current_line;
+	current_line = ss.str();
+	ss.str("");
+	ss.clear();
+
+	for (int g = 0; g < NUMBER_OF_GROUPS; ++g)
+	{
+		// for earlier datasets, we started groupings at 1 (first person, etc).
+		// Transitioning to 0-indexing, but keeping this here as a reminder,
+		// in case we run into any missed cases.
+
+		//if ((g + 1) == group)
+		if (g == group)
+		{
+			bow_testing_crossvalidation_sets[g].push_back(current_line);
+		}
+		else
+		{
+			bow_training_crossvalidation_sets[g].push_back(current_line);
+		}
+	}
+}
+
+void BagOfWordsRepresentation::writeBOWFeaturesToFiles()
+{
+	// ensure that we have the correct number of open files
+	if (bow_training_crossvalidation_sets.size() != NUMBER_OF_GROUPS || bow_testing_crossvalidation_sets.size() != NUMBER_OF_GROUPS)
+	{
+		cout << "Incorrect number of training or testing file lines.  Check mapping from bow feature to test/train files" << endl;
+		exit(1);
+	}
+
+	// for each group, write the training and testing cross-validation files.
+	for (int i = 0; i < NUMBER_OF_GROUPS; ++i)
+	{
+		cout << "number of training features: " << bow_training_crossvalidation_sets[i].size() << endl;
+		for (unsigned line = 0; line < bow_training_crossvalidation_sets[i].size(); ++line)
 		{
 			try
 			{
-				*training_files[i] << training_file_lines[i][line] << endl;
+				*training_files[i] << bow_training_crossvalidation_sets[i][line] << endl;
 			}
 			catch (exception &e)
 			{
@@ -1179,12 +1215,12 @@ void BagOfWordsRepresentation::computeBagOfWords(string SVM_PATH, string MOFREAK
 			}
 		}
 		
-		cout << "num lines: " << testing_file_lines[i].size() << endl;
-		for (unsigned line = 0; line < testing_file_lines[i].size(); ++line)
+		cout << "number of testing features: " << bow_testing_crossvalidation_sets[i].size() << endl;
+		for (unsigned line = 0; line < bow_testing_crossvalidation_sets[i].size(); ++line)
 		{
 			try
 			{
-				*testing_files[i] << testing_file_lines[i][line] << endl;
+				*testing_files[i] << bow_testing_crossvalidation_sets[i][line] << endl;
 			}
 			catch (exception &e)
 			{
@@ -1194,10 +1230,10 @@ void BagOfWordsRepresentation::computeBagOfWords(string SVM_PATH, string MOFREAK
 		}
 	}
 
-	cout << "Wrote to files." << endl;
+	cout << "Finished writing to cross-validation files." << endl;
 
 	// close the libsvm training and testing files.
-	for (int i = 0; i < NUMBER_OF_PEOPLE; ++i)
+	for (int i = 0; i < NUMBER_OF_GROUPS; ++i)
 	{
 		training_files[i]->close();
 		testing_files[i]->close();
@@ -1206,32 +1242,85 @@ void BagOfWordsRepresentation::computeBagOfWords(string SVM_PATH, string MOFREAK
 		delete testing_files[i];
 	}
 
-	cout << "Closed the files. " << endl;
+	cout << "Closed all cross-validation files. " << endl;
 
 	training_files.clear();
 	testing_files.clear();
-
-	cout << "Cleared..." << endl;
 }
 
-BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim) : NUMBER_OF_CLUSTERS(num_clust),
-	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(0)
+void BagOfWordsRepresentation::computeBagOfWords(string SVM_PATH, string MOFREAK_PATH, string METADATA_PATH)
+{
+	if (dataset == HMDB51)
+	{
+		computeHMDB51BagOfWords(SVM_PATH, MOFREAK_PATH, METADATA_PATH);
+		return;
+	}
+
+	if (dataset == KTH || dataset == UCF101)
+	{
+		for (int i = 0; i < NUMBER_OF_GROUPS; ++i)
+		{
+			stringstream training_string;
+			stringstream testing_string;
+
+			training_string << SVM_PATH + "/left_out_" << i + 1 << ".train";
+			testing_string << SVM_PATH + "/left_out_" << i + 1 << ".test";
+
+			ofstream *training_file = new ofstream(training_string.str());
+			ofstream *testing_file = new ofstream(testing_string.str());
+
+			training_string.str("");
+			training_string.clear();
+			testing_string.str("");
+			testing_string.clear();
+
+			training_files.push_back(training_file);
+			testing_files.push_back(testing_file);
+
+			vector<string> training_lines;
+			vector<string> testing_lines;
+			bow_training_crossvalidation_sets.push_back(training_lines);
+			bow_testing_crossvalidation_sets.push_back(testing_lines);
+		}
+	}
+	
+	cout << "parallelizing bag-of-words matches across files." << endl;
+#pragma omp parallel for
+	for (int i = 0; i < files.size(); ++i)
+	{
+		convertFileToBOWFeature(files[i]);
+	}
+	cout << "done bag-of-words feature construction" << endl;
+
+	/*
+	Finally, after all of the BOW features have been computed,
+	we write them to the corresponding files.
+	This is outside of the parallelized loop,
+	since writing to a file isn't thread-safe.
+	*/
+	writeBOWFeaturesToFiles();
+}
+
+BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim, std::string svm_path, int num_groups, int dset) : 
+	NUMBER_OF_CLUSTERS(num_clust), FEATURE_DIMENSIONALITY(ftr_dim), SVM_PATH(svm_path), NUMBER_OF_GROUPS(num_groups), dataset(dset)
 {
 	loadClusters();
-	normalizeClusters();
+	//normalizeClusters();
 
 	motion_descriptor_size = 8;
-	appearance_descriptor_size = 0;
+	appearance_descriptor_size = 8;
 	motion_is_binary = true;
 	appearance_is_binary = true;
 }
 
 BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &file_list, 
-	int num_clust, int ftr_dim, int num_people, bool appearance_is_bin, 
-	bool motion_is_bin, int dset) : NUMBER_OF_CLUSTERS(num_clust), 
-	FEATURE_DIMENSIONALITY(ftr_dim), NUMBER_OF_PEOPLE(num_people), 
-	motion_is_binary(motion_is_bin), appearance_is_binary(appearance_is_bin),
-	dataset(dset)
+	int num_clust, int ftr_dim, int num_groups, bool appearance_is_bin, 
+	bool motion_is_bin, int dset, std::string svm_path) :
+
+	NUMBER_OF_CLUSTERS(num_clust), FEATURE_DIMENSIONALITY(ftr_dim), 
+	NUMBER_OF_GROUPS(num_groups), motion_is_binary(motion_is_bin), 
+	appearance_is_binary(appearance_is_bin), dataset(dset),
+	SVM_PATH(svm_path)
 {
 	files = file_list;
 	loadClusters();
