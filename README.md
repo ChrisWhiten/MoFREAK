@@ -19,5 +19,5 @@ Notes:
 - Within main.cpp, there are a few things to set before using this software.
 - At the top, there is a bool called TRECVID.  Set it to true if performing tests on the TRECVID dataset, false for KTH.
 - The function setParameters() sets the folder locations that can be modified.  My apologies that this is not more modifiable outside of the source.  Future work :)
-- Finally, to set the task, there is a 'state' variable in the main() function.  MOSIFT_TO_DETECTION computes MoFREAK from MoSIFT, gets bag of words features,
+- Finally, to set the task, there is a 'state' variable in the main() function.  MOFREAK_TO_DETECTION computes MoFREAK descriptors, gets bag of words features,
 tests each feature against the SVM, and finds detections by local maxima in the SVM response space.

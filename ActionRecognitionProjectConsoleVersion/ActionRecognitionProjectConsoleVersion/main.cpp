@@ -968,7 +968,7 @@ void main()
 		
 		else if (dataset == KTH || dataset == UTI2 || dataset == UCF101)
 		{
-			//cluster();
+			cluster();
 			computeBOWRepresentation();
 			double avg_acc = classify();
 		}

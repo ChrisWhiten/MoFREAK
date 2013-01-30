@@ -42,6 +42,7 @@ unsigned int MoFREAKUtilities::countOnes(unsigned int byte)
 // Assumes both matrices are 19 x 19, and we will check the 8 motion patch locations in the previous frame
 // returns a binary descriptor representing the MIP responses for the patch at the SURF descriptor.
 // x, y correspond to the location in the 19x19 roi that we are centering a patch around.
+/*
 unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, cv::Mat &prev_frame, int x, int y)
 {
 	const int THETA = 10368;//5184;//2592;//1296; // recommended by MIP paper
@@ -72,6 +73,193 @@ unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, 
 	// opencv might have an optimized ssd, i didn't find it though.
 	unsigned int bit = 1;
 	unsigned int descriptor = 0;
+	for (auto it = previous_patches.begin(); it != previous_patches.end(); ++it)
+	{
+		int ssd = 0;
+		for (int row = 0; row < 3; ++row)
+		{
+			uchar *p = patch_t.data;
+			uchar *p2 = it->data;
+			for (int col = 0; col < 3; ++col)
+			{
+				ssd += (int)pow((float)((*p) - (*p2)), 2);
+				p++;
+				p2++;
+			}
+		}
+
+		if (ssd > THETA) // try switching to <...
+		{
+			descriptor |= bit;
+		}
+		bit <<= 1;
+	}
+
+	return descriptor;
+}
+*/
+unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, cv::Mat &prev_frame, int x, int y)
+{
+	//return 0;
+	bool GAUSSIAN_CHECK = true;
+	const int THETA = 64;//10368;//5184;//2592;//1296; // recommended by MIP paper
+	unsigned int bit = 1;
+	unsigned int descriptor = 0;
+	cv::Mat *blurred_current, *blurred_prev;
+
+	if (GAUSSIAN_CHECK)
+	{
+		blurred_current = new cv::Mat();
+		blurred_prev = new cv::Mat();
+
+		// blur with a 5x5 Gaussian
+		//std::cout << "Size: " << current_frame.rows << ", " << current_frame.cols << endl;//current_frame.size() << std::endl;
+		cv::GaussianBlur(current_frame, *blurred_current, cv::Size(5, 5), 0);
+		cv::GaussianBlur(prev_frame, *blurred_prev, cv::Size(5, 5), 0);
+
+		
+		// (-4, 0)
+		try
+		{
+			//cout << abs(blurred_current->at<unsigned char>(x, y) - blurred_prev->at<unsigned char>(x - 4, y)) << ", " << THETA << endl;
+			if (abs(blurred_current->at<unsigned char>(x, y) - blurred_prev->at<unsigned char>(x - 4, y)) > THETA)
+			{
+				descriptor |= bit;
+			}
+		}
+		catch (...)
+		{
+			cout << "Out of bounds maybe? -4, 0" << endl;
+		}
+		bit <<= 1;
+		// (-3, 3)
+		try
+		{
+			if (abs(blurred_current->at<unsigned char>(x, y) - blurred_prev->at<unsigned char>(x - 3, y + 3)) > THETA)
+			{
+				descriptor |= bit;
+			}
+		}
+		catch (...)
+		{
+			cout << "Out of bounds? -3, 3" << endl;
+		}
+		bit <<= 1;
+		
+		// (0, 4)
+		try
+		{
+			if (abs(blurred_current->at<unsigned char>(x, y) - blurred_prev->at<unsigned char>(x, y + 4)) > THETA)
+			{
+				descriptor |= bit;
+			}
+		}
+		catch (...)
+		{
+			cout << "Out of bounds? 0, 4" << endl;
+		}
+		bit <<= 1;
+		
+		// (3, 3)
+		try
+		{
+			if (abs(blurred_current->at<unsigned char>(x, y) - blurred_prev->at<unsigned char>(x + 3, y + 3)) > THETA)
+			{
+				descriptor |= bit;
+			}
+		}
+		catch (...)
+		{
+			cout << "out of bounds? 3, 3" << endl;
+		}
+		bit <<= 1;
+		
+		// (4, 0)
+		try
+		{
+			if (abs(blurred_current->at<unsigned char>(x, y) - blurred_prev->at<unsigned char>(x + 4, y)) > THETA)
+			{
+				descriptor |= bit;
+			}
+		}
+		catch (...)
+		{
+			cout << "out of bounds? 4, 0" << endl;
+		}
+		bit <<= 1;
+		
+		// (3, -3)
+		try
+		{
+			if (abs(blurred_current->at<unsigned char>(x, y) - blurred_prev->at<unsigned char>(x + 3, y - 3)) > THETA)
+			{
+				descriptor |= bit;
+			}
+		}
+		catch (...)
+		{
+			cout << "out of bounds? 3, -3" << endl;
+		}
+		bit <<= 1;
+		
+		// (0, -4)
+		try
+		{
+			if (abs(blurred_current->at<unsigned char>(x, y) - blurred_prev->at<unsigned char>(x, y - 4)) > THETA)
+			{
+				descriptor |= bit;
+			}
+		}
+		catch (...)
+		{
+			cout << "out of bounds? 0 -4" << endl;
+		}
+		bit <<= 1;
+		
+		// (-3, -3)
+		try
+		{
+			if (abs(blurred_current->at<unsigned char>(x, y) - blurred_prev->at<unsigned char>(x - 3, y - 3)) > THETA)
+			{
+				descriptor |= bit;
+			}
+		}
+		catch (...)
+		{
+			cout << "out of bounds? -3 -3" << endl;
+		}
+		bit <<= 1;
+
+		delete blurred_current;
+		delete blurred_prev;
+		
+		return descriptor;
+	}
+	// extract patch on current frame.
+	cv::Rect roi(x - 1, y - 1, 3, 3);
+	cv::Mat patch_t(current_frame, roi);
+
+	// extract patches from previous frame.
+	vector<cv::Mat> previous_patches;
+	// (-4, 0)
+	previous_patches.push_back(prev_frame(cv::Rect((x - 4) - 1, y - 1, 3, 3)));
+	// (-3, 3)
+	previous_patches.push_back(prev_frame(cv::Rect((x - 3) - 1, (y + 3) - 1, 3, 3)));
+	// (0, 4)
+	previous_patches.push_back(prev_frame(cv::Rect(x - 1, (y + 4) - 1, 3, 3)));
+	// (3, 3)
+	previous_patches.push_back(prev_frame(cv::Rect((x + 3) - 1, (y + 3) - 1, 3, 3)));
+	// (4, 0)
+	previous_patches.push_back(prev_frame(cv::Rect((x + 4) - 1, y - 1, 3, 3)));
+	// (3, -3)
+	previous_patches.push_back(prev_frame(cv::Rect((x + 3) - 1, (y - 3) - 1, 3, 3)));
+	// (0, -4)
+	previous_patches.push_back(prev_frame(cv::Rect(x - 1, (y - 4) - 1, 3, 3)));
+	// (-3, -3)
+	previous_patches.push_back(prev_frame(cv::Rect((x - 3) - 1, (y - 3) - 1, 3, 3)));
+
+	// now do SSD between current patch and all of those patches.
+	// opencv might have an optimized ssd, i didn't find it though.
 	for (auto it = previous_patches.begin(); it != previous_patches.end(); ++it)
 	{
 		int ssd = 0;
