@@ -1,4 +1,4 @@
-ActionRecognitionProject
+MoFREAK
 ========================
 
 Action recognition for surveillance scenarios with local binary feature descriptors.
