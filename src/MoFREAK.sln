@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ActionRecognitionProjectConsoleVersion", "ActionRecognitionProjectConsoleVersion\ActionRecognitionProjectConsoleVersion.vcxproj", "{200F7B4F-B97F-40C1-8511-D41D516C955F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ActionRecognitionProjectConsoleVersion", "MoFREAK\MoFREAK.vcxproj", "{200F7B4F-B97F-40C1-8511-D41D516C955F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -42,10 +42,10 @@ unsigned int MoFREAKUtilities::countOnes(unsigned int byte)
 // Assumes both matrices are 19 x 19, and we will check the 8 motion patch locations in the previous frame
 // returns a binary descriptor representing the MIP responses for the patch at the SURF descriptor.
 // x, y correspond to the location in the 19x19 roi that we are centering a patch around.
-/*
+
 unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, cv::Mat &prev_frame, int x, int y)
 {
-	const int THETA = 10368;//5184;//2592;//1296; // recommended by MIP paper
+	const int THETA = 288;//10368;//5184;//2592;//1296; // 288 means an average intensity difference of at least 32 per pixel.
 	// extract patch on current frame.
 	cv::Rect roi(x - 1, y - 1, 3, 3);
 	cv::Mat patch_t(current_frame, roi);
@@ -88,7 +88,7 @@ unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, 
 			}
 		}
 
-		if (ssd > THETA) // try switching to <...
+		if (ssd > THETA) 
 		{
 			descriptor |= bit;
 		}
@@ -97,8 +97,8 @@ unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, 
 
 	return descriptor;
 }
-*/
-unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, cv::Mat &prev_frame, int x, int y)
+
+/*unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, cv::Mat &prev_frame, int x, int y)
 {
 	//return 0;
 	bool GAUSSIAN_CHECK = true;
@@ -114,8 +114,8 @@ unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, 
 
 		// blur with a 5x5 Gaussian
 		//std::cout << "Size: " << current_frame.rows << ", " << current_frame.cols << endl;//current_frame.size() << std::endl;
-		cv::GaussianBlur(current_frame, *blurred_current, cv::Size(5, 5), 0);
-		cv::GaussianBlur(prev_frame, *blurred_prev, cv::Size(5, 5), 0);
+		cv::GaussianBlur(current_frame, *blurred_current, cv::Size(7, 7), 0);
+		cv::GaussianBlur(prev_frame, *blurred_prev, cv::Size(7, 7), 0);
 
 		
 		// (-4, 0)
@@ -283,7 +283,7 @@ unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, 
 	}
 
 	return descriptor;
-}
+}*/
 
 void MoFREAKUtilities::extractMotionByMotionInterchangePatterns(cv::Mat &current_frame, cv::Mat &prev_frame,
 	vector<unsigned int> &motion_descriptor, 
@@ -1139,7 +1139,6 @@ void MoFREAKUtilities::readMoFREAKFeatures(std::string filename, int num_to_samp
 
 	int action, video_number, person;
 	readMetadata(filename, action, video_number, person);
-	std::cout << "read metadata." << std::endl;
 
 	ifstream stream;
 	stream.open(filename);

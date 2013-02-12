@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{200F7B4F-B97F-40C1-8511-D41D516C955F}</ProjectGuid>
-    <RootNamespace>ActionRecognitionProjectConsoleVersion</RootNamespace>
+    <RootNamespace>MoFREAK</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

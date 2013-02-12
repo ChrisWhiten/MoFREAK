@@ -3,11 +3,13 @@
 
 #include <opencv2\core\core.hpp>
 #include <opencv2/features2d/features2d.hpp>
+
 #include <fstream>
 #include <stdio.h>
 #include <list>
 #include <unordered_map>
 #include <sstream>
+#include <limits>
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
@@ -41,10 +43,15 @@ private:
 	cv::Mat buildHistogram(std::string &file, bool &success);
 	int actionStringToActionInt(string act);
 
+	unsigned int hammingDistance(unsigned char a, unsigned char b);
+	unsigned int hammingDistance(cv::Mat &a, cv::Mat &b);
+	int bruteForceMatch(cv::Mat &feature);
+
 	std::vector<std::string> split(const std::string &s, char delim);
 	std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
 	std::vector<std::string> files;
+	cv::BFMatcher *bf_matcher;
 	const unsigned int NUMBER_OF_CLUSTERS;
 	const unsigned int FEATURE_DIMENSIONALITY;
 	const unsigned int NUMBER_OF_GROUPS;

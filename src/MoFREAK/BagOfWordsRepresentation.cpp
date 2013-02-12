@@ -1,7 +1,6 @@
 #include "BagOfWordsRepresentation.h"
 #include <exception>
-#include <opencv2/features2d/features2d.hpp>
-#include <opencv2/core/core.hpp>
+
 
 // vanilla string split operation.  Direct copy-paste from stack overflow
 // source: http://stackoverflow.com/questions/236129/splitting-a-string-in-c
@@ -20,6 +19,58 @@ std::vector<std::string> BagOfWordsRepresentation::split(const std::string &s, c
     return split(s, delim, elems);
 }
 
+int BagOfWordsRepresentation::bruteForceMatch(cv::Mat &feature)
+{
+	int shortest_distance = INT_MAX;
+	int shortest_index = -1;
+
+	for (int i = 0; i < clusters_for_matching.size(); i++)
+	{
+		unsigned int dist = hammingDistance(feature, clusters_for_matching[i]);
+		if (dist < shortest_distance)
+		{
+			shortest_distance = dist;
+			shortest_index = i;
+		}
+	}
+	return shortest_index;
+}
+
+unsigned int BagOfWordsRepresentation::hammingDistance(cv::Mat &a, cv::Mat &b)
+{
+	unsigned int distance = 0;
+	for (int row = 0; row < a.rows; ++row)
+	{
+		for (int col = 0; col < a.cols; ++col)
+		{
+			distance += hammingDistance(a.at<unsigned char>(row, col), b.at<unsigned char>(row, col));
+		}
+	}
+
+	return distance;
+}
+
+unsigned int BagOfWordsRepresentation::hammingDistance(unsigned char a, unsigned char b)
+{
+	unsigned int hamming_distance = 0;
+	// start as 0000 0001
+	unsigned int bit = 1;
+
+	// get the xor of a and b, each 1 in the xor adds to the hamming distance...
+	unsigned int xor_result = a ^ b;
+
+	// now count the bits, using 'bit' as a mask and performing a bitwise AND
+	for (bit = 1; bit != 0; bit <<= 1)
+	{
+		if ((xor_result & bit) != 0)
+		{
+			hamming_distance++;
+		}
+	}
+
+	return hamming_distance;
+}
+
 cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &success)
 {
 	success = false;
@@ -31,10 +82,6 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 	// open file.
 	ifstream input_file(file);
 	string line;
-
-	// load clusters for matching
-	cv::BFMatcher bf_matcher(cv::NORM_HAMMING);
-	bf_matcher.add(clusters_for_matching);
 
 	while (std::getline(input_file, line))
 	{
@@ -59,11 +106,13 @@ cv::Mat BagOfWordsRepresentation::buildHistogram(std::string &file, bool &succes
 
 		// match that vector against centroids to assign to correct codeword.
 		// brute force match each mofreak point against all clusters to find best match.
-		std::vector<cv::DMatch> matches;
-		bf_matcher.match(feature_vector, matches);
+		//std::vector<cv::DMatch> matches;
+		//bf_matcher->match(feature_vector, matches);
+		int best_match = bruteForceMatch(feature_vector);
 
 		// + 1 to that codeword
-		histogram.at<float>(0, matches[0].imgIdx) = histogram.at<float>(0, matches[0].imgIdx) + 1;
+		//histogram.at<float>(0, matches[0].imgIdx) = histogram.at<float>(0, matches[0].imgIdx) + 1;
+		histogram.at<float>(0, best_match) = histogram.at<float>(0, best_match) + 1;
 		success = true;
 		feature_vector.release();
 	}
@@ -118,14 +167,14 @@ void BagOfWordsRepresentation::loadClusters()
 		++row;
 	}
 	cluster_file.close();
+
+	// add clusters to bruteforce matcher.
+	bf_matcher->add(clusters_for_matching);
 }
 
 // when doing this, make sure all mofreak points for the video are in ONE file, to avoid missing cuts.
 void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int alpha, int label, ofstream &out)
 {
-	// descriptor matcher.
-	cv::BFMatcher bf_matcher(cv::NORM_HAMMING);
-	bf_matcher.add(clusters_for_matching);
 
 	bool over_alpha_frames = false;
 	string distance_file = file;
@@ -206,7 +255,7 @@ void BagOfWordsRepresentation::computeSlidingBagOfWords(std::string &file, int a
 				// match that vector against centroids to assign to correct codeword.
 				// brute force match each mofreak point against all clusters to find best match.
 				std::vector<cv::DMatch> matches;
-				bf_matcher.match(*it, matches);	
+				bf_matcher->match(*it, matches);	
 
 				// + 1 to that codeword
 				new_histogram.at<float>(0, matches[0].imgIdx) = new_histogram.at<float>(0, matches[0].imgIdx) + 1;
@@ -1096,6 +1145,7 @@ void BagOfWordsRepresentation::computeBagOfWords(string SVM_PATH, string MOFREAK
 BagOfWordsRepresentation::BagOfWordsRepresentation(int num_clust, int ftr_dim, std::string svm_path, int num_groups, int dset) : 
 	NUMBER_OF_CLUSTERS(num_clust), FEATURE_DIMENSIONALITY(ftr_dim), SVM_PATH(svm_path), NUMBER_OF_GROUPS(num_groups), dataset(dset)
 {
+	bf_matcher = new cv::BFMatcher(cv::NORM_HAMMING);
 	loadClusters();
 
 	motion_descriptor_size = 8;
@@ -1114,6 +1164,7 @@ BagOfWordsRepresentation::BagOfWordsRepresentation(std::vector<std::string> &fil
 	SVM_PATH(svm_path)
 {
 	files = file_list;
+	bf_matcher = new cv::BFMatcher(cv::NORM_HAMMING);
 	loadClusters();
 
 	// default values.
