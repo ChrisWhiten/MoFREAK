@@ -10,13 +10,19 @@ Dependencies:
 ------------------
 - Boost 1.51.0 (http://www.boostpro.com/download/)
 - OpenCV 2.4.2 (http://opencv.org)
+- Built with Visual Studio 2010
 
+Usage:
+-----------------
+The constructs for performing action recognition already exist for some datasets.  Within main.cpp, there is a setParameters() function that outlines the file structure required for each dataset.  Dataset can be selected at the top of main.cpp with the "dataset" variable, selected from the "datasets" enum.
 
-Notes:
-------------------
-- Within main.cpp, there are a few things to set before using this software.
-- At the top, there is a bool called TRECVID.  Set it to true if performing tests on the TRECVID dataset, false for anything else.  
-- This source code has been heavily modified since TRECVID submission was last tested.  Some functionality may be broken, but the general idea persists within the source code.
-- The function setParameters() sets the folder locations that can be modified.  My apologies that this is not more modifiable outside of the source.  Future work 
-- Finally, to set the task, there is a 'state' variable in the main() function.  MOFREAK_TO_DETECTION computes MoFREAK descriptors, gets bag of words features,
-tests each feature against the SVM, and finds detections by local maxima in the SVM response space.  DETECT_MOFREAK simply computes the MoFREAK descriptors for the entire dataset.
+To exclusively compute the MoFREAK features across a dataset, set the "state" variable at the top of main.cpp to "DETECT_MOFREAK".  This will process each video file, creating a .mofreak file containing its descriptors.
+
+To compute MoFREAK features across the dataset and perform the entire recognition pipeline, set the "state" variable to "DETECTION_TO_CLASSIFICATION".  This will compute the MoFREAK files, cluster the features and compute a bag-of-words representation.  Finally, it will take the bag-of-words representations and classify them with an SVM.
+
+Feature Format:
+----------------
+Within a .mofreak file, each row consists of a single feature.  That feature is organized as follows:
+- [x location] [y location] [frame number] [scale] [throw-away] [throw-away] [8 bytes of appearance data] [8 bytes of motion data]
+
+The x and y location, as well as the scale, are floating point numbers.  The frame number is an integer.  The final 16 bytes of descriptor data are unsigned integers (1 byte per integer).  The throw-away values are floating point values that should always be 0.  They are simply artifacts from previous iterations of the descriptor, and should be ignored.

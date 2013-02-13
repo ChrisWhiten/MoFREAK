@@ -36,13 +36,13 @@ unsigned int NUM_CLUSTERS, NUMBER_OF_GROUPS, NUM_CLASSES, ALPHA;
 vector<int> possible_classes;
 std::deque<MoFREAKFeature> mofreak_ftrs;
 
-enum states {DETECT_MOFREAK, MOFREAK_TO_DETECTION, // standard recognition states
+enum states {DETECT_MOFREAK, DETECTION_TO_CLASSIFICATION, // standard recognition states
 	PICK_CLUSTERS, COMPUTE_BOW_HISTOGRAMS, DETECT, TRAIN, GET_SVM_RESPONSES,}; // these states are exclusive to TRECVID
 
 enum datasets {KTH, TRECVID, HOLLYWOOD, UTI1, UTI2, HMDB51, UCF101};
 
 int dataset = UCF101; //KTH;//HMDB51;
-int state = MOFREAK_TO_DETECTION;
+int state = DETECTION_TO_CLASSIFICATION;
 
 MoFREAKUtilities *mofreak;
 //SVMInterface svm_interface;
@@ -941,10 +941,10 @@ void main()
 	// cluster them,
 	// compute the bag-of-words representation,
 	// and classify.
-	else if (state == MOFREAK_TO_DETECTION)
+	else if (state == DETECTION_TO_CLASSIFICATION)
 	{
 		start = clock();
-		//computeMoFREAKFiles();
+		computeMoFREAKFiles();
 
 		if (dataset == TRECVID)
 		{
@@ -956,7 +956,7 @@ void main()
 		
 		else if (dataset == KTH || dataset == UTI2 || dataset == UCF101)
 		{
-			//cluster();
+			cluster();
 			computeBOWRepresentation();
 			double avg_acc = classify();
 		}
