@@ -76,10 +76,10 @@ unsigned int MoFREAKUtilities::motionInterchangePattern(cv::Mat &current_frame, 
 	for (auto it = previous_patches.begin(); it != previous_patches.end(); ++it)
 	{
 		int ssd = 0;
+        uchar *p = patch_t.data;
+        uchar *p2 = it->data;
 		for (int row = 0; row < 3; ++row)
 		{
-			uchar *p = patch_t.data;
-			uchar *p2 = it->data;
 			for (int col = 0; col < 3; ++col)
 			{
 				ssd += (int)pow((float)((*p) - (*p2)), 2);
@@ -450,18 +450,18 @@ void MoFREAKUtilities::computeMoFREAKFromFile(std::string video_filename, std::s
 				ftr.x = keypt->pt.x;
 				ftr.y = keypt->pt.y;
 
-				for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
+				for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)
 				{
-					ftr.motion[i] = pointer_to_descriptor_row[i];
+					ftr.appearance[i] = pointer_to_descriptor_row[i];
 				}
 
 				// MIP
 				vector<unsigned int> motion_desc;
 				extractMotionByMotionInterchangePatterns(current_frame, prev_frame, motion_desc, keypt->size, keypt->pt.x, keypt->pt.y);
 
-				for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_APPEARANCE; ++i)
+				for (unsigned i = 0; i < NUMBER_OF_BYTES_FOR_MOTION; ++i)
 				{
-					ftr.appearance[i] = motion_desc[i];
+					ftr.motion[i] = motion_desc[i];
 				}
 
 				// gather metadata.
